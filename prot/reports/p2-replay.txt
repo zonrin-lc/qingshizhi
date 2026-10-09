@@ -1,0 +1,2 @@
+P2 REPLAY: pass=100 fail=0 (golden 100 局)
+EXIT=0

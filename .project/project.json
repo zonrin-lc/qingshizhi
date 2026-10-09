@@ -1,0 +1,51 @@
+{
+  "$schema": "../schemas/project.schema.json",
+  "project_id": "m_n643",
+  "author": {
+    "id": "2074247753"
+  },
+  "entry": "main.lua",
+  "version": "1.0.1",
+  "taptap_publish": {
+    "title": "青史志",
+    "description": "重生历史人物，从第一道岔口起，你的每次选择都在对抗历史惯性：顺之者安，逆之者险。李斯/荆轲/韩信/项羽/陈胜，五局青史，等你改笔。",
+    "category": "strategy",
+    "screen_orientation": "landscape",
+    "collection_type": "sce",
+    "trial_note": "文字卡牌策略，横屏体验最佳。",
+    "app_platforms": "1,2",
+    "app_id": 955568,
+    "developer_id": 429502,
+    "miniapp_id": "tapmchoamavbimdoiv",
+    "gameplay_demo_video_source": "https://tapcode-sce.spark.xd.com/videos/m_n643/1790947630723-rec_308671c9-1ace-460d-9660-33b551899afc.mp4"
+  },
+  "assets": {
+    "icon": "./game_material/ICON_2026-10-02T13-28-06_01.png",
+    "screenshots": [
+      "./game_material/SCREENSHOT_2026-10-02T13-28-06_01.png",
+      "./game_material/SCREENSHOT_2026-10-02T13-28-06_02.png",
+      "./game_material/SCREENSHOT_2026-10-02T13-28-06_03.png"
+    ],
+    "promotional_image": "./game_material/PROMO_2026-10-02T13-28-06_01.jpg",
+    "source_screenshots": [
+      "_uploads/9fb4625406f00e8ab2e3f9d8f27a14553bc79c8505447f5cb073d577106f3fec.png"
+    ],
+    "icon_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/ICON_2026-10-02T13-28-06_01.png",
+    "screenshot_urls": [
+      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_01.png",
+      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_02.png",
+      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_03.png"
+    ],
+    "promotional_image_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/PROMO_2026-10-02T13-28-06_01.jpg",
+    "cover_horizontal": "./game_material/COVER_HORIZONTAL_2026-10-02T13-29-31_01.png",
+    "cover_horizontal_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/COVER_HORIZONTAL_2026-10-02T13-29-31_01.png",
+    "cover_vertical": "./game_material/COVER_VERTICAL_2026-10-02T13-29-49_01.png",
+    "cover_vertical_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/COVER_VERTICAL_2026-10-02T13-29-49_01.png",
+    "square_promotional_image": "./game_material/SQUARE_PROMO_2026-10-02T13-30-56_01.jpg",
+    "square_promotional_image_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SQUARE_PROMO_2026-10-02T13-30-56_01.jpg"
+  },
+  "metadata": {
+    "updated_at": "2026-10-02T13:36:49.501Z",
+    "promo_dependent_hash": "debec769c346fc0dc009653ab3e638be"
+  }
+}

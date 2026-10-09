@@ -1,0 +1,12 @@
+{
+  "name": "qingshi-prototype",
+    "version": "2.1.5",
+  "private": true,
+  "description": "《青史志》多剧本文字原型：李斯《仓鼠之局》/ 荆轲《图穷之局》/ 韩信《兵仙之局》/ 项羽《霸王之局》/ 陈胜《首义之局》",
+  "scripts": {
+    "dev": "node server.js",
+    "test": "node test-sim.js && node test-jingke.js && node test-hanxin.js && node test-xiangyu.js && node test-chensheng.js && node test-ui-contract.js && node test-fate.js && node test-keys.js",
+    "sim": "node balance-sim.js",
+    "stats": "node --max-old-space-size=8192 path-stats.js"
+  }
+}

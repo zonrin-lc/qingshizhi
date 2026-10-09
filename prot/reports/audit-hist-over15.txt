@@ -1,0 +1,13 @@
+lisi 1-5 [] hist=20
+lisi 4-2 [] hist=-25
+lisi 4-5 [] hist=-20
+lisi 5-2 [] hist=-30
+lisi 5-2 [] hist=40
+lisi 5-3 [] hist=-30
+lisi 5-3 [] hist=40
+jingke 5-5 [] hist=30
+xiangyu 3-1 [] hist=-25
+xiangyu 4-2 [] hist=-20
+xiangyu 6-4 [] hist=20
+chensheng 6-2 [] hist=40
+TOTAL 12

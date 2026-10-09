@@ -1,0 +1,17 @@
+lisi ev 3-1 opt "" 108
+lisi ev 3-2 opt "" 121
+lisi ev 4-2 opt "" 105
+lisi ev 4-3 opt "" 107
+lisi ev 4-5 opt "" 111
+lisi ev 5-1 opt "" 114
+lisi ev 5-2 opt "" 136
+lisi ev 5-2 opt "" 125
+lisi ev 5-2 opt "" 118
+lisi ev 5-3 opt "" 103
+lisi ev 5-4 opt "" 103
+lisi ev 6-2 opt "" 105
+lisi ev 6-3 opt "" 104
+lisi ev 6-4 opt "" 104
+hanxin ev 4-1 opt "" 103
+hanxin ev 6-3 opt "" 122
+TOTAL over100: 16
