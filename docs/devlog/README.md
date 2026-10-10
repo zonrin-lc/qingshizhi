@@ -11,6 +11,7 @@
 | [devlog-day7.md](devlog-day7.md) | DAY 7 | 对拍网收口 100/100;引擎版上机;纸墨风重做;布局三次改版 |
 | [devlog-day8.md](devlog-day8.md) | DAY 8 | 七个不崩的 bug(六个同源);罗盘四版;资源 54.4MB→15.0MB;一个不是我的 bug |
 | [devlog-day9.md](devlog-day9.md) | DAY 9 | 对局页重排崩出「裸全局名」第三道闸;规范≠原型图;十页效果图定稿 |
+| [devlog-day10.md](devlog-day10.md) | DAY 10 | 标志八次推翻(七次同一个毛病:在加法里找答案);源码交付 |
 | [devlog-material-overturns.md](devlog-material-overturns.md) | 附 | 投稿物料翻车记录(非日更) |
 
 ## 阅读线索
