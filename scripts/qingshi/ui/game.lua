@@ -395,14 +395,15 @@ function M.attach(Shell)
     S.clearOpts()
     print('[抉择] renderChoiceOptions options=' .. #(v.options or {}))
     for i, o in ipairs(v.options) do
+      -- 与回合页卡片同款 flex 布局:自适应宽 + wrap 文本在 Yoga 下会塌成细条(实测 21px),flex 定宽才可见
       env.optBox:AddChild(T.Card {
-        width = "24%", pad = 11, gap = 3,
+        flex = true, pad = 11, gap = 3,
         onClick = function() M.doChooseCardOpt(i - 1) end,
-        children = { T.lbl { t = o.t, size = T.FS.ui, color = C.ink } },
+        children = { T.lbl { t = o.t, size = T.FS.ui, color = C.ink, bold = true } },
       })
     end
     env.optBox:AddChild(T.Card {
-      width = "24%", pad = 11, gap = 3,
+      flex = true, pad = 11, gap = 3,
       onClick = function() if g():cancelChoice() then M.renderRound() end end,
       children = { T.lbl { t = '且搁置', size = T.FS.ui, color = C.inkDim } },
     })
