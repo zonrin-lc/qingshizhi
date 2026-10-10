@@ -567,10 +567,20 @@ function Game:beginRounds()
   -- 取消(且搁置)不计使用,抉择落定才入 choiceUsed,此后整局不再发。
   -- 随机流口径:仅在强制发抉择卡时多消耗一次 deal(),与 JS 侧严格同序。
   self.choiceGap = (self.choiceGap or 0) + 1
+  -- 已落定的抉择卡整局不再发:必须先从 pool 剔除。
+  -- 只过滤 crest(强制发牌候选)是不够的——它们仍会留在 pool 里被下面「常规抽 3 张」
+  -- 选中,打出后二次进入 choice 阶段重复结算(choiceUsed 只挡住强制发牌位)。
+  -- 取消(且搁置)不写 choiceUsed,故该卡仍留在池中,语义正确。
+  local kept = {}
+  for i = 1, #pool do
+    local a = pool[i]
+    if not (J(a.choice) and self.choiceUsed[a.id]) then kept[#kept + 1] = a end
+  end
+  pool = kept
   local crest = {}
   for i = 1, #pool do
     local a = pool[i]
-    if J(a.choice) and not self.choiceUsed[a.id] then crest[#crest + 1] = a end
+    if J(a.choice) then crest[#crest + 1] = a end
   end
   local cpick = nil
   if #crest > 0 and self.choiceGap >= 2 then

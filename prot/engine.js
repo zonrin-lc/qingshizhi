@@ -471,7 +471,11 @@
     // 抉择卡调度（镜像 Lua beginRounds）：本章池中未使用的抉择卡，每两轮强制占一个发牌位；
     // 取消(且搁置)不计使用，抉择落定才入 choiceUsed。仅强制发牌时多消耗一次 deal()。
     this.choiceGap = (this.choiceGap || 0) + 1;
-    var crest = pool.filter(function (a) { return a.choice && !self.choiceUsed[a.id]; });
+    // 已落定的抉择卡整局不再发：必须先从 pool 剔除。只过滤 crest(强制发牌候选)是不够的——
+    // 它们仍留在 pool 里被「常规抽 3 张」选中,二次进入 choice 阶段重复结算。
+    // 取消(且搁置)不写 choiceUsed,故该卡仍留在池中,语义正确。
+    pool = pool.filter(function (a) { return !(a.choice && self.choiceUsed[a.id]); });
+    var crest = pool.filter(function (a) { return a.choice; });
     var cpick = null;
     if (crest.length > 0 && this.choiceGap >= 2) {
       cpick = crest[Math.floor(deal() * crest.length)];
