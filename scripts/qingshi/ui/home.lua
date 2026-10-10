@@ -84,7 +84,7 @@ function M.attach(Shell)
 
   function Shell.renderMenu()
     local c = env.menuMain
-    c:ClearChildren()
+    T.destroyChildren(c)
     env.menuAnim = nil   -- 重绘即重启时序(防止旧表引用已销毁控件)
 
     -- 底:水墨山水(保持不变)
@@ -230,7 +230,7 @@ function M.attach(Shell)
     env.menuSettings:SetVisible(false)
     env.menuSaves:SetVisible(true)
     local c = env.menuSaves
-    c:ClearChildren()
+    T.destroyChildren(c)
     c:AddChild(T.lbl { t = '青 史 留 痕', size = T.FS.h2, color = C.inkStrong, bold = true, ls = 6, mb = 6 })
     local saves = loadSaveInfo()
     if #saves == 0 then
@@ -345,7 +345,7 @@ function M.attach(Shell)
     env.menuSaves:SetVisible(false)
     local c = env.menuSettings
     c:SetVisible(true)
-    c:ClearChildren()
+    T.destroyChildren(c)
     local s = loadSettings()
 
     c:AddChild(T.lbl { t = '设 置', size = T.FS.h2, color = C.inkHeavy, bold = true, ls = 6, mb = 4 })
@@ -474,7 +474,7 @@ function M.attach(Shell)
 
   local function buildRightImpl()
     local c = env.homeRight
-    c:ClearChildren()
+    T.destroyChildren(c)
     local cur = DYNASTIES[env.dynIdx + 1]
 
     -- 剧本区(小标题 + 卡片)单独成组,底部留白,与难度区拉开。
@@ -608,7 +608,8 @@ function M.attach(Shell)
     Shell.cancelReveal()
     env.lastSettleText = nil
     local c = env.homeWrap
-    c:ClearChildren()
+    if env.wheel then env.wheel:Remove() end   -- 罗盘跨重建复用:先摘除,勿随子树销毁
+    T.destroyChildren(c)
 
     -- 底图:美术交付的远山·扁舟(铺满整页,顶栏绝对定位浮于其上)
     c:AddChild(UI.Panel {
@@ -661,7 +662,8 @@ function M.attach(Shell)
       marginLeft = -math.floor(wheelSize * 0.037),
       alignItems = "center", justifyContent = "center" }
     if env.wheel and env.wheelSize ~= wheelSize then
-      -- 分辨率/缩放变化:旧罗盘尺寸已固化(创建时定宽高),作废重建以对位新屏
+      -- 分辨率/缩放变化:旧罗盘尺寸已固化(创建时定宽高),销毁重建以对位新屏
+      env.wheel:Destroy()
       env.wheel = nil
     end
     if not env.wheel then

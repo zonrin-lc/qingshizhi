@@ -124,11 +124,11 @@ function Shell.clearMain()
   -- 先 cancel 后 clear:cancelReveal 会把未播完的段落 AddChild 回 mainBox,
   -- 顺序颠倒会让上一页的残留文本混进新页面
   Shell.cancelReveal()
-  env_.mainBox:ClearChildren()
+  T.destroyChildren(env_.mainBox)
 end
 
 function Shell.clearOpts()
-  env_.optBox:ClearChildren()
+  T.destroyChildren(env_.optBox)
 end
 
 function Shell.scrollMainTop() env_.mainSC:SetScroll(0, 0) end

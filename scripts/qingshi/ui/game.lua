@@ -62,7 +62,7 @@ function M.attach(Shell)
     env.sideTab_ = 'attrs'
     local bar = env.sideCol:GetChildAt(1)
     local function paint()
-      bar:ClearChildren()
+      T.destroyChildren(bar)
       for _, t in ipairs(SIDE_TABS) do
         local on = (env.sideTab_ == t.k)
         bar:AddChild(UI.Panel {
@@ -109,7 +109,7 @@ function M.attach(Shell)
     env.lastTexts = texts
     renderSideTabs()
     local body = env.sideCol:GetChildAt(2)
-    body:ClearChildren()
+    T.destroyChildren(body)
     if env.sideTab_ == 'gloss' then
       S.openDrawer('gloss', body)
       return
@@ -173,9 +173,9 @@ function M.attach(Shell)
     S.renderTop()
     env.sTitle:SetText(title or '')
     env.sTitle:SetVisible((title or '') ~= '')
-    env.sText:ClearChildren()
+    T.destroyChildren(env.sText)
     env.sText:AddChild(T.richSeg(text or '', {}))
-    env.sList:ClearChildren()
+    T.destroyChildren(env.sList)
     for _, c in ipairs(changes or {}) do
       local col
       if c.k == 'weiji' then col = (c.delta > 0) and C.zhuHi or C.good
@@ -691,7 +691,7 @@ function M.attach(Shell)
       return
     end
     local dr = drawerLayer()
-    env.drawerBody:ClearChildren()
+    T.destroyChildren(env.drawerBody)
     if mode == 'attrs' then
       env.drawerHead:SetText('属 性 面 板')
       local meta = '偏离 ' .. tostring(gg.dev) .. '（' .. gg.d.DEV_BANDS[gg:devBand() + 1].name .. '）｜ ' .. gg.diff.n

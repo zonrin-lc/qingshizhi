@@ -529,6 +529,14 @@ return {
           name = "病殁客舍",
           zhuan = "太史公曰：轲既许燕丹，函首与图俱备，行有日矣。客舍夜半，轲忽染沉疴，寒热交作，药石不进，数日而殁于易水之西。太子丹素服往哭，刺秦之议遂寝。后五年，秦兵拔蓟，燕王喜亡走辽东——终无一人提匕首入咸阳者。易水依旧寒，不送白衣，送一棺。",
         },
+        cike = {
+          name = "事败身死",
+          zhuan = "太史公曰：事机既泄，秦吏夜围馆舍。轲拔剑独战巷陌，所杀十余人，力竭，死于乱刃之下。悬首咸阳门，榜曰燕谍。图未穷，匕未见——然咸阳宫之股栗，已先见于丹墀矣。自是六国之客过秦廷者，皆以目语。",
+        },
+        zuzhu = {
+          name = "赤族之诏",
+          zhuan = "太史公曰：秦王之心，积疑如积薪。轲之名三至御前，事未发而王已不能安枕。及缇骑四合，诏下：燕谍荆轲，罪及三族——卫之庆氏，老幼尽于市。匕首未出鞘，先断送了一族人的性命。易水之人闻之，不敢歌，歌则有泣。高渐离毁筑亡去，筑声绝于燕市者三年。",
+        },
       },
     },
   },
@@ -799,6 +807,7 @@ return {
                   moulue = 2,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "tianguangzhixi",
                 },
@@ -813,6 +822,7 @@ return {
                   weiji = -3,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "tianguangzhixi",
                 },
@@ -923,6 +933,7 @@ return {
                   junxin = 8,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "yiming",
                 },
@@ -939,6 +950,7 @@ return {
                   tupo = -2,
                 },
                 dev = 3,
+                -- 叙事标记：不消费
                 flags = {
                   "yiming",
                 },
@@ -953,6 +965,7 @@ return {
                   junxin = -5,
                 },
                 dev = 5,
+                -- 叙事标记：不消费
                 flags = {
                   "yiming",
                 },
@@ -1035,6 +1048,7 @@ return {
                   junxin = -3,
                 },
                 dev = 8,
+                -- 叙事标记：不消费
                 flags = {
                   "shuoke",
                 },
@@ -1151,6 +1165,7 @@ return {
           ["if"] = {
             junxinMax = 25,
           },
+          -- 叙事标记：不消费（异变触发记录）
           flag = "taiziyi",
           setAttrs = {
             weiji = 5,
@@ -1161,6 +1176,7 @@ return {
           ["if"] = {
             weiji = 60,
           },
+          -- 叙事标记：不消费（异变触发记录）
           flag = "qinshi",
           setAttrs = {
             weiji = 8,
@@ -1171,6 +1187,7 @@ return {
           ["if"] = {
             devMin = 40,
           },
+          -- 叙事标记：不消费（异变触发记录）
           flag = "xielou",
           zg = 10,
           note = "【节点异变】行刺预备走漏，秦谍已动。咸阳宫的那双眼睛，先于你醒了。",
@@ -1208,6 +1225,7 @@ return {
                   zhengji = 5,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "fanshou",
                 },
@@ -1274,6 +1292,7 @@ return {
                   moulue = 2,
                 },
                 dev = 8,
+                -- 消费点：5-2「如常进殿」condAttrs（验首/验图起疑）
                 flags = {
                   "jiashou",
                 },
@@ -1289,6 +1308,7 @@ return {
                   weiji = 5,
                 },
                 dev = 5,
+                -- 消费点：5-2「如常进殿」condAttrs（验首/验图起疑）
                 flags = {
                   "wushou",
                 },
@@ -1312,6 +1332,7 @@ return {
               res = "图是真的，燕国的命门也是真的。你把它卷好，系紧，动作很稳。交出这块地，换进门那一步——账是这么算的。",
               eff = {
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "dktu",
                 },
@@ -1330,6 +1351,7 @@ return {
                   moulue = 2,
                 },
                 dev = 8,
+                -- 消费点：5-2「如常进殿」condAttrs（验首/验图起疑）
                 flags = {
                   "jiatu",
                 },
@@ -1424,6 +1446,7 @@ return {
                   wuli = 2,
                 },
                 dev = 5,
+                -- 叙事标记：不消费
                 flags = {
                   "duxing",
                 },
@@ -1475,6 +1498,7 @@ return {
             flag = "taizi-ji",
             junxinMax = 35,
           },
+          -- 叙事标记：不消费（异变触发记录）
           flag = "cuixing",
           zg = 5,
           note = "【节点异变】太子丹第三催。你等的人不会来了——副手的成色，你心里没底。",
@@ -1542,6 +1566,7 @@ return {
                 attrs = {},
                 dev = 3,
                 hist = 5,
+                -- 叙事标记：不消费
                 flags = {
                   "yishuijue",
                 },
@@ -1650,6 +1675,7 @@ return {
                   moulue = 2,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "zhiqin",
                 },
@@ -1729,6 +1755,7 @@ return {
                   caifu = -10,
                 },
                 dev = 0,
+                -- 叙事标记：不消费
                 flags = {
                   "mengjia",
                 },
@@ -1743,6 +1770,7 @@ return {
               res = "你递上名刺，附了田光的旧事。蒙嘉掂了掂分量，收下了——只是他看你的眼神，多了一层掂量。",
               eff = {
                 dev = 5,
+                -- 叙事标记：不消费
                 flags = {
                   "mengjia",
                 },
@@ -1774,6 +1802,7 @@ return {
                   junxin = 2,
                 },
                 dev = 3,
+                -- 叙事标记：不消费
                 flags = {
                   "mengjia",
                 },
@@ -1792,6 +1821,7 @@ return {
                   junxin = 1,
                 },
                 dev = 3,
+                -- 叙事标记：不消费
                 flags = {
                   "mengjia",
                 },
@@ -1816,6 +1846,35 @@ return {
               res = "图匣与函首高举过顶。你数着台阶，一，二，三。每一步，都踩在心跳上。",
               eff = {
                 dev = 0,
+                condAttrs = {
+                  {
+                    ["if"] = {
+                      flag = "jiashou",
+                    },
+                    attrs = {
+                      weiji = 3,
+                    },
+                    note = "函首的封泥太新，验看的廷吏多停了一瞬",
+                  },
+                  {
+                    ["if"] = {
+                      flag = "wushou",
+                    },
+                    attrs = {
+                      weiji = 5,
+                    },
+                    note = "无首可献，傧者的呼唱声里多了一分迟疑",
+                  },
+                  {
+                    ["if"] = {
+                      flag = "jiatu",
+                    },
+                    attrs = {
+                      weiji = 3,
+                    },
+                    note = "图轴的绢色太新，阶下的史官眯起了眼",
+                  },
+                },
               },
               to = {
                 {
@@ -3022,6 +3081,7 @@ return {
       id = "JK-ACT-1",
       name = "著书立说",
       desc = "闭门著文，以文养名",
+      descHidden = "闭门著文，以文养名",
       chapters = {
         0,
         5,
@@ -3040,6 +3100,7 @@ return {
       id = "JK-ACT-2",
       name = "置酒高会",
       desc = "置酒结客（财富-8）",
+      descHidden = "置酒结客（大耗财）",
       req = {
         caifu = 8,
       },
@@ -3063,6 +3124,7 @@ return {
       id = "JK-ACT-3",
       name = "太子府问安",
       desc = "趋府问安，固宠于上（需入燕）",
+      descHidden = "趋府问安，固宠于上（需入燕）",
       req = {
         minChapter = 1,
       },
@@ -3085,6 +3147,7 @@ return {
       id = "JK-ACT-4",
       name = "读书击剑",
       desc = "白日读书，灯下击剑",
+      descHidden = "白日读书，灯下击剑",
       chapters = {
         0,
         5,
@@ -3104,6 +3167,7 @@ return {
       id = "JK-ACT-5",
       name = "散财结客",
       desc = "厚币招贤（财富-8）",
+      descHidden = "厚币招贤（大耗财）",
       req = {
         caifu = 8,
       },
@@ -3126,6 +3190,7 @@ return {
       id = "JK-ACT-6",
       name = "称病闭户",
       desc = "闭门称病，避人锋芒（需入局）",
+      descHidden = "闭门称病，避人锋芒（需入局）",
       req = {
         minChapter = 2,
       },
@@ -3148,6 +3213,7 @@ return {
       id = "JK-ACT-43",
       name = "习剑强身",
       desc = "晨起习剑，筋骨与剑俱进",
+      descHidden = "晨起习剑，筋骨与剑俱进",
       chapters = {
         0,
         5,
@@ -3166,6 +3232,7 @@ return {
       id = "JK-ACT-44",
       name = "导引养生",
       desc = "调息导引，养精神于未衰",
+      descHidden = "调息导引，养精神于未衰",
       chapters = {
         0,
         5,
@@ -3183,6 +3250,7 @@ return {
       id = "JK-ACT-7",
       name = "切磋剑术",
       desc = "与游侠儿试剑",
+      descHidden = "与游侠儿试剑",
       chapters = {
         0,
         0,
@@ -3201,6 +3269,7 @@ return {
       id = "JK-ACT-8",
       name = "路见不平",
       desc = "仗剑解人之厄（财富-3）",
+      descHidden = "仗剑解人之厄（耗财）",
       req = {
         caifu = 3,
       },
@@ -3222,6 +3291,7 @@ return {
       id = "JK-ACT-9",
       name = "贩马于市",
       desc = "相马贩马，以资川旅",
+      descHidden = "相马贩马，以资川旅",
       chapters = {
         0,
         0,
@@ -3239,6 +3309,7 @@ return {
       id = "JK-ACT-10",
       name = "棋摊观弈",
       desc = "观棋不语，悟局中势",
+      descHidden = "观棋不语，悟局中势",
       chapters = {
         0,
         0,
@@ -3257,6 +3328,7 @@ return {
       id = "JK-ACT-11",
       name = "结交博徒",
       desc = "折节下交，缓急有援（财富-3）",
+      descHidden = "折节下交，缓急有援（耗财）",
       req = {
         caifu = 3,
       },
@@ -3279,6 +3351,7 @@ return {
       id = "JK-ACT-12",
       name = "野寺借宿",
       desc = "野寺一宿，省资养力（财富-2）",
+      descHidden = "野寺一宿，省资养力（微耗财）",
       req = {
         caifu = 2,
       },
@@ -3300,6 +3373,7 @@ return {
       id = "JK-ACT-45",
       name = "市上较艺",
       desc = "市上较艺，名起亦招忌",
+      descHidden = "市上较艺，名起亦招忌",
       chapters = {
         0,
         0,
@@ -3318,6 +3392,7 @@ return {
       id = "JK-ACT-46",
       name = "风餐野宿",
       desc = "风餐露宿，筋骨换脚程",
+      descHidden = "风餐露宿，筋骨换脚程",
       chapters = {
         0,
         0,
@@ -3335,6 +3410,7 @@ return {
       id = "JK-ACT-13",
       name = "听筑消夜",
       desc = "燕市听筑，且放胸怀",
+      descHidden = "燕市听筑，且放胸怀",
       chapters = {
         1,
         1,
@@ -3353,6 +3429,7 @@ return {
       id = "JK-ACT-14",
       name = "与屠沽饮",
       desc = "与狗屠辈共饮（财富-3）",
+      descHidden = "与狗屠辈共饮（耗财）",
       req = {
         caifu = 3,
       },
@@ -3374,6 +3451,7 @@ return {
       id = "JK-ACT-15",
       name = "授剑糊口",
       desc = "教童子剑，以技易粟",
+      descHidden = "教童子剑，以技易粟",
       chapters = {
         1,
         1,
@@ -3392,6 +3470,7 @@ return {
       id = "JK-ACT-16",
       name = "探太子宫",
       desc = "打听东宫动静（声望≥30 才有人搭话）",
+      descHidden = "打听东宫动静（声望不足则无人搭话）",
       req = {
         shengwang = 30,
       },
@@ -3413,6 +3492,7 @@ return {
       id = "JK-ACT-17",
       name = "修书故里",
       desc = "寄书卫中故人",
+      descHidden = "寄书卫中故人",
       chapters = {
         1,
         1,
@@ -3430,6 +3510,7 @@ return {
       id = "JK-ACT-18",
       name = "燕市豪宴",
       desc = "张宴三日，扬名立万（财富-6）",
+      descHidden = "张宴三日，扬名立万（颇耗财）",
       req = {
         caifu = 6,
       },
@@ -3451,6 +3532,7 @@ return {
       id = "JK-ACT-47",
       name = "晨剑于郊",
       desc = "城郊练剑，剑气欺霜",
+      descHidden = "城郊练剑，剑气欺霜",
       chapters = {
         1,
         1,
@@ -3468,6 +3550,7 @@ return {
       id = "JK-ACT-48",
       name = "屠沽帮佣",
       desc = "肉案帮佣，气力换钱",
+      descHidden = "肉案帮佣，气力换钱",
       chapters = {
         1,
         1,
@@ -3485,6 +3568,7 @@ return {
       id = "JK-ACT-19",
       name = "谒田光墓",
       desc = "一爵还酹，以答知己",
+      descHidden = "一爵还酹，以答知己",
       chapters = {
         2,
         2,
@@ -3503,6 +3587,7 @@ return {
       id = "JK-ACT-20",
       name = "周旋宾客",
       desc = "与太子门下宾客往来",
+      descHidden = "与太子门下宾客往来",
       chapters = {
         2,
         2,
@@ -3523,6 +3608,7 @@ return {
       id = "JK-ACT-21",
       name = "密探秦讯",
       desc = "打探秦廷消息",
+      descHidden = "打探秦廷消息",
       chapters = {
         2,
         2,
@@ -3541,6 +3627,7 @@ return {
       id = "JK-ACT-22",
       name = "督造行装",
       desc = "检点行装器物（财富-3）",
+      descHidden = "检点行装器物（耗财）",
       req = {
         caifu = 3,
       },
@@ -3563,6 +3650,7 @@ return {
       id = "JK-ACT-23",
       name = "变卖剑饰",
       desc = "鬻剑上之饰以充川资",
+      descHidden = "鬻剑上之饰以充川资",
       chapters = {
         2,
         2,
@@ -3580,6 +3668,7 @@ return {
       id = "JK-ACT-24",
       name = "纵马易水",
       desc = "驰马易水之滨",
+      descHidden = "驰马易水之滨",
       chapters = {
         2,
         2,
@@ -3597,6 +3686,7 @@ return {
       id = "JK-ACT-49",
       name = "为太子画策",
       desc = "入幕画策，为燕谋退路",
+      descHidden = "入幕画策，为燕谋退路",
       chapters = {
         2,
         2,
@@ -3615,6 +3705,7 @@ return {
       id = "JK-ACT-50",
       name = "闭门演剑",
       desc = "闭门演剑，朝夕揣摩",
+      descHidden = "闭门演剑，朝夕揣摩",
       chapters = {
         2,
         2,
@@ -3633,6 +3724,7 @@ return {
       id = "JK-ACT-25",
       name = "抚樊旧部",
       desc = "安抚樊於期从亡之士",
+      descHidden = "安抚樊於期从亡之士",
       chapters = {
         3,
         3,
@@ -3651,6 +3743,7 @@ return {
       id = "JK-ACT-26",
       name = "验看函首",
       desc = "亲验函匣封识",
+      descHidden = "亲验函匣封识",
       chapters = {
         3,
         3,
@@ -3667,6 +3760,7 @@ return {
       id = "JK-ACT-27",
       name = "复核地形",
       desc = "督亢山川默记于心（才学≥45 方能成图）",
+      descHidden = "督亢山川默记于心（才学不足则难成图）",
       req = {
         caixue = 45,
       },
@@ -3688,6 +3782,7 @@ return {
       id = "JK-ACT-28",
       name = "试毒验匕",
       desc = "验淬毒之效",
+      descHidden = "验淬毒之效",
       chapters = {
         3,
         3,
@@ -3705,6 +3800,7 @@ return {
       id = "JK-ACT-29",
       name = "贿赂少府",
       desc = "打点少府胥吏（财富-5）",
+      descHidden = "打点少府胥吏（颇耗财）",
       req = {
         caifu = 5,
       },
@@ -3725,6 +3821,7 @@ return {
       id = "JK-ACT-30",
       name = "杜门谢客",
       desc = "闭门不见外客",
+      descHidden = "闭门不见外客",
       chapters = {
         3,
         3,
@@ -3743,6 +3840,7 @@ return {
       id = "JK-ACT-51",
       name = "佐理使务",
       desc = "统筹使团庶务，事事躬亲",
+      descHidden = "统筹使团庶务，事事躬亲",
       chapters = {
         3,
         3,
@@ -3761,6 +3859,7 @@ return {
       id = "JK-ACT-52",
       name = "燕邸授剑",
       desc = "贵邸授剑，束脩充使费",
+      descHidden = "贵邸授剑，束脩充使费",
       chapters = {
         3,
         3,
@@ -3778,6 +3877,7 @@ return {
       id = "JK-ACT-31",
       name = "整束行装",
       desc = "最后的检点",
+      descHidden = "最后的检点",
       chapters = {
         4,
         4,
@@ -3794,6 +3894,7 @@ return {
       id = "JK-ACT-32",
       name = "筑前话别",
       desc = "与渐离对坐",
+      descHidden = "与渐离对坐",
       chapters = {
         4,
         4,
@@ -3811,6 +3912,7 @@ return {
       id = "JK-ACT-33",
       name = "夜渡易水",
       desc = "趁夜暗渡（财富-3）",
+      descHidden = "趁夜暗渡（耗财）",
       req = {
         caifu = 3,
       },
@@ -3832,6 +3934,7 @@ return {
       id = "JK-ACT-34",
       name = "焚尽书信",
       desc = "往来尺素尽付一炬",
+      descHidden = "往来尺素尽付一炬",
       chapters = {
         4,
         4,
@@ -3849,6 +3952,7 @@ return {
       id = "JK-ACT-35",
       name = "饯行众客",
       desc = "白衣之饯（财富-4）",
+      descHidden = "白衣之饯（耗财）",
       req = {
         caifu = 4,
       },
@@ -3870,6 +3974,7 @@ return {
       id = "JK-ACT-36",
       name = "默祷田光",
       desc = "默念遗命，以定心神",
+      descHidden = "默念遗命，以定心神",
       chapters = {
         4,
         4,
@@ -3886,6 +3991,7 @@ return {
       id = "JK-ACT-53",
       name = "寒水试剑",
       desc = "易水之滨，临行试刃",
+      descHidden = "易水之滨，临行试刃",
       chapters = {
         4,
         4,
@@ -3903,6 +4009,7 @@ return {
       id = "JK-ACT-54",
       name = "鬻车充行",
       desc = "鬻车于市，充西行之用",
+      descHidden = "鬻车于市，充西行之用",
       chapters = {
         4,
         4,
@@ -3920,6 +4027,7 @@ return {
       id = "JK-ACT-37",
       name = "再贿蒙府",
       desc = "门路再上一层（财富-5）",
+      descHidden = "门路再上一层（颇耗财）",
       req = {
         caifu = 5,
       },
@@ -3941,6 +4049,7 @@ return {
       id = "JK-ACT-38",
       name = "观察宫卫",
       desc = "记下宫城换防",
+      descHidden = "记下宫城换防",
       chapters = {
         5,
         5,
@@ -3959,6 +4068,7 @@ return {
       id = "JK-ACT-39",
       name = "使馆深居",
       desc = "深居简出，养精蓄锐",
+      descHidden = "深居简出，养精蓄锐",
       chapters = {
         5,
         5,
@@ -3976,6 +4086,7 @@ return {
       id = "JK-ACT-40",
       name = "演练辞令",
       desc = "对烛自陈，字字磨洗",
+      descHidden = "对烛自陈，字字磨洗",
       chapters = {
         5,
         5,
@@ -3995,6 +4106,7 @@ return {
       id = "JK-ACT-41",
       name = "收买宦者",
       desc = "结纳宫中耳目（财富-6）",
+      descHidden = "结纳宫中耳目（颇耗财）",
       req = {
         caifu = 6,
       },
@@ -4015,6 +4127,7 @@ return {
       id = "JK-ACT-42",
       name = "夜查匕首",
       desc = "枕下之匕，夜夜亲验",
+      descHidden = "枕下之匕，夜夜亲验",
       chapters = {
         5,
         5,
@@ -4033,6 +4146,7 @@ return {
       id = "JK-ACT-55",
       name = "殿前演礼",
       desc = "觐见仪程，步步预演",
+      descHidden = "觐见仪程，步步预演",
       chapters = {
         5,
         5,
@@ -4051,6 +4165,7 @@ return {
       id = "JK-ACT-56",
       name = "分藏金帛",
       desc = "分藏金帛，以备不虞",
+      descHidden = "分藏金帛，以备不虞",
       chapters = {
         5,
         5,

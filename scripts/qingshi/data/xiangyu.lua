@@ -424,6 +424,20 @@ return {
       ach = {
         "wujiang",
       },
+      zhuanAppends = {
+        {
+          ["if"] = {
+            flag = "zidii",
+          },
+          text = "又曰：江东子弟八千人从羽渡江而西，及乌江，无一人还。八千家的父母妻子，犹在江东倚门。羽之不渡，非无船也——无面目也。",
+        },
+        {
+          ["if"] = {
+            flag = "yu",
+          },
+          text = "又曰：垓下之帐，羽自为诗，虞姬和之，其辞不传。然“虞兮”二字，千年而下犹令人变色——盖世之雄，末路所系，不过一人一马耳。",
+        },
+      },
       zhuan = "太史公曰：羽之力，拔山；羽之气，盖世。巨鹿九战，秦以不振；彭城一击，汉几不国。然坑降卒二十万，失天下之心；弑义帝于江中，失楚人之心；鸿门一纵，失范增之心；垓下一败，并己之心亦失之。乌江亭长檥船待，羽笑曰：纵江东父兄怜而王我，我何面目见之！遂自刎，年三十一。自矜功伐，奋其私智而不师古，谓“天亡我，非战之罪”——至死不悟，此其所以为羽也，亦其所以为楚也。",
     },
     E2 = {
@@ -500,6 +514,14 @@ return {
         baobing = {
           name = "病殁军中",
           zhuan = "太史公曰：固陵既胜，楚师退保垓下。壁垒未合，汉骑未至，而羽病矣。连年鞍马，创痍遍体，沉疴暗积，一夕大渐，药石不能进，竟殁于军中，年三十。是时楚歌未起，而霸王先逝；乌骓绕帐长嘶，数日不食。羽既殁，楚师无主，不战自溃——诸侯之兵四合而至，已无复可围者矣。夫力能拔山，不能却一病；气盖当世，不能延一息。天之亡楚，固不待乌江之水也。",
+        },
+        zuzhu = {
+          name = "项氏之夷",
+          zhuan = "太史公曰：新安之坑、义帝之沉、分封之刻，诸侯之怨楚，非一日矣。及楚师疲于外、彭城虚于内，五国连檄，不攻其军，先屠其族。羽转战归救，城头已易赤帜——宫室焚，宗庙隳，项氏无少长皆弃市。力能扛鼎，不能庇其宗；威加海内，不能息天下之怨。羽之兴也，以一剑；项氏之亡也，以万怨。",
+        },
+        cike = {
+          name = "帐中之匕",
+          zhuan = "太史公曰：羽之神勇，冠绝古今；防身之术，不逮匹夫。是夜巡营方罢，漏下三鼓，有客伪为伤卒求谒，咫尺出袖刃，三击而中要害。百万之军，系于一身；一身既殒，三军遂溃。夫以力服人者，人亦以力伺之——扛鼎之手，终挡不住袖中一缕寒光。",
         },
       },
     },
@@ -603,7 +625,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "jieke",
+                  "jieke", -- 叙事标记：不消费（吴中结客的名单，后文以事件叙事兑现，不作条件消费）
                 },
               },
               to = "0-3",
@@ -1139,6 +1161,16 @@ return {
           id = "3-1",
           title = "新安之夜",
           key = true,
+          altSegs = {
+            flag = "jiangbian",
+            segs = {
+              "⟦新安⟧。夜。降卒的营里先乱了——一座营啸变，火光烧红了半边天，楚骑围了三匝才压下去。",
+              "你赶到时，辕门外的尸体还没收，秦卒楚卒的都有。哗变的由头小得可笑：一句口信，说进了关，关中家里老小都要问罪。",
+              "诸将跪了一片：秦卒心不信，进关必为变。今夜是一座营，明日就是二十万。",
+              "范增在你身后，久久没有说话。",
+              "杀，还是不杀。",
+            },
+          },
           segs = {
             "⟦新安⟧。夜。降卒的营连绵十几里，火把像一条冻住的河。",
             "楚军押着他们走，走得像押一群牲口。秦卒低声议论：章将军骗了我们——进了关，家里怎么办？",
@@ -1194,6 +1226,24 @@ return {
                 },
                 dev = 12,
                 hist = 15,
+              },
+              to = "3-2",
+            },
+            {
+              t = "拨粮养降，屯田新安",
+              req = {
+                flag = "liangzu",
+              },
+              res = "你下令：降卒就新安屯田，军粮按营拨付，楚军分驻监之。二十万张嘴有了饭吃，田垄一日日取代了壕沟。范增望着屯田的炊烟，只说了一句：此一着，胜于十万兵。",
+              eff = {
+                attrs = {
+                  caifu = -12,
+                  weiji = -4,
+                  shengwang = 4,
+                  junxin = 2,
+                },
+                dev = 8,
+                hist = 10,
               },
               to = "3-2",
             },
@@ -1261,7 +1311,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "zongliu",
+                  "zongliu", -- 叙事标记：不消费（成就锚点 ach hongmen + merit 鸿门同点解锁；E1 史传已含「鸿门一纵」句）
                 },
                 ach = "hongmen",
                 merit = "鸿门",
@@ -2061,6 +2111,16 @@ return {
                 dev = 40,
               },
               to = {
+                {
+                  ["if"] = {
+                    flag = "kengzu",
+                    shengwang = 40,
+                    devMin = 46,
+                  },
+                  to = {
+                    ending = "E6",
+                  },
+                },
                 {
                   ["if"] = {
                     shengwang = 50,
@@ -2929,6 +2989,7 @@ return {
       id = "XY-ACT-1",
       name = "校场演武",
       desc = "亲赴校场，以武统军（权势≥20 三军方服）",
+      descHidden = "亲赴校场，以武统军（威权既立，三军方服）",
       req = {
         quanshi = 20,
       },
@@ -2951,6 +3012,7 @@ return {
       id = "XY-ACT-2",
       name = "置酒高会",
       desc = "置酒结客（财富-8）",
+      descHidden = "置酒结客（所费不赀）",
       req = {
         caifu = 8,
       },
@@ -2973,6 +3035,7 @@ return {
       id = "XY-ACT-3",
       name = "入朝问安",
       desc = "趋府问安，以固人心（需起兵）",
+      descHidden = "趋府问安，以固人心（需起兵）",
       req = {
         minChapter = 1,
       },
@@ -2993,6 +3056,7 @@ return {
       id = "XY-ACT-4",
       name = "闭门读阵",
       desc = "谢客静修，温习阵图",
+      descHidden = "谢客静修，温习阵图",
       chapters = {
         0,
         6,
@@ -3012,6 +3076,7 @@ return {
       id = "XY-ACT-5",
       name = "散财养士",
       desc = "厚币招贤（财富-8）",
+      descHidden = "厚币招贤（倾囊市义）",
       req = {
         caifu = 8,
       },
@@ -3033,6 +3098,7 @@ return {
       id = "XY-ACT-6",
       name = "称病蛰伏",
       desc = "闭门称病，避人锋芒（需起兵）",
+      descHidden = "闭门称病，避人锋芒（需起兵）",
       req = {
         minChapter = 1,
       },
@@ -3055,6 +3121,7 @@ return {
       id = "XY-ACT-49",
       name = "演武锻体",
       desc = "校场锻体，砺筋骨于未衰",
+      descHidden = "校场锻体，砺筋骨于未衰",
       chapters = {
         0,
         6,
@@ -3073,6 +3140,7 @@ return {
       id = "XY-ACT-50",
       name = "调息养力",
       desc = "闭帐调息，养精神于鞍马之余",
+      descHidden = "闭帐调息，养精神于鞍马之余",
       chapters = {
         0,
         6,
@@ -3090,6 +3158,7 @@ return {
       id = "XY-ACT-7",
       name = "举鼎立威",
       desc = "举鼎于市，以力服众",
+      descHidden = "举鼎于市，以力服众",
       chapters = {
         0,
         0,
@@ -3108,6 +3177,7 @@ return {
       id = "XY-ACT-8",
       name = "教授剑术",
       desc = "教里中儿剑，以技易粟",
+      descHidden = "教里中儿剑，以技易粟",
       chapters = {
         0,
         0,
@@ -3126,6 +3196,7 @@ return {
       id = "XY-ACT-9",
       name = "结交豪杰",
       desc = "折节下交（财富-3）",
+      descHidden = "折节下交（小有破费）",
       req = {
         caifu = 3,
       },
@@ -3147,6 +3218,7 @@ return {
       id = "XY-ACT-10",
       name = "夜读兵阵",
       desc = "挑灯读阵，以谋补勇（才学≥45 方能啃下）",
+      descHidden = "挑灯读阵，以谋补勇（学养不足者难啃）",
       req = {
         caixue = 45,
       },
@@ -3167,6 +3239,7 @@ return {
       id = "XY-ACT-11",
       name = "游猎郊野",
       desc = "驰马试剑，且放形骸",
+      descHidden = "驰马试剑，且放形骸",
       chapters = {
         0,
         0,
@@ -3184,6 +3257,7 @@ return {
       id = "XY-ACT-12",
       name = "征发乡勇",
       desc = "编练乡曲，以观人材",
+      descHidden = "编练乡曲，以观人材",
       chapters = {
         0,
         0,
@@ -3201,6 +3275,7 @@ return {
       id = "XY-ACT-51",
       name = "纵谈时势",
       desc = "与宾客纵谈天下，练练嘴皮子",
+      descHidden = "与宾客纵谈天下，练练嘴皮子",
       chapters = {
         0,
         0,
@@ -3219,6 +3294,7 @@ return {
       id = "XY-ACT-52",
       name = "为人解纷",
       desc = "任侠解纷，以理服人（财富-2）",
+      descHidden = "任侠解纷，以理服人（略尽东道）",
       req = {
         caifu = 2,
       },
@@ -3241,6 +3317,7 @@ return {
       id = "XY-ACT-13",
       name = "操练八千",
       desc = "亲训子弟兵",
+      descHidden = "亲训子弟兵",
       chapters = {
         1,
         1,
@@ -3259,6 +3336,7 @@ return {
       id = "XY-ACT-14",
       name = "安抚会稽",
       desc = "绥靖郡城（财富-3）",
+      descHidden = "绥靖郡城（须开仓廪）",
       req = {
         caifu = 3,
       },
@@ -3279,6 +3357,7 @@ return {
       id = "XY-ACT-15",
       name = "搜缴军械",
       desc = "收兵刃于民间",
+      descHidden = "收兵刃于民间",
       chapters = {
         1,
         1,
@@ -3296,6 +3375,7 @@ return {
       id = "XY-ACT-16",
       name = "礼贤下士",
       desc = "礼敬耆老（财富-3）",
+      descHidden = "礼敬耆老（束帛将意）",
       req = {
         caifu = 3,
       },
@@ -3317,6 +3397,7 @@ return {
       id = "XY-ACT-17",
       name = "加固城防",
       desc = "修垒固防，深根固本",
+      descHidden = "修垒固防，深根固本",
       chapters = {
         1,
         1,
@@ -3334,6 +3415,7 @@ return {
       id = "XY-ACT-18",
       name = "探秦虚实",
       desc = "遣人觇关中消息",
+      descHidden = "遣人觇关中消息",
       chapters = {
         1,
         1,
@@ -3352,6 +3434,7 @@ return {
       id = "XY-ACT-53",
       name = "申明军法",
       desc = "立规申令，以治新军",
+      descHidden = "立规申令，以治新军",
       chapters = {
         1,
         1,
@@ -3369,6 +3452,7 @@ return {
       id = "XY-ACT-54",
       name = "问对幕僚",
       desc = "与幕僚问对竟夜，以广耳目",
+      descHidden = "与幕僚问对竟夜，以广耳目",
       chapters = {
         1,
         1,
@@ -3386,6 +3470,7 @@ return {
       id = "XY-ACT-19",
       name = "激励士卒",
       desc = "巡营鼓气，以振军心",
+      descHidden = "巡营鼓气，以振军心",
       chapters = {
         2,
         2,
@@ -3404,6 +3489,7 @@ return {
       id = "XY-ACT-20",
       name = "检视军粮",
       desc = "亲核粮账，以安三军",
+      descHidden = "亲核粮账，以安三军",
       chapters = {
         2,
         2,
@@ -3421,6 +3507,7 @@ return {
       id = "XY-ACT-21",
       name = "与诸将宴",
       desc = "设宴结心（财富-3）",
+      descHidden = "设宴结心（酒肉之费）",
       req = {
         caifu = 3,
       },
@@ -3443,6 +3530,7 @@ return {
       id = "XY-ACT-22",
       name = "夜巡营垒",
       desc = "亲巡夜哨，以肃军纪",
+      descHidden = "亲巡夜哨，以肃军纪",
       chapters = {
         2,
         2,
@@ -3460,6 +3548,7 @@ return {
       id = "XY-ACT-23",
       name = "研读阵图",
       desc = "推演巨鹿地势",
+      descHidden = "推演巨鹿地势",
       chapters = {
         2,
         2,
@@ -3477,6 +3566,7 @@ return {
       id = "XY-ACT-24",
       name = "抚问伤兵",
       desc = "厚恤伤亡（财富-3）",
+      descHidden = "厚恤伤亡（恤金不菲）",
       req = {
         caifu = 3,
       },
@@ -3499,6 +3589,7 @@ return {
       id = "XY-ACT-55",
       name = "说合诸将",
       desc = "游说诸将同心，以聚力于一战",
+      descHidden = "游说诸将同心，以聚力于一战",
       chapters = {
         2,
         2,
@@ -3517,6 +3608,7 @@ return {
       id = "XY-ACT-56",
       name = "沙盘演阵",
       desc = "堆沙为山，推演九战之势",
+      descHidden = "堆沙为山，推演九战之势",
       chapters = {
         2,
         2,
@@ -3535,6 +3627,7 @@ return {
       id = "XY-ACT-25",
       name = "整肃降卒",
       desc = "编练新附之众",
+      descHidden = "编练新附之众",
       chapters = {
         3,
         3,
@@ -3553,6 +3646,7 @@ return {
       id = "XY-ACT-26",
       name = "清点府库",
       desc = "核收秦之府库",
+      descHidden = "核收秦之府库",
       chapters = {
         3,
         3,
@@ -3571,6 +3665,7 @@ return {
       id = "XY-ACT-27",
       name = "问计亚父",
       desc = "就范增问计（需范增在侧）",
+      descHidden = "就范增问计（需范增在侧）",
       req = {
         flag = "fanzeng",
       },
@@ -3592,6 +3687,7 @@ return {
       id = "XY-ACT-28",
       name = "犒赏三军",
       desc = "以私财犒军（财富-4）",
+      descHidden = "以私财犒军（犒赏颇厚）",
       req = {
         caifu = 4,
       },
@@ -3612,6 +3708,7 @@ return {
       id = "XY-ACT-29",
       name = "巡视关防",
       desc = "亲巡函谷诸隘",
+      descHidden = "亲巡函谷诸隘",
       chapters = {
         3,
         3,
@@ -3630,6 +3727,7 @@ return {
       id = "XY-ACT-30",
       name = "压粮备进",
       desc = "多备军粮，以支大战",
+      descHidden = "多备军粮，以支大战",
       chapters = {
         3,
         3,
@@ -3647,6 +3745,7 @@ return {
       id = "XY-ACT-57",
       name = "折冲樽俎",
       desc = "筵前应对，以口舌代干戈",
+      descHidden = "筵前应对，以口舌代干戈",
       chapters = {
         3,
         3,
@@ -3664,6 +3763,7 @@ return {
       id = "XY-ACT-58",
       name = "抚循降营",
       desc = "亲抚降卒，以安反侧",
+      descHidden = "亲抚降卒，以安反侧",
       chapters = {
         3,
         3,
@@ -3682,6 +3782,7 @@ return {
       id = "XY-ACT-31",
       name = "安抚秦民",
       desc = "绥抚关中（财富-3）",
+      descHidden = "绥抚关中（抚民之费）",
       req = {
         caifu = 3,
       },
@@ -3703,6 +3804,7 @@ return {
       id = "XY-ACT-32",
       name = "修缮宫室",
       desc = "修宫治府，以示定居（财富-4）",
+      descHidden = "修宫治府，以示定居（土木糜费）",
       req = {
         caifu = 4,
       },
@@ -3723,6 +3825,7 @@ return {
       id = "XY-ACT-33",
       name = "遣使诸侯",
       desc = "报聘十八王（财富-3）",
+      descHidden = "报聘十八王（聘币甚丰）",
       req = {
         caifu = 3,
       },
@@ -3745,6 +3848,7 @@ return {
       id = "XY-ACT-34",
       name = "检阅兵籍",
       desc = "核天下兵籍",
+      descHidden = "核天下兵籍",
       chapters = {
         4,
         4,
@@ -3762,6 +3866,7 @@ return {
       id = "XY-ACT-35",
       name = "收葬遗骸",
       desc = "收咸阳战骨",
+      descHidden = "收咸阳战骨",
       chapters = {
         4,
         4,
@@ -3779,6 +3884,7 @@ return {
       id = "XY-ACT-36",
       name = "约法于市",
       desc = "与秦民约法",
+      descHidden = "与秦民约法",
       chapters = {
         4,
         4,
@@ -3798,6 +3904,7 @@ return {
       id = "XY-ACT-59",
       name = "考校封政",
       desc = "考校诸侯封域之政，以定赏罚",
+      descHidden = "考校诸侯封域之政，以定赏罚",
       chapters = {
         4,
         4,
@@ -3815,6 +3922,7 @@ return {
       id = "XY-ACT-60",
       name = "廷对来使",
       desc = "殿上亲对诸侯来使，以观四方之心",
+      descHidden = "殿上亲对诸侯来使，以观四方之心",
       chapters = {
         4,
         4,
@@ -3832,6 +3940,7 @@ return {
       id = "XY-ACT-37",
       name = "护粮通道",
       desc = "亲督护粮，以保敖仓之路",
+      descHidden = "亲督护粮，以保敖仓之路",
       chapters = {
         5,
         5,
@@ -3850,6 +3959,7 @@ return {
       id = "XY-ACT-38",
       name = "截击彭越",
       desc = "剿击梁地游兵",
+      descHidden = "剿击梁地游兵",
       chapters = {
         5,
         5,
@@ -3869,6 +3979,7 @@ return {
       id = "XY-ACT-39",
       name = "休整精骑",
       desc = "休养马力，以蓄锐气",
+      descHidden = "休养马力，以蓄锐气",
       chapters = {
         5,
         5,
@@ -3886,6 +3997,7 @@ return {
       id = "XY-ACT-40",
       name = "问计帷幄",
       desc = "与谋士夜议军情",
+      descHidden = "与谋士夜议军情",
       chapters = {
         5,
         5,
@@ -3904,6 +4016,7 @@ return {
       id = "XY-ACT-41",
       name = "筑垒巩洛",
       desc = "筑垒以困汉军",
+      descHidden = "筑垒以困汉军",
       chapters = {
         5,
         5,
@@ -3921,6 +4034,7 @@ return {
       id = "XY-ACT-42",
       name = "募兵淮南",
       desc = "募新军于淮南（财富-3）",
+      descHidden = "募新军于淮南（募金所费）",
       req = {
         caifu = 3,
       },
@@ -3942,6 +4056,7 @@ return {
       id = "XY-ACT-61",
       name = "治军申令",
       desc = "申严号令，以持久战之军",
+      descHidden = "申严号令，以持久战之军",
       chapters = {
         5,
         5,
@@ -3959,6 +4074,7 @@ return {
       id = "XY-ACT-62",
       name = "遣使说援",
       desc = "遣辩士说诸侯发兵，以分汉势",
+      descHidden = "遣辩士说诸侯发兵，以分汉势",
       chapters = {
         5,
         5,
@@ -3977,6 +4093,7 @@ return {
       id = "XY-ACT-43",
       name = "聚拢残骑",
       desc = "收拢溃散之众",
+      descHidden = "收拢溃散之众",
       chapters = {
         6,
         6,
@@ -3994,6 +4111,7 @@ return {
       id = "XY-ACT-44",
       name = "激励死士",
       desc = "以死义气激励残部",
+      descHidden = "以死义气激励残部",
       chapters = {
         6,
         6,
@@ -4011,6 +4129,7 @@ return {
       id = "XY-ACT-45",
       name = "夜探敌营",
       desc = "亲探汉军虚实",
+      descHidden = "亲探汉军虚实",
       chapters = {
         6,
         6,
@@ -4030,6 +4149,7 @@ return {
       id = "XY-ACT-46",
       name = "毁辎疾行",
       desc = "弃辎重，轻装突围（财富-3）",
+      descHidden = "弃辎重，轻装突围（辎重尽弃）",
       req = {
         caifu = 3,
       },
@@ -4050,6 +4170,7 @@ return {
       id = "XY-ACT-47",
       name = "祭旗突围",
       desc = "杀牲祭旗，以壮行色",
+      descHidden = "杀牲祭旗，以壮行色",
       chapters = {
         6,
         6,
@@ -4067,6 +4188,7 @@ return {
       id = "XY-ACT-48",
       name = "秣马乌江岸",
       desc = "于乌江岸休整残骑",
+      descHidden = "于乌江岸休整残骑",
       chapters = {
         6,
         6,
@@ -4084,6 +4206,7 @@ return {
       id = "XY-ACT-63",
       name = "审势定策",
       desc = "烛下审天下之势，定去就之策",
+      descHidden = "烛下审天下之势，定去就之策",
       chapters = {
         6,
         6,
@@ -4101,6 +4224,7 @@ return {
       id = "XY-ACT-64",
       name = "誓师固志",
       desc = "阵前誓师，以固残部之志",
+      descHidden = "阵前誓师，以固残部之志",
       chapters = {
         6,
         6,

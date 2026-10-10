@@ -87,6 +87,16 @@ Theme.TITLE_IMG = "ui/title-calligraphy.png"
 -- 当前 UI 缩放(转发库实现;主题层统一出口,避免各处直接 require Core)
 function Theme.GetScale() return UI.Theme.GetScale() end
 
+-- 清空容器并销毁子树。ClearChildren 只 detach 不释放(Yoga 节点无 __gc 兜底,会泄漏);
+-- Destroy 递归释放并将自身从 parent 摘除,故先快照再逐个销毁,不能边遍历 children 边销。
+function Theme.destroyChildren(container)
+  local kids = container.children
+  if #kids == 0 then return end
+  local snap = {}
+  for i = 1, #kids do snap[i] = kids[i] end
+  for i = 1, #snap do snap[i]:Destroy() end
+end
+
 -- ---------- hex → rgba(段循环 1..2,已修;脏输入回落赭金) ----------
 local function hex2num(h)
   local n = 0

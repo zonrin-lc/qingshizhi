@@ -6061,7 +6061,7 @@ return {
         quanshi = 10,
         zhengji = 18,
         junxin = 22,
-        weiji = 17,
+        weiji = 20,
       },
       steps = {
         {

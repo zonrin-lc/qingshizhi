@@ -497,6 +497,14 @@ return {
           name = "病殁军中",
           zhuan = "太史公曰：涉弃陈南走，师次汝阴，腊月风雪，王忽染沉疴。军中无医，药石不进，寒热交作，数日而殁于行幄之中——去下城父，尚一日程。御者庄贾怀刃侍侧，竟无所用其刀。或曰：天之亡涉，不借人手也。然王虽殁，其所置遣侯王将相，竟亡秦矣。",
         },
+        zuzhu = {
+          name = "陈城之缚",
+          zhuan = "太史公曰：涉既苛察，诸将离心，令不出于帐下，众各怀去就。章邯兵至陈，无一人肯为王者战。亲将夜起，缚王及其家小，开门以献。槛车西入咸阳，王与其宗俱戮于市。——首义之名，诸侯犹敬之；张楚之众，已先弃其王。聚人者易，聚心者难；心既散矣，虽王不能独全。",
+        },
+        cike = {
+          name = "御者之刃",
+          zhuan = "太史公曰：涉弃陈南走，师次汝阴，残兵数百，追兵衔尾不舍。御者庄贾掌缰日久，窥王众日散、色日惶，遂怀二心。腊月雪夜，车行下城父之野，四顾无灯，贾忽回刃，刺王于车中，携其首降秦。——以九百人倡天下者，卒死于一人之缰绳。然刃能断王者之命，不能断大泽之火也。",
+        },
       },
     },
   },
@@ -693,12 +701,12 @@ return {
           ["if"] = {
             weiji = 50,
           },
-          flag = "lijian",
+          flag = "lijian", -- 叙事标记：不消费（危机异变留痕；"县吏缉捕"叙事已由 1-3 兜底路径 E8/daze 兑现，机制载体是 weiji 数值本身）
           note = "【节点异变】县里已经在查逃亡名册了——留给你的不是雨天，是死期。",
         },
         {
           ["if"] = {
-            devMin = 30,
+            devMin = 5, -- 30→5：序章偏离上限仅 6（两番皆不循史），30 永不可达；5 等价于"序章两番皆违史"的可达口径。消费点：1-2 altSegs
           },
           flag = "yuxie",
           note = "【节点异变】有军吏在鱼市买到了带字的帛书——你的\"天意\"，提前漏了。",
@@ -729,7 +737,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "fusu-ming",
+                  "fusu-ming", -- 叙事标记：不消费（成就锚点 ach="fusu"「扶苏之名」即其兑现）
                 },
                 ach = "fusu",
               },
@@ -762,6 +770,15 @@ return {
         {
           id = "1-2",
           title = "鱼书狐鸣",
+          altSegs = {
+            flag = "yuxie",
+            segs = {
+              "卜者眯着眼看你：“足下事皆成，有功。然足下卜之鬼乎？”——只是这一回，“卜之鬼”三个字，你听得比谁都重。",
+              "鱼市上已有军吏买到了带字的帛：你的把戏还没开场，风声先到了。你将计就计，丹帛照塞鱼腹，字却写得更淡，淡得像鱼腹中自生。",
+              "夜深，丛祠边篝火明灭，⟦狐鸣⟧呼曰：“大楚兴，陈胜王——”放话的人、收声的人，这一回各有各的退路。",
+              "第二天，戍卒们看你的眼神变了；军吏看你的眼神，也变了。火还点得着，只是从此有人盯着火种。",
+            },
+          },
           segs = {
             "卜者眯着眼看你：“足下事皆成，有功。然足下卜之鬼乎？”你们相视一笑：这是教你先威众。",
             "于是⟦鱼书⟧丹帛曰“陈胜王”，塞入鱼腹。炊卒剖鱼得书，捧着帛满营走，手一直在抖。",
@@ -829,7 +846,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "jiegan",
+                  "jiegan", -- 叙事标记：不消费（成就锚点 ach="jiegan"「揭竿而起」与 merit「首义」即其兑现）
                 },
                 merit = "首义",
                 ach = "jiegan",
@@ -1297,6 +1314,15 @@ return {
           id = "4-1",
           title = "周文叩关",
           key = true,
+          altSegs = {
+            flag = "zhanghan",
+            segs = {
+              "周文军至⟦戏亭⟧，兵数十万——而关中来的第一封军报不是捷报：⟦章邯⟧的骊山军，已经出了函谷。",
+              "几十万刑徒一夜之间从坟工地上拿起戈，甲光连成一片灰，直压戏亭。历史比你的军报，跑快了一程。",
+              "周文的兵书到了：敌锋已至，请速发援兵，并力决之。字里行间的墨都是飞白的，写得急。",
+              "信使跪在下首喘气。从戏亭到陈城，他跑死了两匹马——而章邯的先锋，距他只差半日。",
+            },
+          },
           segs = {
             "周文军至⟦戏亭⟧，兵数十万，函谷关内大震。咸阳的市门提前关了，二世在深宫里摔了酒盏。",
             "二世以⟦章邯⟧为将，免⟦骊山徒⟧、奴产子，悉发以击楚——几十万刑徒一夜之间从坟工地上拿起了戈。",
@@ -1754,6 +1780,16 @@ return {
           id = "6-2",
           title = "下城父",
           key = true,
+          altSegs = {
+            flag = "kuancha2",
+            segs = {
+              "腊月，你至汝阴，还至⟦下城父⟧。残兵不过数百，追兵已经望不见尾——追得太紧，连尾都收起来了。",
+              "沿途的坞壁大多闭了门。唯有几处寨子，夜里悄悄递出热食与干薪——他们还认得，当年从司过院里被解缚出来的人。",
+              "你的御者⟦庄贾⟧，连日来勒马的手越来越紧——你看在眼里，却没有在意。",
+              "这一夜，他替你驾车，走上了一条没有灯的小路。",
+              "雪粒子打在车帷上，沙沙地响。你忽然想起陇上那天的笑声。",
+            },
+          },
           segs = {
             "腊月，你至汝阴，还至⟦下城父⟧。残兵不过数百，追兵已经望不见尾——追得太紧，连尾都收起来了。",
             "沿途的坞壁都闭了门。半年前箪食壶浆的地方，如今只从墙头探出眼睛。",
@@ -2700,6 +2736,7 @@ return {
       id = "CS-ACT-1",
       name = "聚义宣讲",
       desc = "聚众讲“苦秦”之理",
+      descHidden = "聚众讲“苦秦”之理",
       chapters = {
         0,
         6,
@@ -2719,6 +2756,7 @@ return {
       id = "CS-ACT-2",
       name = "置酒高会",
       desc = "置酒结客（财富-8）",
+      descHidden = "置酒结客（耗财）",
       req = {
         caifu = 8,
       },
@@ -2741,6 +2779,7 @@ return {
       id = "CS-ACT-3",
       name = "入府联络",
       desc = "趋府通款，以通声气（需起事）",
+      descHidden = "趋府通款，以通声气（需起事）",
       req = {
         minChapter = 2,
       },
@@ -2762,6 +2801,7 @@ return {
       id = "CS-ACT-4",
       name = "闭门读兵",
       desc = "谢客静修，温习兵略",
+      descHidden = "谢客静修，温习兵略",
       chapters = {
         0,
         6,
@@ -2781,6 +2821,7 @@ return {
       id = "CS-ACT-5",
       name = "散财养士",
       desc = "厚币招贤（财富-8）",
+      descHidden = "厚币招贤（倾囊以聘）",
       req = {
         caifu = 8,
       },
@@ -2802,6 +2843,7 @@ return {
       id = "CS-ACT-6",
       name = "称病蛰伏",
       desc = "闭门称病，避人锋芒（需起事）",
+      descHidden = "闭门称病，避人锋芒（需起事）",
       req = {
         minChapter = 2,
       },
@@ -2824,6 +2866,7 @@ return {
       id = "CS-ACT-49",
       name = "演武强身",
       desc = "晨起演武，筋骨与艺俱进",
+      descHidden = "晨起演武，筋骨与艺俱进",
       chapters = {
         0,
         6,
@@ -2842,6 +2885,7 @@ return {
       id = "CS-ACT-50",
       name = "导引养生",
       desc = "调息导引，养精神于未衰",
+      descHidden = "调息导引，养精神于未衰",
       chapters = {
         0,
         6,
@@ -2859,6 +2903,7 @@ return {
       id = "CS-ACT-7",
       name = "代写书信",
       desc = "代写书信讼状，以笔糊口",
+      descHidden = "代写书信讼状，以笔糊口",
       chapters = {
         0,
         0,
@@ -2877,6 +2922,7 @@ return {
       id = "CS-ACT-8",
       name = "帮佣换粮",
       desc = "多接几亩短工",
+      descHidden = "多接几亩短工",
       chapters = {
         0,
         0,
@@ -2894,6 +2940,7 @@ return {
       id = "CS-ACT-9",
       name = "结交戍卒",
       desc = "与过路戍卒攀谈（财富-2）",
+      descHidden = "与过路戍卒攀谈（略费盘缠）",
       req = {
         caifu = 2,
       },
@@ -2916,6 +2963,7 @@ return {
       id = "CS-ACT-10",
       name = "听人说天下",
       desc = "酒肆听四方消息",
+      descHidden = "酒肆听四方消息",
       chapters = {
         0,
         0,
@@ -2934,6 +2982,7 @@ return {
       id = "CS-ACT-11",
       name = "夜宿破庙",
       desc = "破庙一宿，省资养力（财富-2）",
+      descHidden = "破庙一宿，省资养力（费些许宿钱）",
       req = {
         caifu = 2,
       },
@@ -2955,6 +3004,7 @@ return {
       id = "CS-ACT-12",
       name = "练武强身",
       desc = "晨起练武，以健体魄",
+      descHidden = "晨起练武，以健体魄",
       chapters = {
         0,
         0,
@@ -2974,6 +3024,7 @@ return {
       id = "CS-ACT-51",
       name = "陇上较力",
       desc = "与佣伴较力角抵，筋骨之名渐起",
+      descHidden = "与佣伴较力角抵，筋骨之名渐起",
       chapters = {
         0,
         0,
@@ -2992,6 +3043,7 @@ return {
       id = "CS-ACT-52",
       name = "负麦换钱",
       desc = "负麦帮工，气力换钱",
+      descHidden = "负麦帮工，气力换钱",
       chapters = {
         0,
         0,
@@ -3009,6 +3061,7 @@ return {
       id = "CS-ACT-13",
       name = "安抚戍卒",
       desc = "巡铺安抚，以结众心",
+      descHidden = "巡铺安抚，以结众心",
       chapters = {
         1,
         1,
@@ -3028,6 +3081,7 @@ return {
       id = "CS-ACT-14",
       name = "联络两屯",
       desc = "与另一屯屯长通款",
+      descHidden = "与另一屯屯长通款",
       chapters = {
         1,
         1,
@@ -3047,6 +3101,7 @@ return {
       id = "CS-ACT-15",
       name = "密置耳目",
       desc = "暗布眼线于队中",
+      descHidden = "暗布眼线于队中",
       chapters = {
         1,
         1,
@@ -3066,6 +3121,7 @@ return {
       id = "CS-ACT-16",
       name = "巡查队伍",
       desc = "整肃行伍，以立规矩",
+      descHidden = "整肃行伍，以立规矩",
       chapters = {
         1,
         1,
@@ -3083,6 +3139,7 @@ return {
       id = "CS-ACT-17",
       name = "夜探营门",
       desc = "夜观营防，默记虚实",
+      descHidden = "夜观营防，默记虚实",
       chapters = {
         1,
         1,
@@ -3101,6 +3158,7 @@ return {
       id = "CS-ACT-18",
       name = "散粮结心",
       desc = "分粮周急（财富-3）",
+      descHidden = "分粮周急（损己之粮）",
       req = {
         caifu = 3,
       },
@@ -3121,6 +3179,7 @@ return {
       id = "CS-ACT-53",
       name = "雨中演阵",
       desc = "雨隙演阵，隐成部曲",
+      descHidden = "雨隙演阵，隐成部曲",
       chapters = {
         1,
         1,
@@ -3139,6 +3198,7 @@ return {
       id = "CS-ACT-54",
       name = "冒雨探路",
       desc = "冒雨探视前路水势",
+      descHidden = "冒雨探视前路水势",
       chapters = {
         1,
         1,
@@ -3156,6 +3216,7 @@ return {
       id = "CS-ACT-19",
       name = "申明军纪",
       desc = "申令三军，秋毫无犯",
+      descHidden = "申令三军，秋毫无犯",
       chapters = {
         2,
         2,
@@ -3176,6 +3237,7 @@ return {
       id = "CS-ACT-20",
       name = "抚降纳叛",
       desc = "收编来降之众",
+      descHidden = "收编来降之众",
       chapters = {
         2,
         2,
@@ -3194,6 +3256,7 @@ return {
       id = "CS-ACT-21",
       name = "筹粮于野",
       desc = "就食于野，以充军粮",
+      descHidden = "就食于野，以充军粮",
       chapters = {
         2,
         2,
@@ -3211,6 +3274,7 @@ return {
       id = "CS-ACT-22",
       name = "操练新卒",
       desc = "亲训新附之卒",
+      descHidden = "亲训新附之卒",
       chapters = {
         2,
         2,
@@ -3229,6 +3293,7 @@ return {
       id = "CS-ACT-23",
       name = "犒赏士卒",
       desc = "以私财犒军（财富-4）",
+      descHidden = "以私财犒军（耗私财）",
       req = {
         caifu = 4,
       },
@@ -3249,6 +3314,7 @@ return {
       id = "CS-ACT-24",
       name = "探城虚实",
       desc = "先遣细探，再图攻坚",
+      descHidden = "先遣细探，再图攻坚",
       chapters = {
         2,
         2,
@@ -3267,6 +3333,7 @@ return {
       id = "CS-ACT-55",
       name = "阵前试锋",
       desc = "小阵试锋，以战练胆",
+      descHidden = "小阵试锋，以战练胆",
       chapters = {
         2,
         2,
@@ -3285,6 +3352,7 @@ return {
       id = "CS-ACT-56",
       name = "与卒同炊",
       desc = "与士卒同炊共爨",
+      descHidden = "与士卒同炊共爨",
       chapters = {
         2,
         2,
@@ -3302,6 +3370,7 @@ return {
       id = "CS-ACT-25",
       name = "开仓赈民",
       desc = "开仓放粮（财富-3）",
+      descHidden = "开仓放粮（损仓廪之积）",
       req = {
         caifu = 3,
       },
@@ -3323,6 +3392,7 @@ return {
       id = "CS-ACT-26",
       name = "召见三老",
       desc = "礼请三老豪杰",
+      descHidden = "礼请三老豪杰",
       chapters = {
         3,
         3,
@@ -3342,6 +3412,7 @@ return {
       id = "CS-ACT-27",
       name = "修筑城防",
       desc = "缮城固防，深根固本",
+      descHidden = "缮城固防，深根固本",
       chapters = {
         3,
         3,
@@ -3359,6 +3430,7 @@ return {
       id = "CS-ACT-28",
       name = "裁汰老弱",
       desc = "汰弱留强，以精其军",
+      descHidden = "汰弱留强，以精其军",
       chapters = {
         3,
         3,
@@ -3378,6 +3450,7 @@ return {
       id = "CS-ACT-29",
       name = "安插亲信",
       desc = "以旧部领新附",
+      descHidden = "以旧部领新附",
       chapters = {
         3,
         3,
@@ -3397,6 +3470,7 @@ return {
       id = "CS-ACT-30",
       name = "清查府库",
       desc = "核收陈之府库",
+      descHidden = "核收陈之府库",
       chapters = {
         3,
         3,
@@ -3414,6 +3488,7 @@ return {
       id = "CS-ACT-57",
       name = "置官定号",
       desc = "置官属，定号令，立张楚之制",
+      descHidden = "置官属，定号令，立张楚之制",
       chapters = {
         3,
         3,
@@ -3432,6 +3507,7 @@ return {
       id = "CS-ACT-58",
       name = "登陴巡夜",
       desc = "登城巡夜，与守卒同警",
+      descHidden = "登城巡夜，与守卒同警",
       chapters = {
         3,
         3,
@@ -3449,6 +3525,7 @@ return {
       id = "CS-ACT-31",
       name = "督察徇地",
       desc = "亲巡徇地诸军（权势≥25 诸将方听）",
+      descHidden = "亲巡徇地诸军（威重方听）",
       req = {
         quanshi = 25,
       },
@@ -3471,6 +3548,7 @@ return {
       id = "CS-ACT-32",
       name = "犒赏归师",
       desc = "犒赏徇地归者（财富-4）",
+      descHidden = "犒赏徇地归者（耗财犒军）",
       req = {
         caifu = 4,
       },
@@ -3492,6 +3570,7 @@ return {
       id = "CS-ACT-33",
       name = "调解争功",
       desc = "为诸将和功",
+      descHidden = "为诸将和功",
       chapters = {
         4,
         4,
@@ -3510,6 +3589,7 @@ return {
       id = "CS-ACT-34",
       name = "联络诸侯",
       desc = "遣使通好（财富-3）",
+      descHidden = "遣使通好（费币帛）",
       req = {
         caifu = 3,
       },
@@ -3532,6 +3612,7 @@ return {
       id = "CS-ACT-35",
       name = "检阅新军",
       desc = "大阅诸营新军",
+      descHidden = "大阅诸营新军",
       chapters = {
         4,
         4,
@@ -3549,6 +3630,7 @@ return {
       id = "CS-ACT-36",
       name = "收拢溃卒",
       desc = "收编败散之卒",
+      descHidden = "收编败散之卒",
       chapters = {
         4,
         4,
@@ -3567,6 +3649,7 @@ return {
       id = "CS-ACT-59",
       name = "马上阅阵",
       desc = "驰赴各营，马上阅阵",
+      descHidden = "驰赴各营，马上阅阵",
       chapters = {
         4,
         4,
@@ -3585,6 +3668,7 @@ return {
       id = "CS-ACT-60",
       name = "卸甲小憩",
       desc = "偷得半日闲，卸甲养神",
+      descHidden = "偷得半日闲，卸甲养神",
       chapters = {
         4,
         4,
@@ -3602,6 +3686,7 @@ return {
       id = "CS-ACT-37",
       name = "亲赴军前",
       desc = "亲赴荥阳军中",
+      descHidden = "亲赴荥阳军中",
       chapters = {
         5,
         5,
@@ -3622,6 +3707,7 @@ return {
       id = "CS-ACT-38",
       name = "激励将士",
       desc = "以义励众，以固军心",
+      descHidden = "以义励众，以固军心",
       chapters = {
         5,
         5,
@@ -3641,6 +3727,7 @@ return {
       id = "CS-ACT-39",
       name = "加固敖仓",
       desc = "缮治敖仓壁垒",
+      descHidden = "缮治敖仓壁垒",
       chapters = {
         5,
         5,
@@ -3658,6 +3745,7 @@ return {
       id = "CS-ACT-40",
       name = "购募死士",
       desc = "重金募敢死之士（财富-5）",
+      descHidden = "重金募敢死之士（所费不赀）",
       req = {
         caifu = 5,
       },
@@ -3678,6 +3766,7 @@ return {
       id = "CS-ACT-41",
       name = "调解宿怨",
       desc = "为两将解仇",
+      descHidden = "为两将解仇",
       chapters = {
         5,
         5,
@@ -3697,6 +3786,7 @@ return {
       id = "CS-ACT-42",
       name = "夜议军机",
       desc = "与诸将夜议军机（才学≥40 方能服众）",
+      descHidden = "与诸将夜议军机（才学不足则须冒险）",
       req = {
         caixue = 40,
       },
@@ -3718,6 +3808,7 @@ return {
       id = "CS-ACT-61",
       name = "阵前夺旗",
       desc = "亲陷小阵，夺旗励众",
+      descHidden = "亲陷小阵，夺旗励众",
       chapters = {
         5,
         5,
@@ -3736,6 +3827,7 @@ return {
       id = "CS-ACT-62",
       name = "负土筑垒",
       desc = "与民夫同负土，亲筑营垒",
+      descHidden = "与民夫同负土，亲筑营垒",
       chapters = {
         5,
         5,
@@ -3753,6 +3845,7 @@ return {
       id = "CS-ACT-43",
       name = "收拢残部",
       desc = "收拢溃散之众",
+      descHidden = "收拢溃散之众",
       chapters = {
         6,
         6,
@@ -3771,6 +3864,7 @@ return {
       id = "CS-ACT-44",
       name = "安抚逃卒",
       desc = "抚辑逃亡，以安余众",
+      descHidden = "抚辑逃亡，以安余众",
       chapters = {
         6,
         6,
@@ -3789,6 +3883,7 @@ return {
       id = "CS-ACT-45",
       name = "夜巡残营",
       desc = "亲巡夜哨，以肃余部",
+      descHidden = "亲巡夜哨，以肃余部",
       chapters = {
         6,
         6,
@@ -3807,6 +3902,7 @@ return {
       id = "CS-ACT-46",
       name = "变卖仪仗",
       desc = "鬻王者仪仗以充军资",
+      descHidden = "鬻王者仪仗以充军资",
       chapters = {
         6,
         6,
@@ -3824,6 +3920,7 @@ return {
       id = "CS-ACT-47",
       name = "密探追兵",
       desc = "遣人觇章邯之踪",
+      descHidden = "遣人觇章邯之踪",
       chapters = {
         6,
         6,
@@ -3843,6 +3940,7 @@ return {
       id = "CS-ACT-48",
       name = "秣马南郊",
       desc = "于南郊休整残军",
+      descHidden = "于南郊休整残军",
       chapters = {
         6,
         6,
@@ -3860,6 +3958,7 @@ return {
       id = "CS-ACT-63",
       name = "雪夜磨刃",
       desc = "雪夜磨刃，意态犹雄",
+      descHidden = "雪夜磨刃，意态犹雄",
       chapters = {
         6,
         6,
@@ -3877,6 +3976,7 @@ return {
       id = "CS-ACT-64",
       name = "拥炉话旧",
       desc = "拥炉与残卒话大泽旧事",
+      descHidden = "拥炉与残卒话大泽旧事",
       chapters = {
         6,
         6,

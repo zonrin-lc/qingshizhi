@@ -666,7 +666,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "renyin",
+                  "renyin", -- 叙事标记：不消费（忍辱留任路径的记号，兄弟选项不设 flag，后文本就无条件分支）
                 },
               },
               to = "0-3",
@@ -1171,7 +1171,7 @@ return {
                 },
                 dev = 5,
                 flags = {
-                  "mouguo",
+                  "mouguo", -- 叙事标记：不消费（即时兑现路线，与 wangzhiwo 的延迟兑现互为平衡；prot/test-sim 用作分支验证锚点）
                 },
               },
               to = "2-3",
@@ -1226,7 +1226,7 @@ return {
                 },
                 dev = 10,
                 flags = {
-                  "yiming",
+                  "yiming", -- 叙事标记：不消费（成就锚点已由同 eff 的 ach="yibo" 承担）
                 },
                 hist = 10,
                 ach = "yibo",
@@ -1351,7 +1351,7 @@ return {
           ["if"] = {
             shengwang = 50,
           },
-          flag = "jimo",
+          flag = "jimo", -- 异变标记：不消费（籍没效果当场经 capAttrs 结算；prot/test-sim 用作验证锚点）
           capAttrs = {
             caifu = 5,
           },
@@ -2452,7 +2452,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "wu_jiaozhao",
+                  "wu_jiaozhao", -- 叙事标记：不消费（沙丘从逆污名；凡入第六章者必经从逆路径，必持此 flag，条件无判别价值）
                   "zhaogao2",
                 },
                 hist = -30,
@@ -2562,7 +2562,7 @@ return {
                 dev = 15,
                 flags = {
                   "liuzheng",
-                  "wu_jiaozhao",
+                  "wu_jiaozhao", -- 叙事标记：不消费（沙丘从逆污名；凡入第六章者必经从逆路径，必持此 flag，条件无判别价值）
                 },
               },
               to = "NEXT",
@@ -2590,7 +2590,7 @@ return {
                 },
                 dev = 0,
                 flags = {
-                  "wu_jiaozhao",
+                  "wu_jiaozhao", -- 叙事标记：不消费（沙丘从逆污名；凡入第六章者必经从逆路径，必持此 flag，条件无判别价值）
                   "zhaogao2",
                 },
                 hist = -30,
@@ -3868,6 +3868,7 @@ return {
       id = "ACT-1",
       name = "著书立说",
       desc = "闭门著文，以文养名",
+      descHidden = "闭门著文，以文养名",
       cost = nil,
       chapters = {
         0,
@@ -3887,6 +3888,7 @@ return {
       id = "ACT-2",
       name = "宴饮交游",
       desc = "置酒高会，结交朝士（财富-8）",
+      descHidden = "置酒高会，结交朝士（席费不菲）",
       req = {
         caifu = 8,
       },
@@ -3909,6 +3911,7 @@ return {
       id = "ACT-3",
       name = "入宫请安",
       desc = "趋朝问安，固宠于君（需在秦廷）",
+      descHidden = "趋朝问安，固宠于君（需在秦廷）",
       req = {
         minChapter = 2,
       },
@@ -3930,6 +3933,7 @@ return {
       id = "ACT-4",
       name = "闭门读书",
       desc = "谢客静修，养望蓄才",
+      descHidden = "谢客静修，养望蓄才",
       chapters = {
         0,
         6,
@@ -3948,6 +3952,7 @@ return {
       id = "ACT-5",
       name = "散财养士",
       desc = "厚币招贤，缓急有人（财富-8）",
+      descHidden = "厚币招贤，缓急有人（厚币耗财）",
       req = {
         caifu = 8,
       },
@@ -3969,6 +3974,7 @@ return {
       id = "ACT-6",
       name = "称病蛰伏",
       desc = "闭门称病，避人锋芒（需在秦廷）",
+      descHidden = "闭门称病，避人锋芒（需在秦廷）",
       req = {
         minChapter = 2,
       },
@@ -3991,6 +3997,7 @@ return {
       id = "ACT-49",
       name = "习剑强身",
       desc = "晨起习剑，筋骨与剑俱进",
+      descHidden = "晨起习剑，筋骨与剑俱进",
       chapters = {
         0,
         6,
@@ -4009,6 +4016,7 @@ return {
       id = "ACT-50",
       name = "导引养生",
       desc = "调息导引，养精神于未衰",
+      descHidden = "调息导引，养精神于未衰",
       chapters = {
         0,
         6,
@@ -4026,6 +4034,7 @@ return {
       id = "ACT-7",
       name = "乡绅联姻",
       desc = "结亲富室，互为奥援",
+      descHidden = "结亲富室，互为奥援",
       chapters = {
         0,
         0,
@@ -4044,6 +4053,7 @@ return {
       id = "ACT-8",
       name = "替人写状",
       desc = "刀笔谋生，润笔养家",
+      descHidden = "刀笔谋生，润笔养家",
       chapters = {
         0,
         0,
@@ -4063,6 +4073,7 @@ return {
       id = "ACT-9",
       name = "田间观鼠",
       desc = "观鼠于厕仓，思人之所处",
+      descHidden = "观鼠于厕仓，思人之所处",
       chapters = {
         0,
         0,
@@ -4080,6 +4091,7 @@ return {
       id = "ACT-10",
       name = "结交游侠",
       desc = "折节下士，缓急可恃（财富-4）",
+      descHidden = "折节下士，缓急可恃（酒食耗财）",
       req = {
         caifu = 4,
       },
@@ -4102,6 +4114,7 @@ return {
       id = "ACT-11",
       name = "督办粮簿",
       desc = "勾稽仓账，以干吏名",
+      descHidden = "勾稽仓账，以干吏名",
       chapters = {
         0,
         0,
@@ -4121,6 +4134,7 @@ return {
       id = "ACT-12",
       name = "货殖郡府",
       desc = "馈遗郡吏，买路向上（财富-3）",
+      descHidden = "馈遗郡吏，买路向上（节礼破费）",
       req = {
         caifu = 3,
       },
@@ -4141,6 +4155,7 @@ return {
       id = "ACT-51",
       name = "习武于市",
       desc = "市上较艺，名起亦招忌",
+      descHidden = "市上较艺，名起亦招忌",
       chapters = {
         0,
         0,
@@ -4159,6 +4174,7 @@ return {
       id = "ACT-52",
       name = "负重劳作",
       desc = "负重营生，筋骨换钱粮",
+      descHidden = "负重营生，筋骨换钱粮",
       chapters = {
         0,
         0,
@@ -4176,6 +4192,7 @@ return {
       id = "ACT-13",
       name = "问难荀卿",
       desc = "执经问难，切磋琢磨（财富-2）",
+      descHidden = "执经问难，切磋琢磨（束脩微费）",
       req = {
         caifu = 2,
       },
@@ -4196,6 +4213,7 @@ return {
       id = "ACT-14",
       name = "与韩论学",
       desc = "同窗抵足，辩至夜分",
+      descHidden = "同窗抵足，辩至夜分",
       chapters = {
         1,
         1,
@@ -4215,6 +4233,7 @@ return {
       id = "ACT-15",
       name = "抄简自给",
       desc = "佣书换粟，半耕半读",
+      descHidden = "佣书换粟，半耕半读",
       chapters = {
         1,
         1,
@@ -4232,6 +4251,7 @@ return {
       id = "ACT-16",
       name = "结交同窗",
       desc = "倾盖定交，后日之援（财富-2）",
+      descHidden = "倾盖定交，后日之援（薄有破费）",
       req = {
         caifu = 2,
       },
@@ -4253,6 +4273,7 @@ return {
       id = "ACT-17",
       name = "观时著论",
       desc = "纵论天下，以文自见",
+      descHidden = "纵论天下，以文自见",
       chapters = {
         1,
         1,
@@ -4271,6 +4292,7 @@ return {
       id = "ACT-18",
       name = "躬耕自给",
       desc = "力田省用，以俭养学",
+      descHidden = "力田省用，以俭养学",
       chapters = {
         1,
         1,
@@ -4289,6 +4311,7 @@ return {
       id = "ACT-53",
       name = "习射于乡",
       desc = "乡间习射，弓开筋骨健",
+      descHidden = "乡间习射，弓开筋骨健",
       chapters = {
         1,
         1,
@@ -4306,6 +4329,7 @@ return {
       id = "ACT-54",
       name = "负笈跋涉",
       desc = "负笈千里，脚力换盘缠",
+      descHidden = "负笈千里，脚力换盘缠",
       chapters = {
         1,
         1,
@@ -4323,6 +4347,7 @@ return {
       id = "ACT-19",
       name = "结交郎官",
       desc = "纳交禁掖，消息早一步（财富-3）",
+      descHidden = "纳交禁掖，消息早一步（微耗财帛）",
       req = {
         caifu = 3,
       },
@@ -4345,6 +4370,7 @@ return {
       id = "ACT-20",
       name = "打探宫情",
       desc = "市言于宦者之门（财富-3）",
+      descHidden = "市言于宦者之门（破费买言）",
       req = {
         caifu = 3,
       },
@@ -4366,6 +4392,7 @@ return {
       id = "ACT-21",
       name = "督办文书",
       desc = "躬亲簿领，以勤自效",
+      descHidden = "躬亲簿领，以勤自效",
       chapters = {
         2,
         2,
@@ -4385,6 +4412,7 @@ return {
       id = "ACT-22",
       name = "修书吕门",
       desc = "预修《吕氏春秋》之役（才学≥45 方能执笔）",
+      descHidden = "预修《吕氏春秋》之役（才学不足则难与执笔）",
       req = {
         caixue = 45,
       },
@@ -4406,6 +4434,7 @@ return {
       id = "ACT-23",
       name = "贿赂寺人",
       desc = "输金宦者，买宫中耳（财富-6）",
+      descHidden = "输金宦者，买宫中耳（输金不菲）",
       req = {
         caifu = 6,
       },
@@ -4427,6 +4456,7 @@ return {
       id = "ACT-24",
       name = "俭用蓄财",
       desc = "节衣缩食，积粮防饥",
+      descHidden = "节衣缩食，积粮防饥",
       chapters = {
         2,
         2,
@@ -4444,6 +4474,7 @@ return {
       id = "ACT-55",
       name = "随军观阵",
       desc = "随军观阵，阵前悟兵机",
+      descHidden = "随军观阵，阵前悟兵机",
       chapters = {
         2,
         2,
@@ -4462,6 +4493,7 @@ return {
       id = "ACT-56",
       name = "骑射苑囿",
       desc = "苑囿骑射，金帛换弓马（财富-2）",
+      descHidden = "苑囿骑射，金帛换弓马（鞍马之费）",
       req = {
         caifu = 2,
       },
@@ -4483,6 +4515,7 @@ return {
       id = "ACT-25",
       name = "串联客卿",
       desc = "连横同逐者，共议去留",
+      descHidden = "连横同逐者，共议去留",
       chapters = {
         3,
         3,
@@ -4501,6 +4534,7 @@ return {
       id = "ACT-26",
       name = "密访宗室",
       desc = "夜叩宗老之门（财富-5）",
+      descHidden = "夜叩宗老之门（重礼耗财）",
       req = {
         caifu = 5,
       },
@@ -4522,6 +4556,7 @@ return {
       id = "ACT-27",
       name = "打点押吏",
       desc = "贿遣押送吏，途中少辱（财富-4）",
+      descHidden = "贿遣押送吏，途中少辱（贿赂耗财）",
       req = {
         caifu = 4,
       },
@@ -4542,6 +4577,7 @@ return {
       id = "ACT-28",
       name = "托人递简",
       desc = "遗书故交，求达天听（财富-3）",
+      descHidden = "遗书故交，求达天听（微耗财帛）",
       req = {
         caifu = 3,
       },
@@ -4562,6 +4598,7 @@ return {
       id = "ACT-29",
       name = "闭门草疏",
       desc = "杜门属稿，字字磨洗",
+      descHidden = "杜门属稿，字字磨洗",
       chapters = {
         3,
         3,
@@ -4579,6 +4616,7 @@ return {
       id = "ACT-30",
       name = "倾囊结义",
       desc = "分金周急，收揽众心（财富-4）",
+      descHidden = "分金周急，收揽众心（分金耗财）",
       req = {
         caifu = 4,
       },
@@ -4599,6 +4637,7 @@ return {
       id = "ACT-57",
       name = "鬻字易米",
       desc = "鬻字易米，润笔糊口",
+      descHidden = "鬻字易米，润笔糊口",
       chapters = {
         3,
         3,
@@ -4616,6 +4655,7 @@ return {
       id = "ACT-58",
       name = "风霜夜行",
       desc = "戴月夜行，风霜隐行踪",
+      descHidden = "戴月夜行，风霜隐行踪",
       chapters = {
         3,
         3,
@@ -4633,6 +4673,7 @@ return {
       id = "ACT-31",
       name = "拉拢廷臣",
       desc = "结纳朝贵，固己之党（财富-4）",
+      descHidden = "结纳朝贵，固己之党（重礼耗财）",
       req = {
         caifu = 4,
       },
@@ -4655,6 +4696,7 @@ return {
       id = "ACT-32",
       name = "弹章政敌",
       desc = "疏劾异己，先声夺人",
+      descHidden = "疏劾异己，先声夺人",
       chapters = {
         4,
         4,
@@ -4675,6 +4717,7 @@ return {
       id = "ACT-33",
       name = "巡视封邑",
       desc = "行县视事，威福自专",
+      descHidden = "行县视事，威福自专",
       chapters = {
         4,
         4,
@@ -4695,6 +4738,7 @@ return {
       id = "ACT-34",
       name = "督办驰道",
       desc = "督课工程，以绩固宠（财富-3）",
+      descHidden = "督课工程，以绩固宠（督工耗财）",
       req = {
         caifu = 3,
       },
@@ -4718,6 +4762,7 @@ return {
       id = "ACT-35",
       name = "修订律令",
       desc = "损益秦律，垂法后世（才学≥55 方能主笔）",
+      descHidden = "损益秦律，垂法后世（才学不足则难为主笔）",
       req = {
         caixue = 55,
       },
@@ -4740,6 +4785,7 @@ return {
       id = "ACT-36",
       name = "安抚楚士",
       desc = "怀柔故楚遗民（财富-3）",
+      descHidden = "怀柔故楚遗民（小有破费）",
       req = {
         caifu = 3,
       },
@@ -4762,6 +4808,7 @@ return {
       id = "ACT-59",
       name = "亲临战阵",
       desc = "亲临战阵，血勇博威名",
+      descHidden = "亲临战阵，血勇博威名",
       chapters = {
         4,
         4,
@@ -4780,6 +4827,7 @@ return {
       id = "ACT-60",
       name = "封邑驰猎",
       desc = "封邑驰猎，獐鹿入府库",
+      descHidden = "封邑驰猎，獐鹿入府库",
       chapters = {
         4,
         4,
@@ -4798,6 +4846,7 @@ return {
       id = "ACT-37",
       name = "联络北军",
       desc = "遗书上郡，通问旧部",
+      descHidden = "遗书上郡，通问旧部",
       chapters = {
         5,
         5,
@@ -4817,6 +4866,7 @@ return {
       id = "ACT-38",
       name = "密会宗室",
       desc = "屏人夜语，预留退步",
+      descHidden = "屏人夜语，预留退步",
       chapters = {
         5,
         5,
@@ -4836,6 +4886,7 @@ return {
       id = "ACT-39",
       name = "焚稿灭迹",
       desc = "焚毁草稿，灭去形迹",
+      descHidden = "焚毁草稿，灭去形迹",
       chapters = {
         5,
         5,
@@ -4854,6 +4905,7 @@ return {
       id = "ACT-40",
       name = "收买府吏",
       desc = "啖以重利，间隙其党（财富-6）",
+      descHidden = "啖以重利，间隙其党（啖以重利）",
       req = {
         caifu = 6,
       },
@@ -4874,6 +4926,7 @@ return {
       id = "ACT-41",
       name = "装病避驾",
       desc = "称疾不朝，暂避其锋",
+      descHidden = "称疾不朝，暂避其锋",
       chapters = {
         5,
         5,
@@ -4893,6 +4946,7 @@ return {
       id = "ACT-42",
       name = "缮写密奏",
       desc = "别途上达，绕开掖庭",
+      descHidden = "别途上达，绕开掖庭",
       chapters = {
         5,
         5,
@@ -4911,6 +4965,7 @@ return {
       id = "ACT-61",
       name = "变卖珍玩",
       desc = "鬻玉藏金，以充行用",
+      descHidden = "鬻玉藏金，以充行用",
       chapters = {
         5,
         5,
@@ -4928,6 +4983,7 @@ return {
       id = "ACT-62",
       name = "强撑视事",
       desc = "扶病视事，权柄不敢松",
+      descHidden = "扶病视事，权柄不敢松",
       chapters = {
         5,
         5,
@@ -4947,6 +5003,7 @@ return {
       id = "ACT-43",
       name = "结交近侍",
       desc = "厚结左右，转圜君侧（财富-4）",
+      descHidden = "厚结左右，转圜君侧（馈赠耗财）",
       req = {
         caifu = 4,
       },
@@ -4968,6 +5025,7 @@ return {
       id = "ACT-44",
       name = "经营密奏",
       desc = "别辟言路，直抵深宫",
+      descHidden = "别辟言路，直抵深宫",
       chapters = {
         6,
         6,
@@ -4986,6 +5044,7 @@ return {
       id = "ACT-45",
       name = "转移家产",
       desc = "分藏金帛，以备不虞",
+      descHidden = "分藏金帛，以备不虞",
       chapters = {
         6,
         6,
@@ -5003,6 +5062,7 @@ return {
       id = "ACT-46",
       name = "教导李由",
       desc = "课子以书，申饬官箴（财富-2）",
+      descHidden = "课子以书，申饬官箴（微耗财帛）",
       req = {
         caifu = 2,
       },
@@ -5025,6 +5085,7 @@ return {
       id = "ACT-47",
       name = "销毁书信",
       desc = "焚尽往来，自断嫌隙",
+      descHidden = "焚尽往来，自断嫌隙",
       chapters = {
         6,
         6,
@@ -5043,6 +5104,7 @@ return {
       id = "ACT-48",
       name = "上疏谏阻",
       desc = "逆鳞极谏，以直博名",
+      descHidden = "逆鳞极谏，以直博名",
       chapters = {
         6,
         6,
@@ -5062,6 +5124,7 @@ return {
       id = "ACT-63",
       name = "狱中导引",
       desc = "囹圄导引，养气待天时",
+      descHidden = "囹圄导引，养气待天时",
       chapters = {
         6,
         6,
@@ -5079,6 +5142,7 @@ return {
       id = "ACT-64",
       name = "老骥砺剑",
       desc = "老骥砺剑，暮年不卸甲",
+      descHidden = "老骥砺剑，暮年不卸甲",
       chapters = {
         6,
         6,
