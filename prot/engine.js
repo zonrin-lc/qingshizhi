@@ -89,6 +89,8 @@
     this.ending = null;
     this.snapshot = null;
     this.pendingCardId = null;   // 抉择卡(次级关键事件)：进入 choice 阶段时挂起的行动卡 id
+    this.choiceUsed = {};        // 抉择卡整局一次性：落定后不再发
+    this.choiceGap = 1;          // 抉择卡调度：每两轮强制发一张
     // 回合制状态
     this.offer = null;           // 当前回合发牌：[{type:'key'}, {type:'action', id}...]
     this.keyRoundsLeft = 0;      // 关键事件卡剩余限时（回合）
@@ -414,6 +416,8 @@
       // 回合制状态（章首快照时点：倒计时满、行动未用、进度清零；offer 不入快照，恢复后由 beginRounds 重发）
       keyRoundsLeft: this.keyRoundsLeft,
       actionUses: Object.assign({}, this.actionUses),
+      choiceUsed: Object.assign({}, this.choiceUsed),
+      choiceGap: this.choiceGap,
       passed: Object.assign({}, this.passedEvents),
       age: this.age,   // 年龄/疾病属时间线状态（v1.8）：随快照存取，回溯即回到章首病况
       ill: this.ill ? Object.assign({}, this.ill) : null,
@@ -464,6 +468,16 @@
     });
     var picks = [];
     var deal = this._stream('card');   // card 流未注入时回退主 rng（发牌轨迹不变）
+    // 抉择卡调度（镜像 Lua beginRounds）：本章池中未使用的抉择卡，每两轮强制占一个发牌位；
+    // 取消(且搁置)不计使用，抉择落定才入 choiceUsed。仅强制发牌时多消耗一次 deal()。
+    this.choiceGap = (this.choiceGap || 0) + 1;
+    var crest = pool.filter(function (a) { return a.choice && !self.choiceUsed[a.id]; });
+    var cpick = null;
+    if (crest.length > 0 && this.choiceGap >= 2) {
+      cpick = crest[Math.floor(deal() * crest.length)];
+      this.choiceGap = 0;
+      for (var ci = 0; ci < pool.length; ci++) { if (pool[ci] === cpick) { pool.splice(ci, 1); break; } }
+    }
     var n = Math.min(3, pool.length);
     for (var k = 0; k < n; k++) {
       var idx = Math.floor(deal() * pool.length);
@@ -471,6 +485,7 @@
     }
     this.offer = [{ type: 'key' }];
     picks.forEach(function (a) { self.offer.push({ type: 'action', id: a.id }); });
+    if (cpick) this.offer.push({ type: 'action', id: cpick.id });
     // 治病卡（v1.8，剧本 ILLNESS）：染病时额外发一张「求医问药」，不占行动池、不入收益递减
     if (this.ill && this.d.ILLNESS) this.offer.push({ type: 'action', id: '__cure__' });
     this.phase = 'round';
@@ -683,6 +698,7 @@
     var opt = (a.choice.options || [])[i];
     if (!opt) return null;
     this.pendingCardId = null;
+    this.choiceUsed[a.id] = true;   // 抉择卡整局一次性：落定后不再发
     var useN = (this.actionUses[a.id] || 0) + 1;
     this.actionUses[a.id] = useN;
     var noDim = this.d.ACTION_RULES && this.d.ACTION_RULES.diminish === false;
@@ -1247,6 +1263,9 @@
     // 回合制状态随快照恢复（offer 不存，回到 intro 后由 beginRounds 重发）
     this.keyRoundsLeft = s.keyRoundsLeft != null ? s.keyRoundsLeft : this.keyCardRounds;
     this.actionUses = Object.assign({}, s.actionUses || {});
+    this.choiceUsed = Object.assign({}, s.choiceUsed || {});
+    this.choiceGap = s.choiceGap != null ? s.choiceGap : 1;
+    this.pendingCardId = null;
     this.passedEvents = Object.assign({}, s.passed || {});
     // 时间线重写：蓄势与险招烧毁属上一条时间线的决策痕迹，不随回溯穿越（v1.6.1 P0 修复）
     this.xushi = false;
@@ -1352,6 +1371,8 @@
     if (s.keyChoices != null && !Array.isArray(s.keyChoices)) return false;
     if (s.flags != null && (typeof s.flags !== 'object' || Array.isArray(s.flags))) return false;
     if (s.actionUses != null && (typeof s.actionUses !== 'object' || Array.isArray(s.actionUses))) return false;
+    if (s.choiceUsed != null && (typeof s.choiceUsed !== 'object' || Array.isArray(s.choiceUsed))) return false;
+    if (s.choiceGap != null && (!numOk(s.choiceGap) || s.choiceGap < 0)) return false;
     if (s.passed != null && (typeof s.passed !== 'object' || Array.isArray(s.passed))) return false;
     if (s.keyRoundsLeft != null && (!numOk(s.keyRoundsLeft) || s.keyRoundsLeft < 0)) return false;
     var attrs2 = Object.assign({}, s.attrs);        // 不就地改快照对象（exportSave 产物可能被复用）
@@ -1400,6 +1421,8 @@
     this._crisisPlotPending = !!s.crisisPlotPending;
     this.keyRoundsLeft = s.keyRoundsLeft != null ? s.keyRoundsLeft : this.keyCardRounds;
     this.actionUses = Object.assign({}, s.actionUses || {});
+    this.choiceUsed = Object.assign({}, s.choiceUsed || {});
+    this.choiceGap = s.choiceGap != null ? s.choiceGap : 1;
     this.passedEvents = Object.assign({}, s.passed || {});
     this.age = s.age != null ? s.age : ((this.d.AGE && this.d.AGE.init != null) ? this.d.AGE.init : null);
     this.ill = s.ill ? Object.assign({}, s.ill) : null;

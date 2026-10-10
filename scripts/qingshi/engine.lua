@@ -144,6 +144,9 @@ function Game:resetAll()
   self.ending = nil
   self.snapshot = nil
   self.pendingCardId = nil
+  -- 抉择卡(次级关键事件):choiceUsed 整局一次性,选择后不再发;choiceGap 控制每两轮强制发一张
+  self.choiceUsed = {}
+  self.choiceGap = 1
   self.offer = nil
   self.keyRoundsLeft = 0
   self.actionUses = {}
@@ -511,6 +514,8 @@ function Game:makeSnapshot()
     crisisPlotPending = self._crisisPlotPending,
     keyRoundsLeft = self.keyRoundsLeft,
     actionUses = shallow(self.actionUses),
+    choiceUsed = shallow(self.choiceUsed),
+    choiceGap = self.choiceGap,
     passed = shallow(self.passedEvents),
     age = self.age,
     ill = self.ill and shallow(self.ill) or nil,
@@ -558,6 +563,23 @@ function Game:beginRounds()
   end
   local picks = {}
   local deal = self:_stream('card')
+  -- 抉择卡调度:本章池中未使用过的抉择卡,每两轮强制占一个发牌位;
+  -- 取消(且搁置)不计使用,抉择落定才入 choiceUsed,此后整局不再发。
+  -- 随机流口径:仅在强制发抉择卡时多消耗一次 deal(),与 JS 侧严格同序。
+  self.choiceGap = (self.choiceGap or 0) + 1
+  local crest = {}
+  for i = 1, #pool do
+    local a = pool[i]
+    if J(a.choice) and not self.choiceUsed[a.id] then crest[#crest + 1] = a end
+  end
+  local cpick = nil
+  if #crest > 0 and self.choiceGap >= 2 then
+    cpick = crest[math.floor(deal() * #crest) + 1]
+    self.choiceGap = 0
+    for i = 1, #pool do
+      if pool[i] == cpick then table.remove(pool, i) break end
+    end
+  end
   local n = math.min(3, #pool)
   for k = 1, n do
     local idx = math.floor(deal() * #pool) + 1
@@ -566,6 +588,9 @@ function Game:beginRounds()
   self.offer = { { type = 'key' } }
   for i = 1, #picks do
     self.offer[#self.offer + 1] = { type = 'action', id = picks[i].id }
+  end
+  if J(cpick) then
+    self.offer[#self.offer + 1] = { type = 'action', id = cpick.id }
   end
   if J(self.ill) and J(self.d.ILLNESS) then
     self.offer[#self.offer + 1] = { type = 'action', id = '__cure__' }
@@ -826,6 +851,7 @@ function Game:chooseCardOption(i)
   local opt = (a.choice.options or {})[i + 1]             -- 契约 0-based
   if not J(opt) then return nil end
   self.pendingCardId = nil
+  self.choiceUsed[a.id] = true                        -- 抉择卡整局一次性:落定后不再发
   local useN = (self.actionUses[a.id] or 0) + 1
   self.actionUses[a.id] = useN
   local AR = self.d.ACTION_RULES
@@ -1441,6 +1467,9 @@ function Game:backtrack()
   self._crisisPlotPending = (s.crisisPlotPending ~= nil and s.crisisPlotPending ~= false)
   self.keyRoundsLeft = (s.keyRoundsLeft ~= nil) and s.keyRoundsLeft or self.keyCardRounds
   self.actionUses = shallow(s.actionUses or {})
+  self.choiceUsed = shallow(s.choiceUsed or {})
+  self.choiceGap = (s.choiceGap ~= nil) and s.choiceGap or 1
+  self.pendingCardId = nil
   self.passedEvents = shallow(s.passed or {})
   self.xushi = false
   self._burned = {}
@@ -1549,6 +1578,8 @@ function Game:importSave(obj)
   if s.keyChoices ~= nil and type(s.keyChoices) ~= 'table' then return reject() end
   if s.flags ~= nil and type(s.flags) ~= 'table' then return reject() end
   if s.actionUses ~= nil and type(s.actionUses) ~= 'table' then return reject() end
+  if s.choiceUsed ~= nil and type(s.choiceUsed) ~= 'table' then return reject() end
+  if s.choiceGap ~= nil and (not isFin(s.choiceGap) or s.choiceGap < 0) then return reject() end
   if s.passed ~= nil and type(s.passed) ~= 'table' then return reject() end
   if s.keyRoundsLeft ~= nil and (not isFin(s.keyRoundsLeft) or s.keyRoundsLeft < 0) then return reject() end
   local attrs2 = shallow(s.attrs)
@@ -1598,6 +1629,8 @@ function Game:importSave(obj)
   self._crisisPlotPending = (s.crisisPlotPending ~= nil and s.crisisPlotPending ~= false)
   self.keyRoundsLeft = (s.keyRoundsLeft ~= nil) and s.keyRoundsLeft or self.keyCardRounds
   self.actionUses = shallow(s.actionUses or {})
+  self.choiceUsed = shallow(s.choiceUsed or {})
+  self.choiceGap = (s.choiceGap ~= nil) and s.choiceGap or 1
   self.passedEvents = shallow(s.passed or {})
   self.age = (s.age ~= nil) and s.age or ((self.d.AGE and self.d.AGE.init ~= nil) and self.d.AGE.init or nil)
   self.ill = s.ill and shallow(s.ill) or nil

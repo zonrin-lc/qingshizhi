@@ -1024,9 +1024,9 @@ function expect(name, actual, wantId, wantVariant) {
   const acts = offer.slice(1);
   const structOk = key.type === 'key' && key.eventId === '0-1' && typeof key.title === 'string' && key.title.length > 0
     && key.roundsLeft === E.KEY_CARD_ROUNDS && key.inserted === false
-    && acts.length > 0 && acts.length <= 3
+    && acts.length > 0 && acts.length <= 4
     && acts.every(o => o.type === 'action' && o.action && typeof o.locked === 'boolean' && typeof o.usedCount === 'number' && typeof o.diminishing === 'boolean');
-  if (structOk) { pass++; console.log('✔ offer 结构：1 关键卡（' + key.eventId + '「' + key.title + '」倒计时 ' + key.roundsLeft + '）+ ' + acts.length + ' 行动卡'); }
+  if (structOk) { pass++; console.log('✔ offer 结构：1 关键卡（' + key.eventId + '「' + key.title + '」倒计时 ' + key.roundsLeft + '）+ ' + acts.length + ' 行动卡（≤3 常规 + 至多 1 强制抉择卡）'); }
   else { fail++; console.log('✘ offer 结构异常：' + JSON.stringify(offer.map(o => o.type))); }
   // chapters 过滤：章 0 offer 内行动均覆盖章 0，且不含他章专属（如 ACT-13 兰陵）
   const inCh0 = acts.every(o => o.action.chapters[0] <= 0 && 0 <= o.action.chapters[1]);
@@ -1298,7 +1298,7 @@ function expect(name, actual, wantId, wantVariant) {
   } else { fail++; console.log('✘ 章末选项门槛异常：blocked=' + blocked + ' r2text=' + (r2 && r2.text || '').slice(0, 8)); }
 }
 
-/* ---------- 46. 行动卡数据卫生（卡牌 v2 + 抉择卡）：66 个行动 eff 单项 ≤±8（上限随 ATTRS max 缩放，现全维度 100 即 ≤±8）、zg ≤±5、带 chapters；抉择卡逐选项同口径检查 ---------- */
+/* ---------- 46. 行动卡数据卫生（卡牌 v2 + 抉择卡）：76 个行动 eff 单项 ≤±8（上限随 ATTRS max 缩放，现全维度 100 即 ≤±8）、zg ≤±5、带 chapters；抉择卡逐选项同口径检查 ---------- */
 {
   const bad = [];
   const amax = {}; D.ATTRS.forEach(a => { amax[a.k] = a.max || 100; });
@@ -1317,7 +1317,8 @@ function expect(name, actual, wantId, wantVariant) {
   });
   const poolSizes = [];
   for (let ci = 0; ci <= 6; ci++) poolSizes.push(D.ACTIONS.filter(a => a.chapters[0] <= ci && ci <= a.chapters[1]).length);
-  if (D.ACTIONS.length === 66 && bad.length === 0 && poolSizes.every((n, i) => n === (i === 6 ? 16 : 17))) { pass++; console.log('✔ 66 个行动数据卫生（卡牌 v2 + 2 抉择卡）：单项 ≤±8、zg ≤±5、每章池 17（六章 16）（' + poolSizes.join('/') + '）'); }
+  const poolExpect = [18, 19, 19, 19, 19, 19, 17];
+  if (D.ACTIONS.length === 76 && bad.length === 0 && poolSizes.every((n, i) => n === poolExpect[i])) { pass++; console.log('✔ 76 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、zg ≤±5、每章池 ' + poolExpect.join('/') + '（实测 ' + poolSizes.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + poolSizes.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 }
 
