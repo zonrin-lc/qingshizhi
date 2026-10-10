@@ -111,7 +111,7 @@ function M.attach(Shell)
       menuItem('查 看 存 档', #saves > 0, function() Shell.showSaves() end),
       menuItem('设 置 一 下', true, function() Shell.showSettings() end),
       menuItem('退 出 游 戏', true, function()
-        Shell.confirm('退出游戏？', '确定要放下笔,离开这卷青史吗？', function() engine:Exit() end)
+        Shell.confirm('退出游戏？', '确定要放下笔,离开这卷青史吗？', function() engine:Exit() end, '退 出')
       end),
     } }
     curtain:AddChild(T.lbl { t = '悠悠千载　青史万卷', size = T.FS.sub, color = C.inkSoft, ls = 5, wrap = false, mb = 8 })
@@ -374,7 +374,9 @@ function M.attach(Shell)
   -- ---------- 对局开局原语 ----------
 
   function Shell.newGame(scenKey, diffKey, data)
-    local g = Engine.NewGame(data or DATA[scenKey], diffKey, PRNG(os.time() % 2147483647))
+    -- 种子混入 os.clock 毫秒位:纯 os.time 是秒级,同一秒内重开两局会拿到同一个种子
+    local seed = (os.time() % 2147483647) * 1000 + math.floor((os.clock() % 1) * 1000)
+    local g = Engine.NewGame(data or DATA[scenKey], diffKey, PRNG(seed % 2147483647))
     local col = Store.read(Store.colKey(scenKey))
     if type(col) == 'table' and type(col.gloss) == 'table' and type(col.ach) == 'table' then
       for i = 1, #col.gloss do g.gloss[i] = col.gloss[i] end
@@ -658,7 +660,12 @@ function M.attach(Shell)
     local wheelCol = UI.Panel { width = wheelSize, height = wheelSize, flexShrink = 0,
       marginLeft = -math.floor(wheelSize * 0.037),
       alignItems = "center", justifyContent = "center" }
+    if env.wheel and env.wheelSize ~= wheelSize then
+      -- 分辨率/缩放变化:旧罗盘尺寸已固化(创建时定宽高),作废重建以对位新屏
+      env.wheel = nil
+    end
     if not env.wheel then
+      env.wheelSize = wheelSize
       env.wheel = Wheel {
         width = wheelSize, height = wheelSize,
         items = DYNASTIES, index = env.dynIdx + 1,
@@ -679,8 +686,6 @@ function M.attach(Shell)
     c:AddChild(row)
     buildRight()
     env.homeSC:SetScroll(0, 0)
-    -- [诊断] 延迟一帧再量(Yoga 需下一帧完成布局,当帧量到的是 0/NaN)
-    env.diagHome = 2
   end
 
   -- 选择页:罗盘 + 入局漩涡每帧更新

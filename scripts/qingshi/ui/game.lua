@@ -29,6 +29,14 @@ function M.attach(Shell)
   local segW = function(text) return T.richSeg(text, { onGloss = function(t) M.showGloss(t) end }) end
   local noteW = function(text) return T.lbl { t = text, size = T.FS.note, color = C.qing, mb = 6 } end
 
+  -- 按 UTF-8 字符截断(string.sub 按字节切会碎中文,见 theme.VText 注)
+  local function truncChars(s, maxChars)
+    local n = utf8.len(s)
+    if not n then return s end                        -- 非法 UTF-8 原样返回
+    if n <= maxChars then return s end
+    return string.sub(s, 1, utf8.offset(s, maxChars + 1) - 1) .. '…'
+  end
+
   -- ---------- 右栏:立绘背景 + 自身雷达 + 身外属性 ----------
 
   local function currentSpeaker(texts)
@@ -278,7 +286,6 @@ function M.attach(Shell)
       env.optBox:AddChild(T.Btn { text = '继 续', variant = 'primary', size = T.FS.ui, w = 200,
         onClick = function() S.handleRoute(g():beginEvents()) end })
     end)
-    env.diagNextFrame = true   -- [诊断] 全链布局断言(见 Shell.Update)
   end
 
   -- ---------- 事件页 ----------
@@ -523,6 +530,7 @@ function M.attach(Shell)
   function M.renderSummary(s)
     S.showGame()
     S.clearMain(); S.clearOpts()
+    S.scrollMainTop()                        -- 上一页可能停在渐显兜底,结算页须回卷首
     mainAdd(T.lbl { t = '章 末 结 算', size = T.FS.note, color = C.inkDim, mb = 2 })
     mainAdd(T.lbl { t = (string.match(s.chapter, '^(.-)｜') or s.chapter) .. ' 终',
       size = T.FS.h2, color = C.inkHeavy, bold = true })
@@ -534,7 +542,7 @@ function M.attach(Shell)
     else
       for _, d in ipairs(s.devLog) do
         mainAdd(UI.Row { gap = 8, flexWrap = "wrap", marginBottom = 4, alignItems = "flex-start", children = {
-          T.lbl { t = d.ev .. ' ｜ ' .. (string.len(d.t) > 54 and (string.sub(d.t, 1, 54) .. '…') or d.t), size = T.FS.note },
+          T.lbl { t = d.ev .. ' ｜ ' .. truncChars(d.t, 18), size = T.FS.note },
           T.lbl { t = '偏离 +' .. tostring(d.dev), size = T.FS.note, color = C.warn, wrap = false },
         } })
       end
@@ -571,6 +579,7 @@ function M.attach(Shell)
     S.saveCollection()
     Store.remove(Store.saveKey(gg.d.SCENARIO.id))
     S.clearMain(); S.clearOpts()
+    S.scrollMainTop()                        -- 结局页从头呈现,不沿用上一页滚动位置
     mainAdd(T.lbl { t = '〔' .. tostring(en.seal) .. ' · ' .. tostring(en.diffName) .. '〕',
       size = T.FS.note, color = C.zhuHi, align = "center", mt = 12 })
     mainAdd(T.lbl { t = en.name, size = T.FS.h2, color = C.inkHeavy, bold = true, align = "center", mb = 4 })

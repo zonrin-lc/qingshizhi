@@ -453,7 +453,7 @@
           options: [
             { t: '再逐', res: '你的剑划过王的臂膀，血溅丹墀——然后卫士的剑也到了。可惜，就差一寸。', eff: { dev: 0, hist: 15, ach: 'yaonang' },
               to: [ { if: { biancai: 45 }, to: { ending: 'E1', variant: 'shangqin' } }, { to: { ending: 'E8', variant: 'yaonang' } } ] },
-            { t: '弃图塞阶，以身当之', res: '你把图匣横在阶口，秦吏的戈尖离你只有三尺。没有人喊你的名字——这一刻，咸阳宫里没有一个人知道你是谁。', eff: { dev: 0, weiji: 5 }, to: { ending: 'E8' } },
+            { t: '弃图塞阶，以身当之', res: '你把图匣横在阶口，秦吏的戈尖离你只有三尺。没有人喊你的名字——这一刻，咸阳宫里没有一个人知道你是谁。', eff: { dev: 0, attrs: { weiji: 5 } }, to: { ending: 'E8' } },
             { t: '倚柱而笑，箕踞而骂', hist: true, res: '“事所以不成者，乃欲以生劫之，必得约契以报太子也！”你倚柱而笑，箕踞而骂。左右既前，斩荆轲——笑声先他们一步，上了梁。', eff: { dev: 0, hist: 30, ach: 'yaonang' }, to: { ending: 'E1' } },
             { t: '掷匕击之', res: '匕首脱手，钉入铜柱，火星四溅——这是你最后的一击。铜柱嗡嗡地响，像一声没有唱完的歌。', eff: { dev: 0, hist: 10 }, to: { ending: 'E1', variant: 'tongzhu' } }
           ] }

@@ -12,6 +12,7 @@ function Store.read(key)
   if not f or not f:IsOpen() then return nil end
   local ok, v = pcall(cjson.decode, f:ReadString())
   f:Close()
+  f:Dispose()                            -- Object 子类显式释放,不拖给 GC(规则 #15)
   if not ok then return nil end
   return v
 end
@@ -28,6 +29,7 @@ function Store.write(key, val)
   if not f or not f:IsOpen() then return false end
   local wok = f:WriteString(txt)
   f:Close()
+  f:Dispose()
   if wok == false then
     fileSystem:Delete(tmp)          -- 写失败不留残骸
     return false
@@ -45,6 +47,7 @@ function Store.write(key, val)
   if not f2 or not f2:IsOpen() then return false end
   local ok2 = f2:WriteString(txt)
   f2:Close()
+  f2:Dispose()
   return ok2 ~= false
 end
 

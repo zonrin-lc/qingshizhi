@@ -53,7 +53,7 @@ local function topbarWidgets()
   -- 返回主菜单:确认后离局(进度已在存档里)
   local homeBtn = pill('← 返回', T.COLOR.inkSoft, function()
     Shell.confirm('返回主菜单?', '当前进度已保存,可随时从「继续旅程」回来。',
-      function() Shell.showMenu() end)
+      function() Shell.showMenu() end, '返 回')
   end, "btnHome")
   return { chap = chap, bandName = bandName, devNum = devNum, fill = fill, bar = bar,
            backBtn = backtrackBtn, homeBtn = homeBtn, row = nil }
@@ -67,11 +67,17 @@ function Shell.showMenu()
   env_.gameArea:SetVisible(false)
   env_.homeSC:SetVisible(false)
   env_.bottomBar:SetVisible(false)
+  -- 子页可见性复位:存档/设置页曾各自独显(renderMenu 只重建 menuMain 子节点,
+  -- 不碰可见性),不重置会让「返回主菜单」落在陈旧的存档/设置页上
+  env_.menuMain:SetVisible(true)
+  env_.menuSaves:SetVisible(false)
+  env_.menuSettings:SetVisible(false)
   Shell.cancelReveal()
   Shell.renderMenu()
 end
 
 function Shell.showHome()
+  env_.menuAnim = nil          -- 离开菜单:停止入场/星火时序(控件已不可见)
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -81,6 +87,7 @@ function Shell.showHome()
 end
 
 function Shell.showGame()
+  env_.menuAnim = nil          -- 同上:入对局即停菜单时序
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(true)
   env_.homeSC:SetVisible(false)
@@ -114,8 +121,10 @@ function Shell.renderTop()
 end
 
 function Shell.clearMain()
-  env_.mainBox:ClearChildren()
+  -- 先 cancel 后 clear:cancelReveal 会把未播完的段落 AddChild 回 mainBox,
+  -- 顺序颠倒会让上一页的残留文本混进新页面
   Shell.cancelReveal()
+  env_.mainBox:ClearChildren()
 end
 
 function Shell.clearOpts()
@@ -158,34 +167,6 @@ function Shell.Update(timeStep)
   if Shell.tickMenuAnim then Shell.tickMenuAnim(timeStep) end
   -- 选择页齿轮等常驻自绘控件
   if Shell.tickWidgets then Shell.tickWidgets(timeStep) end
-  if env_.diagHome then
-    env_.diagHome = env_.diagHome - 1
-    if env_.diagHome <= 0 then
-      env_.diagHome = false
-      local function lay(w, tag)
-        if not w then return tag .. '=nil' end
-        local l = w:GetAbsoluteLayout()
-        return string.format('%s=%.0fx%.0f@%.0f,%.0f', tag, l.w or -1, l.h or -1, l.x or -1, l.y or -1)
-      end
-      print('[DIAG home] scr=' .. tostring(graphics:GetWidth()) .. 'x' .. tostring(graphics:GetHeight())
-        .. ' scale=' .. string.format('%.3f', T.GetScale())
-        .. ' | ' .. lay(env_.root, 'root')
-        .. ' ' .. lay(env_.homeSC, 'homeSC')
-        .. ' ' .. lay(env_.homeWrap, 'homeWrap')
-        .. ' ' .. lay(env_.homeRight, 'homeRight')
-        .. ' ' .. lay(env_.wheel, 'wheel'))
-    end
-  end
-  if env_.diagNextFrame then
-    env_.diagNextFrame = false
-    local function lay(x)
-      local l = x:GetAbsoluteLayout()
-      return string.format('%.0fx%.0f@%.0f,%.0f', l.w or -1, l.h or -1, l.x or -1, l.y or -1)
-    end
-    local e = env_
-    print('[DIAG] root ' .. lay(e.root) .. ' mainSC ' .. lay(e.mainSC) .. ' side ' .. lay(e.sideCol)
-      .. ' bottom ' .. lay(e.bottomBar))
-  end
   local rv = Shell.revealing
   if not rv then return end
   rv.timer = rv.timer + timeStep
@@ -215,13 +196,15 @@ function Shell.backtrackAsk()
     '· 剩余额度 ' .. (g.diff.backtrack > 0 and tostring(g.diff.backtrack - g.backtracksThisChapter) or '不限') .. ' 次\n'
       .. '· 本章进度回到开头；偏离度、成就与图鉴不重置\n'
       .. '· 蓄势与险招烧毁会被清空',
-    function() g:backtrack(); Shell.renderIntro(true) end)
+    function() g:backtrack(); Shell.renderIntro(true) end, '回 溯')
 end
 
-function Shell.confirm(title, body, onYes)
+function Shell.confirm(title, body, onYes, yesText)
   env_.confirmCb = onYes
   env_.cTitle:SetText(title)
   env_.cBody:SetText(body)
+  -- 确定按钮文案按场景传入(回溯/返回/退出),缺省「确 定」
+  env_.cYesLbl:SetText(yesText or '确 定')
   env_.confirmLayer:SetVisible(true)
 end
 
@@ -318,10 +301,14 @@ function Shell.Build()
         children = { cTitle, cBody,
           UI.Row { gap = 12, justifyContent = "center", children = {
             T.Btn { text = '再想想', onClick = function() env_.confirmLayer:SetVisible(false) end },
-            T.Btn { text = '回 溯', variant = 'primary', onClick = function()
-              env_.confirmLayer:SetVisible(false)
-              if env_.confirmCb then env_.confirmCb() end
-            end },
+            (function()
+              local yesBtn = T.Btn { text = '确 定', variant = 'primary', onClick = function()
+                env_.confirmLayer:SetVisible(false)
+                if env_.confirmCb then env_.confirmCb() end
+              end }
+              env_.cYesLbl = yesBtn.children[1]   -- T.Btn 是 Panel 包 Label,留引用供 confirm() 改文案
+              return yesBtn
+            end)(),
           } } } },
     },
   }

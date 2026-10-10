@@ -332,6 +332,10 @@ function Game:_rollRisk(rate, unmet)
   return { rate = rate, roll = roll, success = (roll <= rate), unmet = unmet }
 end
 
+-- riskWord 前向声明:riskTitle 在词表函数定义之前引用它,
+-- 没有这句 local 会把调用解析到全局 nil(运行时崩)。
+local riskWord
+
 function Game:riskTitle(r)
   if not J(r) or not J(r.risk) then return '' end
   local rk = r.risk
@@ -367,6 +371,10 @@ function Game:enterChapter(idx)
       local m = ch.mutations[i]
       if self:check(m['if']).ok then
         if J(m.flag) then self.flags[m.flag] = true end
+        -- 戒心异变(2026-10-10 补):与 enterEffects 的 zg/zgSet 同语义。
+        -- JS 原型与此前移植均静默丢弃该字段,荆轲 xielou/cuixing 两处异变因此失效。
+        if J(m.zg) then self.zg = clamp(self.zg + m.zg) end
+        if m.zgSet ~= nil then self.zg = clamp(m.zgSet) end
         if J(m.setAttrs) then
           for k, v in pairs(m.setAttrs) do self:_setAttrRaw(k, v) end
         end
@@ -536,7 +544,9 @@ function Game:beginRounds()
   local acts = self.d.ACTIONS or {}
   for i = 1, #acts do
     local a = acts[i]
-    local chs = OR(a.chapters, { 0, 6 })
+    -- 缺省覆盖全部章:旧版写死 {0,6} 与 JS 一致,但章节数更多的剧本会漏发。
+    -- 对现有 ≤7 章剧本与 JS golden 行为完全等价(#CHAPTERS-1 == 6)。
+    local chs = OR(a.chapters, { 0, #self.d.CHAPTERS - 1 })
     if not (self.chapterIdx < chs[1] or self.chapterIdx > chs[2]) then
       if a.req then
         if self:checkRisk(a.req, true).hardOk then pool[#pool + 1] = a end
@@ -1389,6 +1399,9 @@ function Game:backtrack()
   self.chapterDev = {}
   self._corrShown = nil
   self._backlashDone = false
+  -- 钳制差值属于被放弃的时间线:属性已回到章首快照,
+  -- 残留 _weijiClamp 会在下一次 makeSummary 里被重复扣减(展示字段,不进终局快照)。
+  self._weijiClamp = 0
   self.ending = nil
   self.randomCount = 0
   self.chapterDeck = self:_buildChapterDeck(self.chapterIdx)
@@ -1448,33 +1461,41 @@ function Game:importSave(obj)
   if s.introNotes ~= nil and type(s.introNotes) ~= 'table' then return false end
   if not J(s.attrs) then return false end
   if #s.attrs > 0 then return false end                       -- Array.isArray(attrs) 拒收(非空数组可判;空表歧义仅涉脏档拒收,不涉玩法)
+  -- 校验期间临时切换章节上下文(startAlt 条件、事件可解析性依赖新章),
+  -- 但任一校验失败都必须先恢复原章节再拒收——否则 chapterIdx 已换新、
+  -- eventId/attrs 仍是旧局,后续 chapter()/findEvent 静默错配。
+  local oldChapterIdx = self.chapterIdx
+  local function reject()
+    self.chapterIdx = oldChapterIdx
+    return false
+  end
   self.chapterIdx = obj.chapterIdx
-  for _, v in pairs(s.attrs) do if type(v) ~= 'number' or not isFin(v) then return false end end
-  if s.dev ~= nil and (type(s.dev) ~= 'number' or not isFin(s.dev) or s.dev < 0) then return false end
-  if s.ach ~= nil and type(s.ach) ~= 'table' then return false end
+  for _, v in pairs(s.attrs) do if type(v) ~= 'number' or not isFin(v) then return reject() end end
+  if s.dev ~= nil and (type(s.dev) ~= 'number' or not isFin(s.dev) or s.dev < 0) then return reject() end
+  if s.ach ~= nil and type(s.ach) ~= 'table' then return reject() end
   local bt = obj.backtracksThisChapter
   if bt == nil then bt = 0 end
-  if type(bt) ~= 'number' or not isFin(bt) or bt ~= math.floor(bt) or bt < 0 then return false end
-  if self.diff.backtrack > 0 and bt > self.diff.backtrack then return false end
-  if s.age ~= nil and (type(s.age) ~= 'number' or not isFin(s.age) or s.age < 0) then return false end
-  if s.ill ~= nil and (type(s.ill) ~= 'table' or (s.ill.type ~= 'minor' and s.ill.type ~= 'major')) then return false end
+  if type(bt) ~= 'number' or not isFin(bt) or bt ~= math.floor(bt) or bt < 0 then return reject() end
+  if self.diff.backtrack > 0 and bt > self.diff.backtrack then return reject() end
+  if s.age ~= nil and (type(s.age) ~= 'number' or not isFin(s.age) or s.age < 0) then return reject() end
+  if s.ill ~= nil and (type(s.ill) ~= 'table' or (s.ill.type ~= 'minor' and s.ill.type ~= 'major')) then return reject() end
   local function numRange(v, lo, hi) return isFin(v) and v >= lo and v <= hi end
-  if s.histScore ~= nil and not isFin(s.histScore) then return false end
-  if s.peak ~= nil and type(s.peak) ~= 'table' then return false end
+  if s.histScore ~= nil and not isFin(s.histScore) then return reject() end
+  if s.peak ~= nil and type(s.peak) ~= 'table' then return reject() end
   if J(s.peak) then
-    for _, pv in pairs(s.peak) do if not numRange(pv, 0, 1000) then return false end end
+    for _, pv in pairs(s.peak) do if not numRange(pv, 0, 1000) then return reject() end end
   end
-  if s.zg ~= nil and not numRange(s.zg, 0, 100) then return false end
-  if s.merits ~= nil and type(s.merits) ~= 'table' then return false end
-  if s.keyChoices ~= nil and type(s.keyChoices) ~= 'table' then return false end
-  if s.flags ~= nil and type(s.flags) ~= 'table' then return false end
-  if s.actionUses ~= nil and type(s.actionUses) ~= 'table' then return false end
-  if s.passed ~= nil and type(s.passed) ~= 'table' then return false end
-  if s.keyRoundsLeft ~= nil and (not isFin(s.keyRoundsLeft) or s.keyRoundsLeft < 0) then return false end
+  if s.zg ~= nil and not numRange(s.zg, 0, 100) then return reject() end
+  if s.merits ~= nil and type(s.merits) ~= 'table' then return reject() end
+  if s.keyChoices ~= nil and type(s.keyChoices) ~= 'table' then return reject() end
+  if s.flags ~= nil and type(s.flags) ~= 'table' then return reject() end
+  if s.actionUses ~= nil and type(s.actionUses) ~= 'table' then return reject() end
+  if s.passed ~= nil and type(s.passed) ~= 'table' then return reject() end
+  if s.keyRoundsLeft ~= nil and (not isFin(s.keyRoundsLeft) or s.keyRoundsLeft < 0) then return reject() end
   local attrs2 = shallow(s.attrs)
   for ak2 in pairs(attrs2) do
-    if not J(self.d.ATTR_NAMES[ak2]) then return false end
-    if not numRange(attrs2[ak2], 0, self:attrMax(ak2)) then return false end
+    if not J(self.d.ATTR_NAMES[ak2]) then return reject() end
+    if not numRange(attrs2[ak2], 0, self:attrMax(ak2)) then return reject() end
   end
   for ak3 in pairs(self.d.ATTR_NAMES) do
     if attrs2[ak3] == nil then
@@ -1494,7 +1515,7 @@ function Game:importSave(obj)
     end
     evId = (J(start2) and self:_eventResolvable(start2)) and start2
         or ((ch2.events[1] and ch2.events[1].id) or nil)
-    if evId == nil then return false end
+    if evId == nil then return reject() end
   end
   self.attrs = attrs2
   self.dev = s.dev or 0
@@ -1538,6 +1559,7 @@ function Game:importSave(obj)
   self.chapterDev = {}
   self._corrShown = nil
   self._backlashDone = false
+  self._weijiClamp = 0                     -- 同 backtrack:读档后快照即章首,旧钳制差值一并作废
   self.pendingEndEvents = {}
   self.currentEndEvent = nil
   self.correction = nil
@@ -1577,7 +1599,7 @@ function Game:buildEnding(id, variant)
   local def = self.d.ENDINGS[id]
   if not J(def) then
     local fb = self.d.ENDINGS.E8
-    def = fb or { id = id, name = '终局', zhuan = '史笔至此中断。', cuncun = 0, seal = 'xunshi', epilogue = '' }
+    def = fb or { id = id, name = '终局', zhuan = '史笔至此中断。', cuncun = 0, seal = '循史', epilogue = '' }
     id = 'E8'
     variant = nil
   end

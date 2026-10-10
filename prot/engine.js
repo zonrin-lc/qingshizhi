@@ -292,6 +292,10 @@
       ch.mutations.forEach(function (m) {
         if (self.check(m.if).ok) {
           if (m.flag) self.flags[m.flag] = true;
+          // 戒心异变（2026-10-10 补，与 Lua 侧同步）：与 enterEffects 的 zg/zgSet 同语义。
+          // 此前静默丢弃，荆轲 xielou/cuixing 两处异变因此失效。
+          if (m.zg) self.zg = clamp(self.zg + m.zg);
+          if (m.zgSet != null) self.zg = clamp(m.zgSet);
           // setAttrs/capAttrs 走 _clampA（v2.0.6）：此前 setAttrs 是裸赋值，可把属性写到
           // per-attr 上限之外（实测 setAttrs:{quanshi:250} 原样落 250，_clampA 会给 100），
           // 且不更新 peak —— 章首抬高权势的局，功业评分仍按陈旧 peak 计算。
