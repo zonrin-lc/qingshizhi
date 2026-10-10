@@ -448,6 +448,7 @@ function playOne(stratName, diffKey, rng) {
       g.choose(i);
       continue;
     }
+    if (g.phase === 'choice') { const v = g.getChoiceCard(); g.chooseCardOption(Math.floor(rng() * v.options.length)); continue; }
     if (g.phase === 'settle') { g.proceed(); continue; }
     throw new Error('未知阶段 ' + g.phase);
   }
@@ -704,6 +705,7 @@ if (arg('cull', null) !== null) {
         pickedHere.push(ev.id + '#' + i);
         g.choose(i); continue;
       }
+      if (g.phase === 'choice') { const v = g.getChoiceCard(); g.chooseCardOption(Math.floor(rng() * v.options.length)); continue; }
       if (g.phase === 'settle') { g.proceed(); continue; }
       throw new Error('未知阶段 ' + g.phase);
     }

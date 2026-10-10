@@ -143,6 +143,7 @@ function Game:resetAll()
   self.correction = nil
   self.ending = nil
   self.snapshot = nil
+  self.pendingCardId = nil
   self.offer = nil
   self.keyRoundsLeft = 0
   self.actionUses = {}
@@ -612,7 +613,8 @@ function Game:getOffer()
       r[#r + 1] = {
         type = 'action', action = a, locked = not c.ok,
         reason = OR(c.reason, nil), usedCount = used,
-        diminishing = (not noDim) and used > 0, risky = risky
+        diminishing = (not noDim) and used > 0, risky = risky,
+        choice = (J(a) and J(a.choice)) and true or nil
       }
     end
   end
@@ -724,6 +726,13 @@ function Game:playCard(i)
   local cr
   if a.req then cr = self:checkRisk(a.req, true) else cr = { hardOk = true, rate = nil, unmet = {} } end
   if not cr.hardOk then return nil end
+  -- 抉择卡(次级关键事件):不直接结算,先进入 choice 阶段展示剧情与选项,
+  -- 由 chooseCardOption 落定后才计次数、结算效果。数据约定:抉择卡不写 req 险招(rate)。
+  if J(a.choice) then
+    self.pendingCardId = a.id
+    self.phase = 'choice'
+    return { kind = 'choice', id = a.id }
+  end
   local risk = nil
   local failed = false
   if cr.rate ~= nil then
@@ -796,6 +805,56 @@ function Game:playXushi()
   local forcedEnding = self:checkDeath()
   if J(forcedEnding) then self._next = forcedEnding; self.phase = 'settle'; r.forcedEnding = true; return r end
   return self:_advanceRound(r)
+end
+
+---------- ---------- 抉择卡(次级关键事件) ---------- ----------
+
+function Game:getChoiceCard()
+  if self.phase ~= 'choice' or not J(self.pendingCardId) then return nil end
+  local a = self:_actionById(self.pendingCardId)
+  if not J(a) or not J(a.choice) then return nil end
+  return {
+    id = a.id, title = OR(a.choice.title, a.name), segs = OR(a.choice.segs, {}),
+    options = OR(a.choice.options, {}), usedCount = self.actionUses[a.id] or 0
+  }
+end
+
+function Game:chooseCardOption(i)
+  if self.phase ~= 'choice' or not J(self.pendingCardId) then return nil end
+  local a = self:_actionById(self.pendingCardId)
+  if not J(a) or not J(a.choice) then return nil end
+  local opt = (a.choice.options or {})[i + 1]             -- 契约 0-based
+  if not J(opt) then return nil end
+  self.pendingCardId = nil
+  local useN = (self.actionUses[a.id] or 0) + 1
+  self.actionUses[a.id] = useN
+  local AR = self.d.ACTION_RULES
+  local noDim = J(AR) and AR.diminish == false
+  local eff
+  if noDim then eff = deepCopy(opt.eff or {}) else eff = self:_scaleActionEff(opt.eff or {}, useN) end
+  local changes = self:applyEff(eff)
+  if J(self.d.ILLNESS) then self:_tickIllness(changes) end
+  local r = {
+    kind = 'action', id = a.id, text = OR(opt.res, ''), changes = changes,
+    devDelta = OR(eff.dev, 0), useCount = useN,
+    achNew = nil, bandUp = false, bandName = nil,
+    forcedEnding = false, risk = nil, failed = false
+  }
+  local forcedEnding = self:checkDeath()
+  if J(forcedEnding) then
+    self._next = forcedEnding
+    self.phase = 'settle'
+    r.forcedEnding = true
+    return r
+  end
+  return self:_advanceRound(r)
+end
+
+function Game:cancelChoice()
+  if self.phase ~= 'choice' then return false end
+  self.pendingCardId = nil
+  self.phase = 'round'
+  return true
 end
 
 function Game:_tickIllness(changes)
@@ -1545,6 +1604,7 @@ function Game:importSave(obj)
   self.introNotes = copyArr(s.introNotes or {})
   self.coef = isFin(s.coef) and s.coef or 1
   self.offer = nil
+  self.pendingCardId = nil
   self._chapterStartId = pendId or evId or nil
   local rid = s.currentRandomId or nil
   local rev = rid and self:_findInsertEvent(rid) or nil

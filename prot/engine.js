@@ -88,6 +88,7 @@
     this.correction = null;
     this.ending = null;
     this.snapshot = null;
+    this.pendingCardId = null;   // 抉择卡(次级关键事件)：进入 choice 阶段时挂起的行动卡 id
     // 回合制状态
     this.offer = null;           // 当前回合发牌：[{type:'key'}, {type:'action', id}...]
     this.keyRoundsLeft = 0;      // 关键事件卡剩余限时（回合）
@@ -512,7 +513,7 @@
       }
       var used = self.actionUses[e.id] || 0;
       var noDim = self.d.ACTION_RULES && self.d.ACTION_RULES.diminish === false;
-      return { type: 'action', action: a, locked: !c.ok, reason: c.reason || null, usedCount: used, diminishing: !noDim && used > 0, risky: risky };
+      return { type: 'action', action: a, locked: !c.ok, reason: c.reason || null, usedCount: used, diminishing: !noDim && used > 0, risky: risky, choice: (a && a.choice) ? true : null };
     });
   };
 
@@ -585,6 +586,12 @@
     if (!a) return null;
     var cr = a.req ? this.checkRisk(a.req, true) : { hardOk: true, rate: null, unmet: [] };
     if (!cr.hardOk) return null;
+    // 抉择卡(次级关键事件)：不直接结算，进入 choice 阶段展示剧情与选项，由 chooseCardOption 落定后才计次结算。数据约定：抉择卡不写 req 险招(rate)。
+    if (a.choice) {
+      this.pendingCardId = a.id;
+      this.phase = 'choice';
+      return { kind: 'choice', id: a.id };
+    }
     // 险招掷骰：属性软门槛未达标，成败由骰；失败无收益、危机+3，仍计使用次数（收益递减）并推进倒计时
     var risk = null, failed = false;
     if (cr.rate != null) {
@@ -658,6 +665,42 @@
     var forcedEnding = this.checkDeath();
     if (forcedEnding) { this._next = forcedEnding; this.phase = 'settle'; r.forcedEnding = true; return r; }
     return this._advanceRound(r);
+  };
+
+  /* ---------- 抉择卡(次级关键事件) ---------- */
+
+  Game.prototype.getChoiceCard = function () {
+    if (this.phase !== 'choice' || !this.pendingCardId) return null;
+    var a = this._actionById(this.pendingCardId);
+    if (!a || !a.choice) return null;
+    return { id: a.id, title: a.choice.title || a.name, segs: a.choice.segs || [], options: a.choice.options || [], usedCount: this.actionUses[a.id] || 0 };
+  };
+
+  Game.prototype.chooseCardOption = function (i) {
+    if (this.phase !== 'choice' || !this.pendingCardId) return null;
+    var a = this._actionById(this.pendingCardId);
+    if (!a || !a.choice) return null;
+    var opt = (a.choice.options || [])[i];
+    if (!opt) return null;
+    this.pendingCardId = null;
+    var useN = (this.actionUses[a.id] || 0) + 1;
+    this.actionUses[a.id] = useN;
+    var noDim = this.d.ACTION_RULES && this.d.ACTION_RULES.diminish === false;
+    var eff = noDim ? JSON.parse(JSON.stringify(opt.eff || {})) : this._scaleActionEff(opt.eff || {}, useN);
+    var changes = this.applyEff(eff);
+    if (this.d.ILLNESS) this._tickIllness(changes);
+    var r = { kind: 'action', id: a.id, text: opt.res || '', changes: changes, devDelta: eff.dev || 0, useCount: useN,
+      achNew: null, bandUp: false, bandName: null, forcedEnding: false, risk: null, failed: false };
+    var forcedEnding = this.checkDeath();
+    if (forcedEnding) { this._next = forcedEnding; this.phase = 'settle'; r.forcedEnding = true; return r; }
+    return this._advanceRound(r);
+  };
+
+  Game.prototype.cancelChoice = function () {
+    if (this.phase !== 'choice') return false;
+    this.pendingCardId = null;
+    this.phase = 'round';
+    return true;
   };
 
   /* 疾病推进（v1.8，剧本 ILLNESS 配置开启；GDD 附录 T）：
@@ -1365,6 +1408,7 @@
     this.introNotes = (s.introNotes || []).slice();
     this.coef = (typeof s.coef === 'number' && isFinite(s.coef)) ? s.coef : 1;
     this.offer = null;
+    this.pendingCardId = null;
     // 章内进度分母口径：快照未存起点 id，按存档语义还原（有插入事件时 pendingEventId 即剧本起点）
     this._chapterStartId = pendId || evId || null;
     // 插入事件按 id 重建；查不到（如 BACKLASH）则回退到被插入的剧本事件并清空插入状态——

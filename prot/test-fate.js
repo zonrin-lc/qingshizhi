@@ -110,6 +110,7 @@ function ok(cond, label, detail){ if (cond){ pass++; console.log('✔ ' + label)
           g.choose(u[Math.floor(rng() * u.length)]);
           continue;
         }
+        if (g.phase === 'choice') { const v = g.getChoiceCard(); g.chooseCardOption(Math.floor(rng() * v.options.length)); continue; }
         if (g.phase === 'settle') { g.proceed(); continue; }
         bad = '未知阶段 ' + g.phase; break outer;
       }

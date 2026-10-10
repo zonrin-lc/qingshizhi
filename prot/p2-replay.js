@@ -76,6 +76,9 @@ function replayGame(scenKey, diffKey, seedStr, stepsStr)
     elseif ph == 'event' then
       local tok = split(steps[n], ':')
       g:choose(tonumber(tok[2]))
+    elseif ph == 'choice' then
+      local tok = split(steps[n], ':')
+      g:chooseCardOption(tonumber(tok[2]))
     elseif ph == 'settle' then
       g:proceed()
     else

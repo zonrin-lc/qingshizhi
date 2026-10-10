@@ -367,6 +367,53 @@ function M.attach(Shell)
     end)
   end
 
+  -- ---------- 抉择卡(次级关键事件) ----------
+
+  function M.renderCardChoice()
+    S.showGame()
+    S.clearMain(); S.clearOpts()
+    local gg = g()
+    local v = gg:getChoiceCard()
+    if not v then M.renderRound() return end
+    mainAdd(T.lbl { t = '抉择 · 事有两端', size = T.FS.note, color = C.gold })
+    mainAdd(T.lbl { t = v.title, size = T.FS.title, color = C.inkHeavy, bold = true, mb = 4 })
+    mainAdd(UI.Panel { width = 44, height = 2, backgroundColor = C.gold, marginBottom = 12 })
+    insertPortrait(v.segs)                   -- 正文插图:本抉择出场人物立绘
+    local items = {}
+    for _, s in ipairs(v.segs or {}) do items[#items + 1] = segW(s) end
+    S.scrollMainTop()
+    S.renderSide(v.segs)
+    S.revealSegs(items, function() M.renderChoiceOptions(v) end)
+  end
+
+  function M.renderChoiceOptions(v)
+    S.clearOpts()
+    for i, o in ipairs(v.options) do
+      env.optBox:AddChild(T.Card {
+        width = "24%", pad = 11, gap = 3,
+        onClick = function() M.doChooseCardOpt(i - 1) end,
+        children = { T.lbl { t = o.t, size = T.FS.ui, color = C.ink } },
+      })
+    end
+    env.optBox:AddChild(T.Card {
+      width = "24%", pad = 11, gap = 3,
+      onClick = function() if g():cancelChoice() then M.renderRound() end end,
+      children = { T.lbl { t = '且搁置', size = T.FS.ui, color = C.inkDim } },
+    })
+  end
+
+  function M.doChooseCardOpt(i)
+    local gg = g()
+    local r = gg:chooseCardOption(i)
+    if not r then S.thawOpts('这一抉择眼下走不通（状态已变）。') return end
+    env.lastSettleText = r.text
+    S.showSettle('抉择', r.text, r.changes, r.devDelta, r.achNew, nil, function()
+      if r.forcedEnding then S.handleRoute(gg:proceed()) return end
+      if r.forcedKey then M.renderEvent() return end
+      S.handleRoute(r.route or { type = 'round' })
+    end)
+  end
+
   function S.thawOpts(msg)
     env.optBox:AddChild(T.lbl { t = msg or '这一步眼下无法走通——请换一条路。', size = T.FS.note, color = C.zhuHi, mt = 6 })
   end
@@ -421,6 +468,9 @@ function M.attach(Shell)
           T.lbl { t = ((a and a.name) or tostring(e.id)) .. (e.risky and '  ⚠' or ''), size = T.FS.ui,
             color = e.locked and C.line or C.inkStrong, bold = true },
         }
+        if e.choice then
+          kids[#kids + 1] = T.lbl { t = '〔抉择〕', size = T.FS.cap, color = C.gold, wrap = false }
+        end
         if a and a.desc then
           kids[#kids + 1] = T.lbl { t = (gg.diff.hideAttrs and a.descHidden or a.desc) or '', size = T.FS.note, color = C.inkDim }
         end
@@ -462,6 +512,7 @@ function M.attach(Shell)
       if r.chapterEnd then S.handleRoute(gg:proceed()) else M.renderEvent() end
       return
     end
+    if r.kind == 'choice' then M.renderCardChoice() return end
     env.lastSettleText = r.text
     local title = r.risk and gg:riskTitle(r) or '行动'
     S.showSettle(title, r.text, r.changes, r.devDelta, r.achNew, nil, function()

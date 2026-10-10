@@ -31,6 +31,7 @@
         var a = e.action;
         var b = el('button','card'+(e.locked ? ' locked' : '')+(e.risky ? ' risky' : ''));
         var h = '<div class="cardTitle">'+esc(a ? a.name : String(e.id))+'</div>';
+        if (e.choice) h += '<div class="cardDim">〔抉择〕</div>';
         if (a && a.desc) h += '<div class="cardDesc">'+esc(game.cardDesc(game.diff.hideAttrs && a.descHidden ? a.descHidden : a.desc))+'</div>';
         if (e.diminishing) h += '<div class="cardDim">已用 '+e.usedCount+' 次 · 收益递减</div>';
         if (e.locked && e.reason) h += '<div class="cardLock">🔒 '+esc(e.reason)+'</div>';
@@ -68,12 +69,50 @@
     if (!r){ thawOpts('这张牌眼下走不通（门槛已变或状态不同步）。'); return; }   // v2.0.4：解冻而非静默锁死
     // 关键事件卡 → 现有事件决策流；chapterEnd 表示该事件已无路可择，直接收束本章（死锁兜底）
     if (r.kind === 'key'){ if (r.chapterEnd) handleRoute(game.proceed()); else renderEvent(); return; }
+    // 抉择卡（次级关键事件）：先叙事页后抉择
+    if (r.kind === 'choice'){ renderCardChoice(); return; }
     // 行动卡：先弹行动结算
     lastSettleText = r.text;
     var actTitle = r.risk ? game.riskTitle(r) : '行动';
     showSettle(actTitle, r.text, r.changes, r.devDelta, r.achNew, null, function(){
       if (r.forcedEnding){ handleRoute(game.proceed()); return; }   // 行动致死：phase='settle'，需再 proceed 收束
       if (r.forcedKey){ renderEvent(); return; }   // 倒计时归零：强制进入关键事件，玩家亲自抉择
+      handleRoute(r.route || { type: 'round' });
+    });
+  }
+
+  /* ---------- 抉择卡（次级关键事件）：行动卡点击后先叙事、再抉择 ---------- */
+  function renderCardChoice(){
+    ttsCancel();
+    refreshTop(); clear(main); clear(optBox);
+    var v = game.getChoiceCard();
+    if (!v){ renderRound(); return; }
+    main.appendChild(el('div','evKicker','抉择 · 事有两端'));
+    main.appendChild(el('div','evTitle', esc(v.title)));
+    var cast1 = renderCast(v.segs); if (cast1) main.appendChild(cast1);
+    revealSegs((v.segs || []).map(function(s){ return { cls: 'seg', html: rich(s) }; }), function(){
+      clear(optBox);
+      (v.options || []).forEach(function(o, i){
+        var b = el('button','opt', esc(o.t));
+        b.onclick = function(){ doChooseCardOpt(i); };
+        optBox.appendChild(b);
+      });
+      var back = el('button','opt', '且搁置');
+      back.onclick = function(){ if (game.cancelChoice()) renderRound(); };
+      optBox.appendChild(back);
+      speakMain();
+    });
+    main.scrollTop = 0;
+  }
+
+  function doChooseCardOpt(i){
+    disableOpts();
+    var r = game.chooseCardOption(i);
+    if (!r){ thawOpts('这一抉择眼下走不通（状态已变）。'); return; }
+    lastSettleText = r.text;
+    showSettle('抉择', r.text, r.changes, r.devDelta, r.achNew, null, function(){
+      if (r.forcedEnding){ handleRoute(game.proceed()); return; }
+      if (r.forcedKey){ renderEvent(); return; }
       handleRoute(r.route || { type: 'round' });
     });
   }

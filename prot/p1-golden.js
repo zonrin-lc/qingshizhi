@@ -65,6 +65,11 @@ function driveGame(D, diffKey, seed) {
       g.choose(i); steps.push(['ev', i]); continue;
     }
     if (g.phase === 'settle') { g.proceed(); steps.push(['settle']); continue; }
+    if (g.phase === 'choice') {
+      const v = g.getChoiceCard();
+      const i = Math.floor(rng() * v.options.length);
+      g.chooseCardOption(i); steps.push(['copt', i]); continue;
+    }
     throw new Error('unknown phase ' + g.phase);
   }
   if (g.phase !== 'ending') throw new Error('no ending in 400 steps');

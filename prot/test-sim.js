@@ -36,8 +36,8 @@ function play(diffKey, script, rng, endScript, hook) {
       // 优先未用过的卡可避免确定性发牌下同一张卡连刷三次造成的属性漂移（如 ACT-18 才学-2×3 锁死后续 scripted 门槛），
       // 同时覆盖更多卡面与递减计数；险招卡带掷骰随机，通用选择跳过以保路线确定性（险招语义由专门用例覆盖）。
       let ai = -1;
-      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && offer[i].usedCount === 0) { ai = i; break; }
-      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky) { ai = i; break; }
+      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice && offer[i].usedCount === 0) { ai = i; break; }
+      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice) { ai = i; break; }
       if (ai < 0) ai = 0;
       const r = g.playCard(ai);
       if (!r) { g.playCard(0); continue; }
@@ -64,6 +64,13 @@ function play(diffKey, script, rng, endScript, hook) {
       if (idx == null) throw new Error('事件 ' + ev.id + ' 没有可用选择（script 未指定或全部锁定）');
       trace.push([ev.id, ev.options[idx].t, g.dev]);
       g.choose(idx);
+      continue;
+    }
+    // 抉择卡默认不入自动出牌（避免挤占剧本既定路线）；脚本显式指定时仍会走到这里
+    if (g.phase === 'choice') {
+      const v = g.getChoiceCard();
+      trace.push([v.id, v.options[0].t, g.dev]);
+      g.chooseCardOption(0);
       continue;
     }
     if (g.phase === 'settle') { g.proceed(); continue; }
@@ -301,7 +308,7 @@ function expect(name, actual, wantId, wantVariant) {
   // 先出一张行动卡：计入本章递减计数，关键卡倒计时 -1
   const offer = g.getOffer();
   let ai = -1;
-  for (let i = 1; i < offer.length; i++) if (!offer[i].locked) { ai = i; break; }
+  for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].choice) { ai = i; break; }  // 抉择卡点击即挂起、不结算，本用例须用直接结算卡
   const usedId = offer[ai].action.id;
   g.playCard(ai);
   if (g.actionUses[usedId] === 1 && g.keyRoundsLeft === E.KEY_CARD_ROUNDS - 1) { pass++; console.log('✔ 行动卡计入递减计数，关键卡倒计时 ' + E.KEY_CARD_ROUNDS + '→' + g.keyRoundsLeft); }
@@ -1291,23 +1298,26 @@ function expect(name, actual, wantId, wantVariant) {
   } else { fail++; console.log('✘ 章末选项门槛异常：blocked=' + blocked + ' r2text=' + (r2 && r2.text || '').slice(0, 8)); }
 }
 
-/* ---------- 46. 行动卡数据卫生（卡牌 v2）：64 个行动 eff 单项 ≤±8（上限随 ATTRS max 缩放，现全维度 100 即 ≤±8）、zg ≤±5、带 chapters 且每章池 16 ---------- */
+/* ---------- 46. 行动卡数据卫生（卡牌 v2 + 抉择卡）：66 个行动 eff 单项 ≤±8（上限随 ATTRS max 缩放，现全维度 100 即 ≤±8）、zg ≤±5、带 chapters；抉择卡逐选项同口径检查 ---------- */
 {
   const bad = [];
   const amax = {}; D.ATTRS.forEach(a => { amax[a.k] = a.max || 100; });
   D.ACTIONS.forEach(a => {
     if (!Array.isArray(a.chapters) || a.chapters.length !== 2) bad.push(a.id + ' 缺 chapters');
-    const eff = a.eff || {};
+    // 抉择卡无顶层 eff，逐选项检查；普通卡查自身 eff
+    const effList = a.choice ? (a.choice.options || []).map(o => o.eff || {}) : [a.eff || {}];
+    effList.forEach(eff => {
     Object.keys(eff.attrs || {}).forEach(k => {
       const lim = Math.max(8, Math.round((amax[k] || 100) * 0.08));
       if (Math.abs(eff.attrs[k]) > lim) bad.push(a.id + ' ' + k + '=' + eff.attrs[k]);
     });
     if (eff.zg && Math.abs(eff.zg) > 5) bad.push(a.id + ' zg=' + eff.zg);
-    if (eff.flags || eff.rmflags || eff.hist || eff.merit) bad.push(a.id + ' 干扰结局树字段');
+      if (eff.flags || eff.rmflags || eff.hist || eff.merit) bad.push(a.id + ' 干扰结局树字段');
+    });
   });
   const poolSizes = [];
   for (let ci = 0; ci <= 6; ci++) poolSizes.push(D.ACTIONS.filter(a => a.chapters[0] <= ci && ci <= a.chapters[1]).length);
-  if (D.ACTIONS.length === 64 && bad.length === 0 && poolSizes.every(n => n === 16)) { pass++; console.log('✔ 64 个行动数据卫生（卡牌 v2）：单项 ≤±8、zg ≤±5、每章池 16（' + poolSizes.join('/') + '）'); }
+  if (D.ACTIONS.length === 66 && bad.length === 0 && poolSizes.every((n, i) => n === (i === 6 ? 16 : 17))) { pass++; console.log('✔ 66 个行动数据卫生（卡牌 v2 + 2 抉择卡）：单项 ≤±8、zg ≤±5、每章池 17（六章 16）（' + poolSizes.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + poolSizes.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 }
 
@@ -1752,5 +1762,22 @@ function expect(name, actual, wantId, wantVariant) {
   else { fail++; console.log('✘ ch3/ch5 财富源异常：' + JSON.stringify({ ch3ok, ch5ok, ch3src, ch5src })); }
 }
 
+
+/* ---------- 48. 抉择卡（次级关键事件）：点击挂起 → 叙事+选项 → 按选项结算；取消不耗轮不计次 ---------- */
+{
+  const g = mkGame('normal', rngHigh);
+  g.start(); g.beginEvents();
+  g.offer = [{ type: 'key' }, { type: 'action', id: 'ACT-65' }];  // 强制发一张抉择卡（故人贷金，ch0-1 池内）
+  const cf0 = g.attrs.caifu, sw0 = g.attrs.shengwang, rl0 = g.keyRoundsLeft;
+  const r1 = g.playCard(1);
+  const v = g.getChoiceCard();
+  const enterOk = !!(r1 && r1.kind === 'choice' && g.phase === 'choice' && v && v.options.length === 3 && v.segs.length === 2);
+  const cancelOk = g.cancelChoice() && g.phase === 'round' && (g.actionUses['ACT-65'] || 0) === 0 && g.keyRoundsLeft === rl0;
+  g.playCard(1);
+  const r2 = g.chooseCardOption(0);   // 倾囊相济：caifu-5 shengwang+3
+  const settleOk = !!(r2 && r2.useCount === 1 && g.attrs.caifu === cf0 - 5 && g.attrs.shengwang === sw0 + 3 && g.keyRoundsLeft === rl0 - 1 && g.phase !== 'choice');
+  if (enterOk && cancelOk && settleOk) { pass++; console.log('✔ 抉择卡全流程：进入挂起/取消不耗轮/选项结算（caifu-5 shengwang+3）+计次+倒计时'); }
+  else { fail++; console.log('✘ 抉择卡流程异常：' + JSON.stringify({ enterOk: enterOk, cancelOk: cancelOk, settleOk: settleOk })); }
+}
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail > 0 ? 1 : 0);
