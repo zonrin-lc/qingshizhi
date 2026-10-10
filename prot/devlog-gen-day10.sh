@@ -9,79 +9,79 @@ GRN='#6aa84f'; RED='#c0504d'; BLU='#5b9bd5'; BRN='#b08a55'; LINE='#3a332a'
 W=1280; H=800
 OUT=assets/images/devlog
 
-# ---------- 图1: 八次推翻 ----------
+# ---------- 图1: 抉择卡 ----------
 convert -size ${W}x${H} xc:${BK} \
-  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 '一个标志,八次推翻' \
-  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 '八次里七次是同一个毛病:在「加法」里找答案,而正确的路一直是「减法」' \
+  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 '一个新玩法:抉择卡' \
+  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 '点选后不直接结算 —— 先读一段剧情、做一次抉择,选完才落定。次级的关键事件' \
   -draw "stroke ${LINE} stroke-width 2 line 60,162 1220,162" \
   \
-  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+212 '第一轮 · 三个字标' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +60+248 'A 纯书法+朱印  B 书法+朱红横线  C 卷轴包字' \
-  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +60+282 '→ 都是「字」不是「标」;缩小后笔锋糊成一团' \
+  -font ${FB} -pointsize 27 -fill ${TXT} -annotate +60+218 '规模' \
+  -font ${FR} -pointsize 23 -fill ${TXT} -annotate +60+258 '每本剧本 12 张 × 5 本 = 60 张' \
+  -font ${FR} -pointsize 22 -fill ${DIM} -annotate +60+296 '数据挂在行动卡上,多一个 choice 字段' \
+  -font ${FR} -pointsize 22 -fill ${DIM} -annotate +60+330 'choice = { segs = 剧情, options = 选项 }' \
   \
-  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+336 '第二轮 · 图形图标 + 文字' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +60+372 '卷轴/竹简 · 史笔+书卷 · 朱印+「史」字' \
-  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +60+406 '→ 准确,但没有气质;像「这里有一本书」' \
+  -font ${FB} -pointsize 27 -fill ${TXT} -annotate +60+402 '引擎侧:新增 phase = choice' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+442 'playCard        遇 a.choice 不结算,切 choice 阶段' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+476 'getChoiceCard   取剧情与选项,供 UI 渲染' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+510 'chooseCardOption 选项落定 → 应用 eff → 常规结算' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+544 'cancelChoice    中途退出 → 回 round 阶段' \
   \
-  -font ${FB} -pointsize 25 -fill ${GRN} -annotate +60+460 '第三轮 · 你给了方向' \
-  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +60+496 '人物剪影 + 朱红日轮 + 一笔环形金墨,不含文字' \
-  -font ${FR} -pointsize 21 -fill ${GRN} -annotate +60+530 '→ 一次成型:方向本身已包含「什么该留、什么该舍」' \
+  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,580" \
   \
-  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,560" \
+  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+218 '三条容易写错的规则' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+260 '① 落定后整局不再发,但「取消」不算' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +760+292 'choiceUsed 只在落定时写;取消不写 → 卡仍在池中' \
+  -font ${FR} -pointsize 21 -fill ${RED} -annotate +740+340 '② 必须从 pool 剔除,不能只过滤候选' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +760+372 '只挡强制发牌位,挡不住「常规抽 3 张」' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +760+400 '→ 会二次进 choice 重复结算' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+448 '③ 取消要能回到原状态' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +760+480 '否则玩家被卡在剧情页出不来' \
   \
-  -font ${FB} -pointsize 25 -fill ${TXT} -annotate +740+212 '第四轮 · 专业细化(七处诊断)' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+248 '① 两轴头形制不一致(一开一合)' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+282 '② 轴头亮金镜面,像黄铜管' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+316 '③ 轴心纯黑洞,无层次' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+350 '④ 纸面浮雕云纹,像印刷纹理' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+384 '⑤ 纸面描边叠了 3-4 层' \
-  -font ${FR} -pointsize 21 -fill ${RED} -annotate +740+418 '⑥ 卷尾黑钩 + 衣服穿出纸面' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+452 '⑦ 散落红色噪点' \
-  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +740+500 '→ 改完六项好了,第⑥项反而更糟' \
-  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +740+534 '(AI 不懂三维前后关系)' \
+  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +740+540 '随机流口径:仅强制发抉择卡时多耗一次 deal()' \
+  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +740+572 '→ 与 JS golden 严格同序,对拍不分叉' \
   \
-  -draw "stroke ${LINE} stroke-width 2 line 60,580 1220,580" \
-  -font ${FB} -pointsize 30 -fill ${GOLD} -annotate +60+640 '最关键的一次判断:做减法' \
-  -font ${FR} -pointsize 23 -fill ${TXT} -annotate +60+686 '「卷轴不需要画出来,只需要暗示」—— 具象卷轴整个删掉,换成一道金墨弧线' \
-  -font ${FR} -pointsize 22 -fill ${GRN} -annotate +60+726 '空间关系不可能错 / 不抢视觉重心 / 缩放安全' \
-  -font ${FR} -pointsize 22 -fill ${GOLD} -annotate +60+764 '一笔胜过一堆细节 —— 这也是水墨本身的道理' \
-  ${OUT}/day10-iterations.png
+  -draw "stroke ${LINE} stroke-width 2 line 60,600 1220,600" \
+  -font ${FB} -pointsize 28 -fill ${GOLD} -annotate +60+660 '发牌调度:每两轮强制发一张' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+706 'choiceGap += 1;≥2 时从 crest 池里强制占一个发牌位,发完归零' \
+  -font ${FR} -pointsize 22 -fill ${DIM} -annotate +60+744 '保证玩家不会漏掉抉择卡,而不是靠随机撞上' \
+  ${OUT}/day10-choice-card.png
 
-# ---------- 图2: 加减法 ----------
+# ---------- 图2: 四个真 bug + 审查 ----------
 convert -size ${W}x${H} xc:${BK} \
-  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 '每一次减法,都比加法好' \
-  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 '从「一个有细节的卷轴」减到「两样东西」,标志反而立住了' \
+  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 '顺手揪出的四个真 bug' \
+  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 '写抉择卡的过程中,在既有引擎里翻出来的既有问题' \
   -draw "stroke ${LINE} stroke-width 2 line 60,162 1220,162" \
   \
-  -font ${FB} -pointsize 27 -fill ${TXT} -annotate +60+222 '减法轨迹' \
-  -font ${FR} -pointsize 23 -fill ${DIM} -annotate +60+268 '具象卷轴(轴头/纸卷/金边/穿插尾)' \
-  -font ${FR} -pointsize 23 -fill ${BRN} -annotate +60+310 '↓  删掉全部具象细节' \
-  -font ${FR} -pointsize 23 -fill ${DIM} -annotate +60+352 '一道金墨弧线' \
-  -font ${FR} -pointsize 23 -fill ${BRN} -annotate +60+394 '↓  再去掉弧线' \
-  -font ${FR} -pointsize 23 -fill ${TXT} -annotate +60+436 '朱红日轮 + 墨黑人物剪影' \
-  -font ${FR} -pointsize 22 -fill ${GRN} -annotate +60+486 '→ 视觉重心回到人物;缩小后仍认得出' \
+  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+212 '① enterChapter 静默丢弃 zg / zgSet' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +80+248 '荆轲的 xielou / cuixing 两处戒心异变完全失效' \
+  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+302 '② 行动卡 chapters 缺省写死 {0, 6}' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +80+338 '章节数 > 7 的剧本会漏发行动卡' \
+  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+392 '③ riskWord 缺前向声明' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +80+428 '调用被解析到全局 nil → 运行时崩' \
+  -font ${FB} -pointsize 25 -fill ${RED} -annotate +60+482 '④ importSave 校验失败不恢复 chapterIdx' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +80+518 'chapterIdx 已换新、eventId 仍旧 → 后续静默错配' \
+  -font ${FR} -pointsize 21 -fill ${BRN} -annotate +80+552 '→ 不报错,只是结果不对。最阴的一个' \
   \
-  -font ${FB} -pointsize 27 -fill ${TXT} -annotate +60+560 '两处我看不出来的问题' \
-  -font ${FR} -pointsize 22 -fill ${DIM} -annotate +60+604 '发带:甩出 5-6 条直到画面边缘,重心被拉跑' \
-  -font ${FR} -pointsize 22 -fill ${GRN} -annotate +60+642 '→ 收到 2 条,长度缩到左侧 1/3 处' \
-  -font ${FR} -pointsize 22 -fill ${DIM} -annotate +60+692 '横纹:左侧水平、右侧向右下倾斜,左右对不上' \
-  -font ${FR} -pointsize 22 -fill ${GRN} -annotate +60+730 '→ 严格水平,左右连成同一条' \
+  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,580" \
   \
-  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,760" \
+  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+218 '存档改成原子写' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+258 '原:直接覆写 —— 写一半崩了就是截断的 JSON' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+292 '那种文件能过 FileExists,却解不出来' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+324 '→ 读档侧只能整份丢弃,玩家进度归零' \
+  -font ${FR} -pointsize 21 -fill ${GRN} -annotate +740+372 '现:先落 .tmp 再 Rename' \
+  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+406 '改名是单一操作,不会留下写了一半的存档' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +740+444 '注意:Rename 未必覆盖已存在目标 → 删旧再试' \
   \
-  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+222 '水墨化的代价' \
-  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +740+268 '朱砂晕染 / 墨分五色 / 飞白毛边 / 淡赭石' \
-  -font ${FR} -pointsize 22 -fill ${RED} -annotate +740+320 '水墨的本质 = 边缘模糊' \
-  -font ${FR} -pointsize 22 -fill ${RED} -annotate +740+358 '图标的本质 = 边缘清晰' \
-  -font ${FR} -pointsize 22 -fill ${BRN} -annotate +740+410 '→ 分版使用:' \
-  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +740+448 '   大尺寸(256/512) 用水墨版' \
-  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +740+486 '   小图标(64/128) 用清晰版' \
+  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+520 '全量审查' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+558 '26,213 行 · 逐行人工(3 路并行)' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+590 '+ LSP 静态诊断 + 自写数据校验器' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+622 '→ 四份报告;五本剧本导出可读 md' \
   \
-  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+570 '今天没改一行游戏代码' \
-  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +740+612 '产出全是视觉资产(标志)与交付物(源码包)' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+650 '玩法已冻结(100 局逐位对拍兜底)' \
-  -font ${FR} -pointsize 21 -fill ${DIM} -annotate +740+688 '缺的是「看起来像不像成品」' \
-  ${OUT}/day10-subtract.png
+  -draw "stroke ${LINE} stroke-width 2 line 60,600 1220,600" \
+  -font ${FB} -pointsize 28 -fill ${GOLD} -annotate +60+660 '对拍网跟着升级' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+704 'p2-replay 支持 choice 步骤 → chooseCardOption(opt)' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+740 'engine.js(JS golden 侧)同步实现同一套规则' \
+  ${OUT}/day10-bugs.png
 
 echo "已生成:"
 ls -la ${OUT}/day10-*.png
