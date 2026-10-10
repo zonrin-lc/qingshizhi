@@ -5,8 +5,10 @@
  * 决策序列法的好处:策略实现(hist/nitian 的巨型偏好表)无需翻译——Lua 侧是纯执行器。
  * 引擎的随机性(际遇/抽卡/修正/掷骰)仍由种子驱动,序列相同+种子相同 ⇒ 全轨迹相同。
  */
-const E = require('/workspace/prot/engine.js');
 const fs = require('fs');
+const path = require('path');
+const { P } = require('./paths');
+const E = require('./engine.js');
 
 const FILES = { lisi: 'game-data.js', jingke: 'jingke-data.js', hanxin: 'hanxin-data.js', xiangyu: 'xiangyu-data.js', chensheng: 'chensheng-data.js' };
 function mulberry32(a) {
@@ -79,7 +81,7 @@ function driveGame(D, diffKey, seed) {
 
 const golden = {};
 for (const scen in FILES) {
-  const D = require('/workspace/prot/' + FILES[scen]);
+  const D = require(path.join(__dirname, FILES[scen]));
   golden[scen] = [];
   const diffs = ['story', 'normal', 'hardcore'];
   const base = 1000 + scen.charCodeAt(0) * 131;
@@ -91,5 +93,6 @@ for (const scen in FILES) {
   }
   console.log(scen, 'games:', golden[scen].length, 'errors:', golden[scen].filter(x => x.error).length);
 }
-fs.writeFileSync('/workspace/prot/lua-data/golden.json', JSON.stringify(golden));
-console.log('golden written, bytes=', fs.statSync('/workspace/prot/lua-data/golden.json').size);
+const GOLDEN_OUT = path.join(P.PROT_LUA_DATA, 'golden.json');
+fs.writeFileSync(GOLDEN_OUT, JSON.stringify(golden));
+console.log('golden written, bytes=', fs.statSync(GOLDEN_OUT).size);

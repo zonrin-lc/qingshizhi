@@ -4,9 +4,10 @@
  * 数字:整数保持整数,浮点保持。验证=Lua 侧 load 后与 JSON 逐字段对拍(recurse compare)。 */
 const fs = require('fs');
 const path = require('path');
+const { P } = require('./paths');
 
-const SRC = '/workspace/prot/lua-data';
-const OUT = '/workspace/prot/lua/data';
+const SRC = P.PROT_LUA_DATA;
+const OUT = P.PROT_LUA_DATA_OUT;
 fs.mkdirSync(OUT, { recursive: true });
 
 function esc(s) {

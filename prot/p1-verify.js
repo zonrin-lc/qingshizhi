@@ -7,8 +7,10 @@
  *   对象 -> { key|value; ... }(键排序;两侧一致)
  *   空数组 [] 在 Lua 表示层坍缩为 {},指纹同样按 {} 处理(记录计数)
  */
-const { LuaFactory } = require('/workspace/.lua-runner/node_modules/wasmoon');
 const fs = require('fs');
+const path = require('path');
+const { P, loadWasmoon, readRepo } = require('./paths');
+const { LuaFactory } = loadWasmoon();
 
 const LUA_DUMP = `
 local function dump(v, out)
@@ -73,17 +75,17 @@ function jsDump(v, out) {
 }
 
 (async () => {
-  const files = fs.readdirSync('/workspace/prot/lua-data').filter(f => f.endsWith('.json'));
+  const files = fs.readdirSync(P.PROT_LUA_DATA).filter(f => f.endsWith('.json'));
   let allOk = true;
   for (const f of files) {
-    const json = JSON.parse(fs.readFileSync('/workspace/prot/lua-data/' + f, 'utf8'));
+    const json = JSON.parse(fs.readFileSync(path.join(P.PROT_LUA_DATA, f), 'utf8'));
     const outName = f.replace('.json', '.lua');
     emptyArrCount = 0;
     const jsOut = []; jsDump(json, jsOut);
     const jsFp = jsOut.join('');
     const factory = new LuaFactory();
     const lua = await factory.createEngine();
-    await factory.mountFile('/d.lua', fs.readFileSync('/workspace/prot/lua/data/' + outName, 'utf8'));
+    await factory.mountFile('/d.lua', readRepo(path.join('prot', 'lua', 'data', outName)));
     lua.global.set('path', '/d.lua');
     const luaFp = String(await lua.doString(LUA_DUMP));
     await lua.global.close();

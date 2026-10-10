@@ -2,8 +2,10 @@
  * 双路径验证：(a) 内联源码 doString（单文件足够）
  *            (b) mountFile + dofile（P2 多文件依赖的能力，此处一并立证）
  */
-const { LuaFactory } = require('/workspace/.lua-runner/node_modules/wasmoon');
 const fs = require('fs');
+const path = require('path');
+const { loadWasmoon, readRepo } = require('./paths');
+const { LuaFactory } = loadWasmoon();
 function m32js(seed) {
   let a = seed | 0;
   return function () {
@@ -37,7 +39,9 @@ async function runOn(factory, lua, label, prefix) {
 }
 
 (async () => {
-  const src = fs.readFileSync('/workspace/prot/lua/qingshi_prng.lua', 'utf8');
+  // PRNG 译文本体(与 scripts/qingshi/prng.lua 同一份;原先指向 prot/lua/qingshi_prng.lua,
+// 该文件并不存在 —— 换机器必挂,现指向真实来源)
+const src = readRepo(path.join('scripts', 'qingshi', 'prng.lua'));
   // (a) 内联
   const f1 = new LuaFactory(); const l1 = await f1.createEngine();
   const okA = await runOn(f1, l1, 'P0a 内联 doString', 'local __M = (function() ' + src + ' end)()');

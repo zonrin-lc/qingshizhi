@@ -1,10 +1,12 @@
 /* P2 对拍台:wasmoon 装载 Lua 引擎,按 golden 决策序列回放 100 局,终局快照逐字段(含 float64 位模式)比对。
  * 驱动逻辑逐字复刻 p1-golden.js(含 pickByRng、每 7 步蓄势、chapterEnd bands 探针)。
  * steps 协议:分号分隔,每项 TYPE 或 TYPE:数字;null 值以 @N@ 哨兵编码(Lua nil 会掉键)。 */
-const { LuaFactory } = require('/workspace/.lua-runner/node_modules/wasmoon');
 const fs = require('fs');
+const path = require('path');
+const { P, loadWasmoon, readRepo } = require('./paths');
+const { LuaFactory } = loadWasmoon();
 
-const golden = JSON.parse(fs.readFileSync('/workspace/prot/lua-data/golden.json', 'utf8'));
+const golden = JSON.parse(readRepo(path.join('prot', 'lua-data', 'golden.json')));
 
 // 编码各局 steps
 const games = [];
@@ -132,16 +134,19 @@ function jsFieldLines(g, scenKey) {
 // JS 侧需要剧本 ATTR_NAMES 键序 → 从 lua-data JSON 读
 const SCEN_CACHE = {};
 for (const s of ['lisi', 'jingke', 'hanxin', 'xiangyu', 'chensheng']) {
-  SCEN_CACHE[s] = JSON.parse(fs.readFileSync('/workspace/prot/lua-data/' + s + '.json', 'utf8'));
+  SCEN_CACHE[s] = JSON.parse(readRepo(path.join('prot', 'lua-data', s + '.json')));
 }
 
 (async () => {
   const factory = new LuaFactory();
   const lua = await factory.createEngine();
-  await factory.mountFile('/prng.lua', fs.readFileSync('/workspace/scripts/qingshi/prng.lua', 'utf8'));
-  await factory.mountFile('/engine.lua', fs.readFileSync('/workspace/scripts/qingshi/engine.lua', 'utf8'));
+  await factory.mountFile('/prng.lua', readRepo(path.join('scripts', 'qingshi', 'prng.lua')));
+  await factory.mountFile('/engine.lua', readRepo(path.join('scripts', 'qingshi', 'engine.lua')));
   for (const s of ['lisi', 'jingke', 'hanxin', 'xiangyu', 'chensheng']) {
-    await factory.mountFile('/data/' + s + '.lua', fs.readFileSync([s == 'golden' ? '/workspace/prot/lua/data/' : '/workspace/scripts/qingshi/data/'] + s + '.lua', 'utf8'));
+    const src = s === 'golden'
+      ? readRepo(path.join('prot', 'lua', 'data', s + '.lua'))
+      : readRepo(path.join('scripts', 'qingshi', 'data', s + '.lua'));
+    await factory.mountFile('/data/' + s + '.lua', src);
   }
   await lua.doString(DRIVER);
   const replay = await lua.global.get('replayGame');

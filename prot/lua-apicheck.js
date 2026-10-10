@@ -3,10 +3,10 @@
  * (如 home.lua 误写 Theme.VText 而模块别名为 T)。此检查做静态符号比对。 */
 const fs = require('fs');
 const path = require('path');
+const { P } = require('./paths');
 
-const DIR = '/workspace/scripts/qingshi/ui';
-const ROOT = '/workspace/scripts/qingshi';   // 全量扫描根(跳过 data/)
-const EMMY = '/workspace/.emmylua';   // 引擎全局名的权威来源(自动派生,自维护)
+const DIR = P.UI_DIR;
+const EMMY = P.EMMY;   // 引擎全局名的权威来源(自动派生,自维护)
 
 function read(f) { return fs.readFileSync(path.join(DIR, f), 'utf8'); }
 
@@ -98,7 +98,10 @@ for (const f of fs.readdirSync(DIR)) {
   }
 
   const flagged = new Set();
-  const lines = src.split('\n');
+  // 按 \r?\n 切分:仓库文件是 CRLF,用 split('\n') 会在行尾留 '\r',
+  // 而下面的注释剥离正则是 /--.*$/ —— JS 里 '.' 不匹配 '\r',会导致整行注释剥不掉,
+  // 注释中的标识符被误判成「裸全局名」,凭空产出大量误报。
+  const lines = src.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     // 清洗:去注释、去字符串,保留标识符位置
     const clean = lines[i].replace(/--.*$/, '').replace(/"[^"]*"|'[^']*'/g, '""');
@@ -111,6 +114,74 @@ for (const f of fs.readdirSync(DIR)) {
       bad++;
     }
   }
+}
+
+/* ---------- 资源引用核对 ----------
+ * 动机:立绘路径是运行时拼接的(`'image/portraits/char_' .. id .. '.png'`),
+ * 静态扫描字面量覆盖不到。往 CHAR_IMG 加一项却忘了放图时不会报错,
+ * 只会在真机上静默不显示人物。这里把 CHAR_IMG 的键与 assets/ 实际文件对账。
+ * 同时核对 theme.lua 里全部字面量资源路径。 */
+{
+  const assetRoot = path.join(P.ROOT, 'assets');
+  const portraitDir = path.join(assetRoot, 'image', 'portraits');
+
+  // 1) CHAR_IMG 的每个 id 都应有对应立绘
+  //    注意:表内多个条目常写在同一行,不能用 ^ 锚行首,故先切出整块再匹配。
+  const gameSrc = read('game.lua');
+  const block = /local\s+CHAR_IMG\s*=\s*\{([\s\S]*?)\n\}/.exec(gameSrc);
+  const charIds = block
+    ? [...block[1].matchAll(/\[\s*'[^']+'\s*\]\s*=\s*'([A-Za-z0-9_]+)'/g)].map((m) => m[1])
+    : [];
+  if (!block) {
+    console.log('FAIL game.lua  未能定位 CHAR_IMG 表,资源核对跳过');
+    bad++;
+  }
+  for (const id of charIds) {
+    const f = path.join(portraitDir, 'char_' + id + '.png');
+    if (!fs.existsSync(f)) {
+      console.log(`FAIL game.lua  CHAR_IMG 登记了 '${id}' 但缺文件 assets/image/portraits/char_${id}.png`);
+      bad++;
+    }
+  }
+
+  // 2) assets 里多余的立绘(可能是改名后遗留)
+  if (fs.existsSync(portraitDir)) {
+    for (const fn of fs.readdirSync(portraitDir)) {
+      const m = /^char_([a-z]+)\.png$/.exec(fn);
+      if (m && !charIds.includes(m[1])) {
+        console.log(`WARN assets  立绘 char_${m[1]}.png 未在 game.lua 的 CHAR_IMG 中登记(不会显示)`);
+      }
+    }
+  }
+
+  // 3) theme.lua 的字面量资源路径必须存在
+  const themeSrcAll = read('theme.lua');
+  const seen = new Set();
+  for (const m of themeSrcAll.matchAll(/["']((?:ui|arch|image|fonts)\/[^"']+)["']/g)) {
+    const rel = m[1];
+    if (seen.has(rel)) continue;
+    seen.add(rel);
+    if (!fs.existsSync(path.join(assetRoot, rel))) {
+      console.log(`FAIL theme.lua  引用的资源不存在: assets/${rel}`);
+      bad++;
+    }
+  }
+
+  // 4) 上述路径还须落在 resources.json 白名单内,否则不会入包
+  const resources = JSON.parse(fs.readFileSync(path.join(P.ROOT, '.project', 'resources.json'), 'utf8'));
+  const groups = (resources.groups && resources.groups.default) || [];
+  for (const rel of seen) {
+    const covered = groups.some((g) => {
+      if (!g.endsWith('/**')) return false;
+      const base = g.slice(0, -3);
+      return rel === base || rel.startsWith(base + '/');
+    });
+    if (!covered) {
+      console.log(`FAIL theme.lua  ${rel} 不在 .project/resources.json 白名单内(不会打进包)`);
+      bad++;
+    }
+  }
+  console.log(`资源核对: 立绘 ${charIds.length} 项 / 字面量路径 ${seen.size} 条`);
 }
 console.log(bad === 0 ? 'API CHECK OK' : `API CHECK FAIL: ${bad}`);
 process.exit(bad === 0 ? 0 : 1);
