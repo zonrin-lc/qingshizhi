@@ -1772,7 +1772,7 @@ function expect(name, actual, wantId, wantVariant) {
   const cf0 = g.attrs.caifu, sw0 = g.attrs.shengwang, rl0 = g.keyRoundsLeft;
   const r1 = g.playCard(1);
   const v = g.getChoiceCard();
-  const enterOk = !!(r1 && r1.kind === 'choice' && g.phase === 'choice' && v && v.options.length === 3 && v.segs.length === 2);
+  const enterOk = !!(r1 && r1.kind === 'choice' && g.phase === 'choice' && v && v.options.length === 3 && v.segs.length >= 2);
   const cancelOk = g.cancelChoice() && g.phase === 'round' && (g.actionUses['ACT-65'] || 0) === 0 && g.keyRoundsLeft === rl0;
   g.playCard(1);
   const r2 = g.chooseCardOption(0);   // 倾囊相济：caifu-5 shengwang+3

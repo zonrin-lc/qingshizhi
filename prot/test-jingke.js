@@ -368,19 +368,24 @@ function has(g, ach) { return g.ach.includes(ach); }
 
   const bad = [];
   const ZG_WHITE = { 'JK-ACT-21': 3, 'JK-ACT-41': -4 }; // 威胁值白名单：仅此两卡可挂 eff.zg 且值固定
+  const DEV_WHITE = { 'JK-ACT-62': [3], 'JK-ACT-65': [5], 'JK-ACT-66': [5] }; // 抉择卡重设计：仅此三卡的指定选项可挂 eff.dev
+  const FLAGS_WHITE = { 'JK-ACT-57': ['gainie'] }; // 抉择卡重设计：仅此卡可挂 eff.flags（gainie 为事件 0-1 已有旗标的第二获取路径）
   D.ACTIONS.forEach(a => {
     // 抉择卡无顶层 eff，逐选项检查；普通卡查自身 eff
     const effList = a.choice ? (a.choice.options || []).map(o => o.eff || {}) : [a.eff || {}];
     effList.forEach(eff => {
     Object.keys(eff.attrs || {}).forEach(k => { if (Math.abs(eff.attrs[k]) > 8) bad.push(a.id + ' ' + k); });
     if (eff.zg && ZG_WHITE[a.id] !== eff.zg) bad.push(a.id + ' zg=' + eff.zg);
-    if (eff.flags || eff.rmflags || eff.hist || eff.merit || eff.ach) bad.push(a.id + ' 干扰结局树字段');
-    if (eff.dev) bad.push(a.id + ' dev');
+    const fw = FLAGS_WHITE[a.id];
+    if (eff.rmflags || eff.hist || eff.merit || eff.ach) bad.push(a.id + ' 干扰结局树字段');
+    if (eff.flags && (!fw || JSON.stringify(eff.flags) !== JSON.stringify(fw))) bad.push(a.id + ' 干扰结局树字段(flags)');
+    if (eff.dev && !(DEV_WHITE[a.id] || []).includes(eff.dev)) bad.push(a.id + ' dev');
     });
   });
   const pools = [];
   for (let ci = 0; ci <= 5; ci++) pools.push(D.ACTIONS.filter(a => (a.chapters || [0, 5])[0] <= ci && ci <= (a.chapters || [0, 5])[1]).length);
-  if (D.ACTIONS.length === 68 && bad.length === 0 && pools.every(n => n === 18)) { pass++; console.log('✔ 68 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、zg 白名单（JK-ACT-21 +3 / JK-ACT-41 -4）、每章池 18（' + pools.join('/') + '）'); }
+  const poolExpect = [18, 20, 21, 18, 18, 16]; // 抉择卡重设计后章节迁移（JK-ACT-61~68）后的实测池
+  if (D.ACTIONS.length === 68 && bad.length === 0 && pools.every((n, i) => n === poolExpect[i])) { pass++; console.log('✔ 68 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 白名单（JK-ACT-62/65/66）、flags 白名单（JK-ACT-57 gainie）、无其他 flags/hist/merit/ach/rmflags、zg 白名单（JK-ACT-21 +3 / JK-ACT-41 -4）、每章池 ' + poolExpect.join('/') + '（实测 ' + pools.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + pools.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 
   const g = mkGame('normal', rngHigh);

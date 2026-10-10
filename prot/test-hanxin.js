@@ -345,6 +345,7 @@ function has(g, ach) { return g.ach.includes(ach); }
 
   const bad = [];
   const ZG_WHITE = { 'HX-ACT-40': 3 }; // 威胁值白名单：仅此卡可挂 eff.zg 且值固定
+  const DEV_WHITE = { 'HX-ACT-74': [2], 'HX-ACT-75': [1, 3], 'HX-ACT-76': [1] }; // 抉择卡重设计：仅此三卡的指定选项可挂 eff.dev
   D.ACTIONS.forEach(a => {
     // 抉择卡无顶层 eff，逐选项检查；普通卡查自身 eff
     const effList = a.choice ? (a.choice.options || []).map(o => o.eff || {}) : [a.eff || {}];
@@ -352,13 +353,13 @@ function has(g, ach) { return g.ach.includes(ach); }
     Object.keys(eff.attrs || {}).forEach(k => { if (Math.abs(eff.attrs[k]) > 8) bad.push(a.id + ' ' + k); });
     if (eff.zg && ZG_WHITE[a.id] !== eff.zg) bad.push(a.id + ' zg=' + eff.zg);
     if (eff.flags || eff.rmflags || eff.hist || eff.merit || eff.ach) bad.push(a.id + ' 干扰结局树字段');
-    if (eff.dev) bad.push(a.id + ' dev');
+    if (eff.dev && !(DEV_WHITE[a.id] || []).includes(eff.dev)) bad.push(a.id + ' dev');
     });
   });
   const pools = [];
   for (let ci = 0; ci <= 6; ci++) pools.push(D.ACTIONS.filter(a => (a.chapters || [0, 6])[0] <= ci && ci <= (a.chapters || [0, 6])[1]).length);
-  const poolExpect = [18, 18, 18, 18, 18, 17, 17];
-  if (D.ACTIONS.length === 76 && bad.length === 0 && pools.every((n, i) => n === poolExpect[i])) { pass++; console.log('✔ 76 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、zg 白名单（HX-ACT-40 +3）、每章池 ' + poolExpect.join('/') + '（实测 ' + pools.join('/') + '）'); }
+  const poolExpect = [18, 18, 18, 16, 19, 17, 18]; // 抉择卡重设计后章节迁移（HX-ACT-71~76）后的实测池
+  if (D.ACTIONS.length === 76 && bad.length === 0 && pools.every((n, i) => n === poolExpect[i])) { pass++; console.log('✔ 76 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 白名单（HX-ACT-74/75/76）、无 flags/hist/merit/ach/rmflags、zg 白名单（HX-ACT-40 +3）、每章池 ' + poolExpect.join('/') + '（实测 ' + pools.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + pools.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 
   let badach = [];
