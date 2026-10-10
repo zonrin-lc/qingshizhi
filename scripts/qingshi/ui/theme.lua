@@ -279,6 +279,10 @@ function Theme.Btn(o)
   local C = Theme.COLOR
   local primary = o.variant == 'primary'
   local dis = o.disabled
+  -- 禁用则真的摘掉回调:不能用 `dis and nil or o.onClick`
+  -- (Lua 里 `x and nil or y` 恒等于 y,禁用按钮照样会响应点击)
+  local onClick = o.onClick
+  if dis then onClick = nil end
   return UI.Panel {
     width = o.w,
     padding = o.pad or 12, paddingLeft = (o.pad or 12) + 8, paddingRight = (o.pad or 12) + 8,
@@ -286,8 +290,8 @@ function Theme.Btn(o)
     borderRadius = 8, borderWidth = primary and 0 or 1, borderColor = C.line,
     alignItems = "center", justifyContent = "center",
     marginBottom = o.mb, marginTop = o.mt,
-    pointerEvents = (dis or not o.onClick) and "none" or "auto",
-    onClick = dis and nil or o.onClick,
+    pointerEvents = (dis or not onClick) and "none" or "auto",
+    onClick = onClick,
     children = {
       UI.Label {
         text = o.text or '', fontSize = o.size or 16,

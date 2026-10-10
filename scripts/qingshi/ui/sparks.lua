@@ -3,6 +3,9 @@
 -- 覆写 Render 直接走 NanoVG;Update(dt) 由外部每帧驱动。
 local Widget = require("urhox-libs/UI/Core/Widget")
 
+-- 注:此处用 math.random 而非 qingshi/prng —— 星火是纯装饰,不进引擎判定路径,
+-- 也不参与 p2-replay 对拍(engine.lua 的契约 6 同此意)。引擎侧并无「必须注入 PRNG」
+-- 的强约束,那条约束针对的是影响玩法的随机流。
 local Sparks = Widget:Extend("Sparks")
 
 local function rnd(a, b) return a + (b - a) * math.random() end

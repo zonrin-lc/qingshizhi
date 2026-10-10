@@ -332,10 +332,14 @@ function M.attach(Shell)
         kids[#kids + 1] = T.lbl { t = riskText(o.risky), size = T.FS.cap, color = C.warn }
       end
       -- 固定一行 4 列:每张卡占 1/4 宽(不足 4 个的章节留空,由居中收拢)
+      -- 锁定项必须真的「无回调」:不能用 `o.locked and nil or fn`
+      -- (Lua 里 `x and nil or y` 恒等于 y,锁定项照样会挂上 handler)
+      local onClick = nil
+      if not o.locked then onClick = function() M.doChoose(i - 1) end end
       env.optBox:AddChild(T.Card {
         width = "24%", pad = 11, gap = 3, danger = o.risky and true or nil,
         opacity = o.locked and 0.55 or 1,
-        onClick = o.locked and nil or function() M.doChoose(i - 1) end,
+        onClick = onClick,
         children = kids,
       })
     end
@@ -422,9 +426,11 @@ function M.attach(Shell)
         if e.risky then
           kids[#kids + 1] = T.lbl { t = riskText(e.risky, false), size = T.FS.note, color = C.warn }
         end
+        local cardClick = nil
+        if not e.locked then cardClick = function() M.doPlayCard(i - 1) end end
         env.optBox:AddChild(T.Card {
           flex = true, pad = 11, gap = 3, danger = e.risky and true or nil,
-          onClick = e.locked and nil or (function() M.doPlayCard(i - 1) end),
+          onClick = cardClick,
           children = kids,
           opacity = e.locked and 0.55 or 1,
         })
@@ -492,15 +498,19 @@ function M.attach(Shell)
         if not c.ok and c.reason then
           kids[#kids + 1] = T.lbl { t = '🔒 ' .. c.reason, size = T.FS.cap, color = C.zhuHi }
         end
-        env.optBox:AddChild(T.Card {
-          flex = true, pad = 11, gap = 3,
-          onClick = (not c.ok) and nil or function()
+        local evClick = nil
+        if c.ok then
+          evClick = function()
             local r = g():endEventChoose(i - 1)
             if not r then S.thawOpts('这个选项眼下走不通（条件已变）。') return end
             S.showSettle('', r.text, r.changes, r.devDelta, nil, nil, function()
               S.handleRoute(g():proceedAfterEndEvent())
             end)
-          end,
+          end
+        end
+        env.optBox:AddChild(T.Card {
+          flex = true, pad = 11, gap = 3,
+          onClick = evClick,
           children = kids,
           opacity = c.ok and 1 or 0.55,
         })

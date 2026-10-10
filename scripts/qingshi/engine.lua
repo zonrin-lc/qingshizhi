@@ -65,6 +65,28 @@ local function deepCopy(t)                                      -- ≡ JSON.pars
   return r
 end
 
+-- 属性键的产出序:取 ATTRS 声明序(与 UI 侧栏展示序一致)。
+-- JS 侧 Object.keys 保插入序、Lua pairs 是哈希序,直接用 pairs 会让结算面板的
+-- 属性变动条目顺序随机。ATTRS 未登记的键按字典序追加在后 —— 不静默丢弃,
+-- 这样将来数据里新增属性也不会悄悄漏算。
+local function orderedAttrKeys(self, bag)
+  local out, seen = {}, {}
+  local keys = self._attrKeys
+  if keys then
+    for i = 1, #keys do
+      local k = keys[i]
+      if bag[k] ~= nil then out[#out + 1] = k; seen[k] = true end
+    end
+  end
+  local rest = {}
+  for k in pairs(bag) do if not seen[k] then rest[#rest + 1] = k end end
+  if #rest > 0 then
+    table.sort(rest)
+    for i = 1, #rest do out[#out + 1] = rest[i] end
+  end
+  return out
+end
+
 local KEY_CARD_ROUNDS = 3
 local ENCOUNTER_DEFAULT = { randomChance = 0.4, randomMax = 2 }  -- 剧本可经 ENCOUNTER 覆写(v2.0.7)
 
@@ -74,8 +96,10 @@ Game.__index = Game
 local function NewGame(data, diffKey, rng, streams)
   local self = setmetatable({}, Game)
   self.d = data
-  self.diffKey = diffKey
-  self.diff = data.DIFFICULTY[diffKey]
+  -- 未知难度键兜底为 normal:存档里的 diffKey 可能来自旧版本/被手改,
+  -- 直接取 nil 会让 self.diff 全线崩溃。兜底后由 importSave 自行拒收该档。
+  self.diffKey = (data.DIFFICULTY[diffKey]) and diffKey or 'normal'
+  self.diff = data.DIFFICULTY[self.diffKey]
   self.rng = rng or error('Lua 侧无 Math.random,必须注入 PRNG')
   self._streams = streams                                     -- 测试注入:{risk,event,corr,card,ill}
   self._rngStreams = {}
@@ -147,10 +171,12 @@ function Game:resetAll()
   self._burned = {}
   self.xushi = false
   self._amax = {}
+  self._attrKeys = {}
   local attrs = self.d.ATTRS or {}
   for i = 1, #attrs do
     local a = attrs[i]
     self._amax[a.k] = OR(a.max, 100)                         -- JS: a.max || 100(max=0 亦→100)
+    self._attrKeys[#self._attrKeys + 1] = a.k                 -- 结算面板的属性展示序
   end
   self._actions = self:_indexActions()
   self.age = (self.d.AGE and self.d.AGE.init ~= nil) and self.d.AGE.init or nil
@@ -583,12 +609,63 @@ function Game:getOffer()
   return r
 end
 
--- cardDesc:仅 UI 调用,不参与引擎路径与对拍 → P3 移植
+-- cardDesc:仅 UI 调用,不参与引擎路径与对拍(引擎契约 6)
 local COST_WORD = { caifu = '耗财', tupo = '费力', wuli = '耗力', caixue = '耗神', moulue = '费心', biancai = '费辞' }
+
+-- 逐个改写全角括号内的文案。
+-- 注意:不能用 Lua 模式里的 [^（）] 来定位括号边界 —— 模式按字节匹配,
+-- 「（」「）」是 3 字节 UTF-8,写进字符类等于逐字节排除 EF/BC/88/89,
+-- 而这些字节在中文里极常见(如全角逗号 EF BC 8C),会把正常文案整段排除掉。
+-- 故用 plain find 切括号(字节安全),再对括号内的纯文本套模式。
+local function rewriteParen(s, fn)
+  local out, pos = {}, 1
+  while true do
+    local b = string.find(s, '（', pos, true)
+    if not b then out[#out + 1] = string.sub(s, pos) break end
+    out[#out + 1] = string.sub(s, pos, b - 1)
+    local e = string.find(s, '）', b + 3, true)
+    if not e then out[#out + 1] = string.sub(s, b) break end
+    out[#out + 1] = fn(string.sub(s, b + 3, e - 1))
+    pos = e + 3
+  end
+  return table.concat(out)
+end
+
+-- 拆出「属性名 ≥ 门槛 附加说明」三段。
+-- 门槛符号 ≥ 是 3 字节 UTF-8,不能放进 Lua 的 [≥>] 字符类(按字节解释会误伤正文),
+-- 故用 plain find 定位;数字部分用 %d(ASCII)匹配,字节安全。
+local function parseReq(inner)
+  local bi, blen = string.find(inner, '≥', 1, true)
+  if not bi then bi, blen = string.find(inner, '>', 1, true) end
+  if not bi then return nil end
+  local num, tail = string.match(string.sub(inner, blen + 1), '^%s*=?%s*(%d+)%s*(.*)$')
+  if not num then return nil end
+  return string.sub(inner, 1, bi - 1), num, tail
+end
+
 function Game:cardDesc(desc)
   if not J(desc) then return desc end
-  if not self.diff.hideAttrs then return desc end
-  error('cardDesc 硬核数字改写待 P3 移植(不影响对拍路径)')
+  if not self.diff.hideAttrs then return desc end       -- 剧情/普通:数值可见,原样
+  local names = self.d.ATTR_NAMES or {}
+  local byName = {}
+  for k, v in pairs(names) do byName[v] = k end
+  -- 数据文案用属性中文名(如「财富-8」「才学≥45」),故先把中文名反查为键再取措辞
+  local s = tostring(desc)
+  s = rewriteParen(s, function(inner)
+    local nm1 = string.match(inner, '^(.+)-%s*%d+%s*$')            -- 「财富-8」→「耗财」
+    if nm1 then
+      local k1 = byName[nm1]
+      return '（' .. ((k1 and COST_WORD[k1]) or '有代价') .. '）'  -- JS: wordOf() 未命中即「有代价」
+    end
+    local nm2, _, tail = parseReq(inner)                            -- 「才学≥45 方能成图」
+    if nm2 then
+      -- JS 此处不校验属性名(仅第一个替换才查表),故「声望≥30」这类非 ATTR_NAMES
+      -- 写法也会被改写;此处保持与参考实现一致。
+      return '（' .. nm2 .. '不足则须冒险' .. ((tail ~= '') and ('，' .. tail) or '') .. '）'
+    end
+    return '（' .. inner .. '）'
+  end)
+  return s
 end
 
 ---------- ---------- 出牌 ---------- ----------
@@ -958,7 +1035,8 @@ function Game:applyEff(eff)
   local names = self.d.ATTR_NAMES
   self._newAch = {}
   if J(eff.attrs) then
-    for k, v0 in pairs(eff.attrs) do
+    for _, k in ipairs(orderedAttrKeys(self, eff.attrs)) do
+      local v0 = eff.attrs[k]
       local v = v0
       if k == 'weiji' and v > 0 then v = round(v * self.diff.wj) end
       local old = self.attrs[k]
@@ -974,7 +1052,8 @@ function Game:applyEff(eff)
     end
   end
   if J(eff.setAttrs) then
-    for k, sv in pairs(eff.setAttrs) do
+    for _, k in ipairs(orderedAttrKeys(self, eff.setAttrs)) do
+      local sv = eff.setAttrs[k]
       local old = self.attrs[k]
       self:_setAttrRaw(k, sv)
       local d = self.attrs[k] - old
@@ -985,7 +1064,8 @@ function Game:applyEff(eff)
     for i = 1, #eff.condAttrs do
       local ca = eff.condAttrs[i]
       if not (J(ca['if']) and not self:check(ca['if']).ok) then
-        for k, v0 in pairs(ca.attrs or {}) do
+        for _, k in ipairs(orderedAttrKeys(self, ca.attrs or {})) do
+          local v0 = ca.attrs[k]
           local v = v0
           if k == 'weiji' and v > 0 then v = round(v * self.diff.wj) end
           local old = self.attrs[k]
@@ -1319,6 +1399,9 @@ end
 
 ---------- ---------- 跨会话存档 ---------- ----------
 
+-- 存的是 snapshot(章首快照,见 enterChapter 末尾的 makeSnapshot),不是当前状态。
+-- 故「继续旅程」读档后属性回到本章开头 —— 与「回溯」同一语义,这是设计而非缺陷。
+-- 存档往返出现属性差(shengwang:11->10 等)属预期:缺省键由 INIT 补齐。
 function Game:exportSave()
   if self.d.SCENARIO and self.d.SCENARIO.noSave then return nil end
   if self.diff.backtrack == 0 then return nil end
@@ -1358,7 +1441,12 @@ function Game:importSave(obj)
   if obj.scenKey ~= nil and obj.scenKey ~= self.d.SCENARIO.id then return false end
   if type(obj.chapterIdx) ~= 'number' or not J(self.d.CHAPTERS[obj.chapterIdx + 1]) then return false end
   local s = obj.snapshot
-  if not J(s) or not J(s.attrs) then return false end
+  -- 类型守卫必须先于任何 # / pairs 消费:cjson 解出的脏档可能是 number/boolean,
+  -- 直接取长度或遍历会抛异常(而非干净拒绝),异常会冒泡到 UI 事件循环。
+  if type(s) ~= 'table' or type(s.attrs) ~= 'table' then return false end
+  if s.once ~= nil and type(s.once) ~= 'table' then return false end
+  if s.introNotes ~= nil and type(s.introNotes) ~= 'table' then return false end
+  if not J(s.attrs) then return false end
   if #s.attrs > 0 then return false end                       -- Array.isArray(attrs) 拒收(非空数组可判;空表歧义仅涉脏档拒收,不涉玩法)
   self.chapterIdx = obj.chapterIdx
   for _, v in pairs(s.attrs) do if type(v) ~= 'number' or not isFin(v) then return false end end

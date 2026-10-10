@@ -38,7 +38,8 @@ function M.attach(Shell)
     local list = {}
     for _, k in ipairs(ORDER) do
       local sv = Store.read(Store.saveKey(k))
-      if sv and sv.diffKey and sv.snapshot then
+      -- type 守卫:截断/手改的存档经 cjson 解出可能是 number/boolean,直接索引会崩
+      if type(sv) == 'table' and sv.diffKey and sv.snapshot then
         list[#list + 1] = { k = k, sv = sv }
       end
     end
@@ -266,7 +267,7 @@ function M.attach(Shell)
     local anySv = false
     for _, k in ipairs(ORDER) do
       local sv = Store.read(Store.saveKey(k))
-      if sv and sv.diffKey and sv.snapshot then anySv = true break end
+      if type(sv) == 'table' and sv.diffKey and sv.snapshot then anySv = true break end
     end
     if not anySv then Shell.hideSaves(); return end
     Shell.showSaves()
@@ -289,7 +290,8 @@ function M.attach(Shell)
 
   local function loadSettings()
     local s = Store.read(SETTINGS_KEY)
-    if not s then return { scale = DEFAULTS.scale, segDelay = DEFAULTS.segDelay, textScale = DEFAULTS.textScale } end
+    -- 同 loadSaveInfo:脏设置档解出可能是 number/boolean,索引会崩 → 回落默认值
+    if type(s) ~= 'table' then return { scale = DEFAULTS.scale, segDelay = DEFAULTS.segDelay, textScale = DEFAULTS.textScale } end
     return {
       scale = s.scale or DEFAULTS.scale,
       segDelay = s.segDelay or DEFAULTS.segDelay,
@@ -374,7 +376,7 @@ function M.attach(Shell)
   function Shell.newGame(scenKey, diffKey, data)
     local g = Engine.NewGame(data or DATA[scenKey], diffKey, PRNG(os.time() % 2147483647))
     local col = Store.read(Store.colKey(scenKey))
-    if col and col.gloss and col.ach then
+    if type(col) == 'table' and type(col.gloss) == 'table' and type(col.ach) == 'table' then
       for i = 1, #col.gloss do g.gloss[i] = col.gloss[i] end
       for i = 1, #col.ach do g.ach[i] = col.ach[i] end
     end
