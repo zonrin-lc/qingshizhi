@@ -5,26 +5,28 @@ return {
       diff = "story",
       seed = 15148,
       ending = "E3",
-      variant = "youshi",
+      variant = nil,
       grade = "D",
-      total = 25,
-      dev = 18,
-      chapter = 1,
+      total = 27,
+      dev = 22,
+      chapter = 3,
       bands = {
         0,
+        0,
+        1,
       },
       attrs = {
-        tupo = 27,
+        tupo = 30,
         wuli = 20,
-        caixue = 64,
+        caixue = 79,
         moulue = 52,
-        biancai = 49,
-        caifu = 4,
+        biancai = 48,
+        caifu = 7,
         shengwang = 26,
-        quanshi = 9,
-        zhengji = 2,
-        junxin = 21,
-        weiji = 13,
+        quanshi = 15,
+        zhengji = 0,
+        junxin = 28,
+        weiji = 15,
       },
       steps = {
         {
@@ -50,8 +52,12 @@ return {
           1,
         },
         {
+          "copt",
+          0,
+        },
+        {
           "card",
-          1,
+          3,
         },
         {
           "card",
@@ -63,13 +69,6 @@ return {
         },
         {
           "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
@@ -89,7 +88,26 @@ return {
           "intro",
         },
         {
+          "card",
+          3,
+        },
+        {
           "xushi",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -98,6 +116,9 @@ return {
         {
           "card",
           3,
+        },
+        {
+          "xushi",
         },
         {
           "ev",
@@ -118,12 +139,105 @@ return {
           "settle",
         },
         {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
           "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
           2,
+        },
+        {
+          "settle",
         },
         {
           "card",
           3,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -145,25 +259,25 @@ return {
       variant = nil,
       grade = "D",
       total = 35,
-      dev = 18,
+      dev = 34,
       chapter = 3,
       bands = {
         0,
         0,
-        0,
+        1,
       },
       attrs = {
-        tupo = 38,
-        wuli = 32,
+        tupo = 36,
+        wuli = 29,
         caixue = 73,
-        moulue = 62,
-        biancai = 51,
-        caifu = 0,
-        shengwang = 15,
-        quanshi = 15,
-        zhengji = 2,
-        junxin = 39,
-        weiji = 30,
+        moulue = 52,
+        biancai = 52,
+        caifu = 14,
+        shengwang = 31,
+        quanshi = 12,
+        zhengji = 0,
+        junxin = 28,
+        weiji = 69,
       },
       steps = {
         {
@@ -171,89 +285,16 @@ return {
         },
         {
           "card",
-          0,
-        },
-        {
-          "ev",
           1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
           1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
         },
         {
           "xushi",
         },
         {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
           "ev",
           1,
         },
@@ -265,33 +306,12 @@ return {
           2,
         },
         {
+          "copt",
+          1,
+        },
+        {
           "card",
           0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          2,
         },
         {
           "ev",
@@ -302,44 +322,11 @@ return {
         },
         {
           "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
           1,
+        },
+        {
+          "card",
+          0,
         },
         {
           "ev",
@@ -359,7 +346,80 @@ return {
         },
         {
           "card",
+          2,
+        },
+        {
+          "card",
           3,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -378,10 +438,88 @@ return {
         },
         {
           "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
           1,
         },
         {
           "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
         },
         {
           "ev",
@@ -396,279 +534,31 @@ return {
       diff = "hardcore",
       seed = 30986,
       ending = "E8",
-      variant = nil,
-      grade = "D",
-      total = 23,
-      dev = 23,
-      chapter = 3,
+      variant = "cike",
+      grade = "B",
+      total = 56,
+      dev = 60,
+      chapter = 4,
       bands = {
         0,
         0,
         0,
+        0,
+        2,
+        2,
       },
       attrs = {
-        tupo = 31,
-        wuli = 29,
-        caixue = 75,
-        moulue = 60,
-        biancai = 52,
-        caifu = 9,
-        shengwang = 27,
-        quanshi = 16,
-        zhengji = 0,
-        junxin = 34,
-        weiji = 70,
-      },
-      steps = {
-        {
-          "intro",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          3,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-      },
-    },
-    {
-      diff = "story",
-      seed = 38905,
-      ending = "E3",
-      variant = nil,
-      grade = "D",
-      total = 29,
-      dev = 29,
-      chapter = 3,
-      bands = {
-        0,
-        0,
-        1,
-      },
-      attrs = {
-        tupo = 36,
-        wuli = 25,
-        caixue = 69,
-        moulue = 55,
-        biancai = 56,
+        tupo = 17,
+        wuli = 23,
+        caixue = 100,
+        moulue = 62,
+        biancai = 50,
         caifu = 0,
-        shengwang = 34,
-        quanshi = 23,
-        zhengji = 5,
-        junxin = 46,
-        weiji = 26,
+        shengwang = 67,
+        quanshi = 29,
+        zhengji = 19,
+        junxin = 36,
+        weiji = 100,
       },
       steps = {
         {
@@ -680,71 +570,25 @@ return {
         },
         {
           "card",
-          2,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
           3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
         },
         {
           "card",
@@ -752,179 +596,7 @@ return {
         },
         {
           "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
           1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "copt",
-          2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-      },
-    },
-    {
-      diff = "normal",
-      seed = 46824,
-      ending = "E8",
-      variant = nil,
-      grade = "D",
-      total = 21,
-      dev = 37,
-      chapter = 3,
-      bands = {
-        0,
-        0,
-        1,
-      },
-      attrs = {
-        tupo = 20,
-        wuli = 24,
-        caixue = 77,
-        moulue = 57,
-        biancai = 49,
-        caifu = 10,
-        shengwang = 33,
-        quanshi = 26,
-        zhengji = 5,
-        junxin = 34,
-        weiji = 94,
-      },
-      steps = {
-        {
-          "intro",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          2,
         },
         {
           "settle",
@@ -935,42 +607,19 @@ return {
         },
         {
           "copt",
-          2,
+          0,
         },
         {
           "card",
-          1,
+          2,
         },
         {
           "card",
           3,
         },
         {
-          "copt",
-          0,
-        },
-        {
           "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "copt",
           0,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
         },
         {
           "settle",
@@ -994,11 +643,22 @@ return {
         },
         {
           "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
           0,
         },
         {
           "ev",
-          2,
+          0,
         },
         {
           "settle",
@@ -1009,15 +669,15 @@ return {
         },
         {
           "card",
-          3,
+          2,
         },
         {
           "card",
-          1,
+          2,
         },
         {
           "ev",
-          1,
+          0,
         },
         {
           "settle",
@@ -1030,7 +690,25 @@ return {
         },
         {
           "card",
-          3,
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -1038,11 +716,11 @@ return {
         },
         {
           "card",
-          3,
+          0,
         },
         {
           "ev",
-          1,
+          0,
         },
         {
           "settle",
@@ -1052,7 +730,11 @@ return {
         },
         {
           "card",
-          1,
+          4,
+        },
+        {
+          "copt",
+          0,
         },
         {
           "card",
@@ -1070,11 +752,571 @@ return {
           4,
         },
         {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          5,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
           "card",
           1,
         },
         {
           "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "endev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+      },
+    },
+    {
+      diff = "story",
+      seed = 38905,
+      ending = "E3",
+      variant = nil,
+      grade = "D",
+      total = 28,
+      dev = 29,
+      chapter = 3,
+      bands = {
+        0,
+        0,
+        1,
+      },
+      attrs = {
+        tupo = 28,
+        wuli = 20,
+        caixue = 58,
+        moulue = 54,
+        biancai = 52,
+        caifu = 0,
+        shengwang = 20,
+        quanshi = 18,
+        zhengji = 0,
+        junxin = 40,
+        weiji = 22,
+      },
+      steps = {
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+      },
+    },
+    {
+      diff = "normal",
+      seed = 46824,
+      ending = "E8",
+      variant = "cike",
+      grade = "D",
+      total = 19,
+      dev = 44,
+      chapter = 3,
+      bands = {
+        0,
+        1,
+        1,
+      },
+      attrs = {
+        tupo = 18,
+        wuli = 22,
+        caixue = 78,
+        moulue = 56,
+        biancai = 55,
+        caifu = 0,
+        shengwang = 22,
+        quanshi = 8,
+        zhengji = 5,
+        junxin = 31,
+        weiji = 100,
+      },
+      steps = {
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "ev",
@@ -1093,14 +1335,34 @@ return {
         },
         {
           "card",
-          3,
+          1,
         },
         {
           "copt",
-          0,
+          1,
         },
         {
-          "xushi",
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
         },
         {
           "ev",
@@ -1120,7 +1382,22 @@ return {
         },
         {
           "card",
-          3,
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
         },
         {
           "xushi",
@@ -1130,8 +1407,34 @@ return {
           3,
         },
         {
+          "card",
+          5,
+        },
+        {
           "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
           2,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
         },
         {
           "settle",
@@ -1146,7 +1449,46 @@ return {
         },
         {
           "card",
-          1,
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          3,
         },
         {
           "ev",
@@ -1161,10 +1503,10 @@ return {
       diff = "hardcore",
       seed = 54743,
       ending = "E8",
-      variant = nil,
+      variant = "cike",
       grade = "D",
-      total = 30,
-      dev = 49,
+      total = 29,
+      dev = 43,
       chapter = 3,
       bands = {
         0,
@@ -1172,17 +1514,17 @@ return {
         1,
       },
       attrs = {
-        tupo = 37,
-        wuli = 27,
-        caixue = 76,
-        moulue = 58,
-        biancai = 46,
-        caifu = 5,
-        shengwang = 44,
-        quanshi = 19,
+        tupo = 36,
+        wuli = 28,
+        caixue = 71,
+        moulue = 59,
+        biancai = 48,
+        caifu = 0,
+        shengwang = 43,
+        quanshi = 6,
         zhengji = 0,
-        junxin = 37,
-        weiji = 89,
+        junxin = 32,
+        weiji = 100,
       },
       steps = {
         {
@@ -1197,117 +1539,14 @@ return {
           3,
         },
         {
-          "copt",
-          1,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
           "xushi",
         },
         {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          0,
-        },
-        {
           "ev",
           1,
         },
         {
           "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
         },
         {
           "card",
@@ -1323,33 +1562,6 @@ return {
         {
           "card",
           3,
-        },
-        {
-          "copt",
-          0,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "copt",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          3,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
         },
         {
           "xushi",
@@ -1359,11 +1571,74 @@ return {
           4,
         },
         {
+          "copt",
+          0,
+        },
+        {
           "ev",
-          2,
+          0,
         },
         {
           "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
         },
         {
           "card",
@@ -1372,6 +1647,94 @@ return {
         {
           "card",
           2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          1,
         },
         {
           "card",
@@ -1389,29 +1752,8 @@ return {
           "settle",
         },
         {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
           "card",
           3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
@@ -1429,29 +1771,27 @@ return {
     {
       diff = "story",
       seed = 62662,
-      ending = "E3",
+      ending = "E2",
       variant = nil,
       grade = "D",
-      total = 29,
-      dev = 28,
-      chapter = 3,
+      total = 35,
+      dev = 8,
+      chapter = 1,
       bands = {
         0,
-        1,
-        1,
       },
       attrs = {
-        tupo = 35,
-        wuli = 41,
-        caixue = 70,
-        moulue = 57,
-        biancai = 52,
-        caifu = 2,
-        shengwang = 20,
-        quanshi = 14,
+        tupo = 36,
+        wuli = 27,
+        caixue = 66,
+        moulue = 51,
+        biancai = 46,
+        caifu = 0,
+        shengwang = 21,
+        quanshi = 5,
         zhengji = 0,
-        junxin = 37,
-        weiji = 14,
+        junxin = 20,
+        weiji = 5,
       },
       steps = {
         {
@@ -1474,39 +1814,7 @@ return {
         },
         {
           "card",
-          2,
-        },
-        {
-          "card",
           3,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          2,
         },
         {
           "copt",
@@ -1518,26 +1826,7 @@ return {
         },
         {
           "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
+          0,
         },
         {
           "settle",
@@ -1547,26 +1836,11 @@ return {
         },
         {
           "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
           2,
         },
         {
           "card",
-          2,
-        },
-        {
-          "card",
-          0,
+          3,
         },
         {
           "ev",
@@ -1574,9 +1848,6 @@ return {
         },
         {
           "settle",
-        },
-        {
-          "corr",
         },
         {
           "sum",
@@ -1585,46 +1856,48 @@ return {
           "intro",
         },
         {
+          "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
           "card",
           3,
         },
         {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
           "card",
-          2,
+          4,
         },
         {
           "copt",
-          2,
+          1,
+        },
+        {
+          "xushi",
         },
         {
           "card",
           3,
         },
         {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
+          "copt",
           0,
         },
         {
           "ev",
-          0,
+          2,
         },
         {
           "settle",
-        },
-        {
-          "card",
-          3,
         },
         {
           "card",
@@ -1635,40 +1908,7 @@ return {
           3,
         },
         {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
+          "xushi",
         },
         {
           "ev",
@@ -1682,29 +1922,29 @@ return {
     {
       diff = "normal",
       seed = 70581,
-      ending = "E3",
+      ending = "E8",
       variant = nil,
       grade = "D",
-      total = 33,
-      dev = 22,
+      total = 20,
+      dev = 21,
       chapter = 3,
       bands = {
         0,
         0,
-        1,
+        0,
       },
       attrs = {
-        tupo = 42,
-        wuli = 24,
-        caixue = 76,
-        moulue = 55,
-        biancai = 48,
-        caifu = 0,
-        shengwang = 17,
+        tupo = 43,
+        wuli = 27,
+        caixue = 83,
+        moulue = 56,
+        biancai = 49,
+        caifu = 18,
+        shengwang = 28,
         quanshi = 9,
-        zhengji = 1,
-        junxin = 27,
-        weiji = 19,
+        zhengji = 4,
+        junxin = 32,
+        weiji = 68,
       },
       steps = {
         {
@@ -1748,7 +1988,11 @@ return {
         },
         {
           "card",
-          3,
+          4,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "card",
@@ -1768,7 +2012,45 @@ return {
           "intro",
         },
         {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
           "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -1776,7 +2058,66 @@ return {
         },
         {
           "card",
-          4,
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
         },
         {
           "ev",
@@ -1791,10 +2132,32 @@ return {
         },
         {
           "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
           1,
         },
         {
-          "xushi",
+          "card",
+          0,
         },
         {
           "ev",
@@ -1809,99 +2172,19 @@ return {
         },
         {
           "card",
-          4,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
           3,
         },
         {
           "card",
-          4,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "corr",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
           0,
         },
         {
           "ev",
-          0,
+          3,
+        },
+        {
+          "ev",
+          2,
         },
         {
           "settle",
@@ -1911,11 +2194,11 @@ return {
     {
       diff = "hardcore",
       seed = 78500,
-      ending = "E8",
+      ending = "E3",
       variant = nil,
-      grade = "D",
-      total = 23,
-      dev = 31,
+      grade = "C",
+      total = 42,
+      dev = 10,
       chapter = 3,
       bands = {
         0,
@@ -1923,17 +2206,17 @@ return {
         0,
       },
       attrs = {
-        tupo = 29,
-        wuli = 26,
+        tupo = 39,
+        wuli = 27,
         caixue = 83,
-        moulue = 50,
-        biancai = 51,
-        caifu = 10,
-        shengwang = 47,
-        quanshi = 5,
-        zhengji = 0,
-        junxin = 30,
-        weiji = 99,
+        moulue = 60,
+        biancai = 47,
+        caifu = 0,
+        shengwang = 30,
+        quanshi = 17,
+        zhengji = 1,
+        junxin = 34,
+        weiji = 17,
       },
       steps = {
         {
@@ -1956,182 +2239,150 @@ return {
         },
         {
           "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
+          4,
         },
         {
           "copt",
+          0,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          3,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "card",
           2,
         },
         {
@@ -2144,21 +2395,51 @@ return {
         {
           "card",
           2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
         },
         {
           "copt",
           1,
         },
         {
-          "xushi",
+          "card",
+          1,
+        },
+        {
+          "copt",
+          1,
         },
         {
           "card",
-          3,
+          0,
         },
         {
           "ev",
-          2,
+          0,
         },
         {
           "settle",
@@ -2171,26 +2452,26 @@ return {
       ending = "E3",
       variant = nil,
       grade = "D",
-      total = 25,
-      dev = 22,
+      total = 26,
+      dev = 19,
       chapter = 3,
       bands = {
         0,
         0,
-        1,
+        0,
       },
       attrs = {
-        tupo = 36,
-        wuli = 26,
-        caixue = 55,
-        moulue = 54,
-        biancai = 53,
-        caifu = 13,
-        shengwang = 27,
-        quanshi = 0,
-        zhengji = 1,
-        junxin = 27,
-        weiji = 6,
+        tupo = 43,
+        wuli = 28,
+        caixue = 68,
+        moulue = 55,
+        biancai = 52,
+        caifu = 2,
+        shengwang = 18,
+        quanshi = 6,
+        zhengji = 3,
+        junxin = 29,
+        weiji = 22,
       },
       steps = {
         {
@@ -2213,10 +2494,10 @@ return {
         },
         {
           "card",
-          3,
+          4,
         },
         {
-          "card",
+          "copt",
           1,
         },
         {
@@ -2224,17 +2505,11 @@ return {
           3,
         },
         {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
           "card",
+          4,
+        },
+        {
+          "copt",
           0,
         },
         {
@@ -2243,49 +2518,6 @@ return {
         },
         {
           "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
@@ -2309,7 +2541,7 @@ return {
         },
         {
           "card",
-          2,
+          4,
         },
         {
           "card",
@@ -2317,24 +2549,64 @@ return {
         },
         {
           "ev",
-          1,
+          2,
         },
         {
           "settle",
         },
         {
           "card",
-          3,
+          2,
         },
         {
           "card",
-          1,
+          2,
         },
         {
           "xushi",
         },
         {
           "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
           3,
         },
         {
@@ -2346,10 +2618,10 @@ return {
         },
         {
           "card",
-          3,
+          4,
         },
         {
-          "card",
+          "copt",
           1,
         },
         {
@@ -2361,8 +2633,12 @@ return {
           1,
         },
         {
+          "card",
+          1,
+        },
+        {
           "ev",
-          0,
+          1,
         },
         {
           "settle",
@@ -2373,11 +2649,33 @@ return {
         },
         {
           "card",
-          1,
+          4,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "card",
-          3,
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          0,
         },
         {
           "ev",
@@ -2393,20 +2691,41 @@ return {
           "intro",
         },
         {
-          "card",
-          1,
+          "xushi",
         },
         {
           "card",
-          3,
+          2,
         },
         {
           "card",
-          3,
+          4,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
           0,
+        },
+        {
+          "ev",
+          1,
         },
         {
           "settle",
@@ -2417,28 +2736,31 @@ return {
       diff = "normal",
       seed = 94338,
       ending = "E8",
-      variant = nil,
-      grade = "D",
-      total = 18,
-      dev = 36,
-      chapter = 3,
+      variant = "cike",
+      grade = "C",
+      total = 48,
+      dev = 82,
+      chapter = 6,
       bands = {
         0,
         0,
         1,
+        1,
+        2,
+        2,
       },
       attrs = {
-        tupo = 29,
-        wuli = 27,
-        caixue = 78,
-        moulue = 54,
-        biancai = 56,
+        tupo = 24,
+        wuli = 29,
+        caixue = 80,
+        moulue = 71,
+        biancai = 62,
         caifu = 0,
-        shengwang = 27,
-        quanshi = 0,
-        zhengji = 0,
-        junxin = 27,
-        weiji = 68,
+        shengwang = 18,
+        quanshi = 41,
+        zhengji = 24,
+        junxin = 56,
+        weiji = 100,
       },
       steps = {
         {
@@ -2446,18 +2768,14 @@ return {
         },
         {
           "card",
-          2,
-        },
-        {
-          "copt",
-          2,
-        },
-        {
-          "xushi",
+          3,
         },
         {
           "card",
-          1,
+          3,
+        },
+        {
+          "xushi",
         },
         {
           "ev",
@@ -2468,11 +2786,11 @@ return {
         },
         {
           "card",
-          2,
+          1,
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "card",
@@ -2484,6 +2802,10 @@ return {
         },
         {
           "settle",
+        },
+        {
+          "card",
+          1,
         },
         {
           "card",
@@ -2512,7 +2834,7 @@ return {
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "card",
@@ -2527,7 +2849,7 @@ return {
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "xushi",
@@ -2537,15 +2859,15 @@ return {
           2,
         },
         {
+          "copt",
+          1,
+        },
+        {
           "ev",
           1,
         },
         {
           "settle",
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
@@ -2587,6 +2909,10 @@ return {
           2,
         },
         {
+          "copt",
+          2,
+        },
+        {
           "ev",
           3,
         },
@@ -2602,27 +2928,30 @@ return {
           2,
         },
         {
+          "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
           "card",
           2,
+        },
+        {
+          "card",
+          4,
         },
         {
           "copt",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
           0,
+        },
+        {
+          "card",
+          2,
         },
         {
           "ev",
@@ -2642,6 +2971,50 @@ return {
         },
         {
           "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
           2,
         },
         {
@@ -2664,7 +3037,183 @@ return {
         },
         {
           "card",
+          0,
+        },
+        {
+          "ev",
           2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          4,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          3,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          0,
         },
         {
           "ev",
@@ -2679,26 +3228,28 @@ return {
       diff = "hardcore",
       seed = 102257,
       ending = "E3",
-      variant = "youshi",
-      grade = "D",
-      total = 39,
-      dev = 18,
-      chapter = 1,
+      variant = nil,
+      grade = "C",
+      total = 42,
+      dev = 19,
+      chapter = 3,
       bands = {
+        0,
+        0,
         0,
       },
       attrs = {
         tupo = 31,
         wuli = 20,
-        caixue = 53,
-        moulue = 50,
-        biancai = 48,
-        caifu = 0,
-        shengwang = 26,
-        quanshi = 5,
+        caixue = 84,
+        moulue = 54,
+        biancai = 51,
+        caifu = 2,
+        shengwang = 46,
+        quanshi = 15,
         zhengji = 0,
-        junxin = 20,
-        weiji = 9,
+        junxin = 35,
+        weiji = 15,
       },
       steps = {
         {
@@ -2721,18 +3272,18 @@ return {
         },
         {
           "card",
+          1,
+        },
+        {
+          "card",
           0,
         },
         {
           "ev",
-          0,
+          1,
         },
         {
           "settle",
-        },
-        {
-          "card",
-          2,
         },
         {
           "card",
@@ -2771,6 +3322,83 @@ return {
           3,
         },
         {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
           "card",
           0,
         },
@@ -2783,11 +3411,50 @@ return {
         },
         {
           "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
           0,
         },
         {
           "ev",
           1,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
         },
         {
           "settle",
@@ -2798,28 +3465,28 @@ return {
       diff = "story",
       seed = 110176,
       ending = "E3",
-      variant = nil,
+      variant = "renxia",
       grade = "D",
       total = 28,
-      dev = 16,
+      dev = 46,
       chapter = 3,
       bands = {
         0,
-        0,
-        0,
+        1,
+        1,
       },
       attrs = {
-        tupo = 38,
+        tupo = 31,
         wuli = 25,
-        caixue = 69,
-        moulue = 54,
-        biancai = 49,
+        caixue = 73,
+        moulue = 58,
+        biancai = 53,
         caifu = 0,
-        shengwang = 7,
-        quanshi = 25,
+        shengwang = 29,
+        quanshi = 4,
         zhengji = 1,
-        junxin = 34,
-        weiji = 15,
+        junxin = 29,
+        weiji = 25,
       },
       steps = {
         {
@@ -2827,36 +3494,29 @@ return {
         },
         {
           "card",
-          3,
+          4,
         },
         {
-          "card",
-          3,
+          "copt",
+          2,
         },
         {
           "xushi",
         },
         {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
           "card",
+          3,
+        },
+        {
+          "ev",
           0,
         },
         {
-          "ev",
-          1,
-        },
-        {
           "settle",
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "copt",
@@ -2867,12 +3527,171 @@ return {
           3,
         },
         {
+          "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          5,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "corr",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
           "card",
           2,
         },
         {
           "ev",
           0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
         },
         {
           "settle",
@@ -2892,136 +3711,26 @@ return {
         },
         {
           "card",
-          4,
+          1,
+        },
+        {
+          "copt",
+          1,
         },
         {
           "ev",
-          0,
+          1,
         },
         {
           "settle",
         },
         {
           "card",
-          2,
+          0,
         },
         {
-          "card",
+          "ev",
           3,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          4,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          0,
         },
         {
           "settle",
@@ -3031,25 +3740,29 @@ return {
     {
       diff = "normal",
       seed = 118095,
-      ending = "E2",
-      variant = "jiuli",
-      grade = "C",
-      total = 42,
+      ending = "E3",
+      variant = nil,
+      grade = "D",
+      total = 32,
       dev = 0,
-      chapter = 0,
-      bands = {},
+      chapter = 3,
+      bands = {
+        0,
+        0,
+        0,
+      },
       attrs = {
         tupo = 30,
-        wuli = 20,
-        caixue = 46,
-        moulue = 50,
-        biancai = 45,
-        caifu = 9,
-        shengwang = 10,
-        quanshi = 9,
-        zhengji = 0,
-        junxin = 20,
-        weiji = 5,
+        wuli = 23,
+        caixue = 82,
+        moulue = 58,
+        biancai = 46,
+        caifu = 0,
+        shengwang = 12,
+        quanshi = 19,
+        zhengji = 5,
+        junxin = 41,
+        weiji = 35,
       },
       steps = {
         {
@@ -3086,6 +3799,57 @@ return {
         },
         {
           "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
           2,
         },
         {
@@ -3093,7 +3857,154 @@ return {
         },
         {
           "card",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
           2,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          3,
         },
         {
           "ev",
@@ -3108,29 +4019,27 @@ return {
       diff = "hardcore",
       seed = 126014,
       ending = "E8",
-      variant = "zuzhu",
-      grade = "C",
-      total = 51,
-      dev = 36,
-      chapter = 5,
+      variant = "cike",
+      grade = "D",
+      total = 23,
+      dev = 29,
+      chapter = 3,
       bands = {
         0,
         0,
         0,
-        0,
-        1,
       },
       attrs = {
-        tupo = 44,
-        wuli = 36,
-        caixue = 82,
-        moulue = 59,
-        biancai = 65,
-        caifu = 6,
-        shengwang = 0,
-        quanshi = 83,
-        zhengji = 23,
-        junxin = 94,
+        tupo = 13,
+        wuli = 27,
+        caixue = 68,
+        moulue = 55,
+        biancai = 54,
+        caifu = 8,
+        shengwang = 56,
+        quanshi = 12,
+        zhengji = 8,
+        junxin = 32,
         weiji = 100,
       },
       steps = {
@@ -3168,7 +4077,14 @@ return {
         },
         {
           "card",
-          0,
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
         },
         {
           "ev",
@@ -3185,20 +4101,16 @@ return {
         },
         {
           "card",
-          3,
-        },
-        {
-          "copt",
-          0,
-        },
-        {
-          "card",
           1,
         },
         {
           "xushi",
         },
         {
+          "card",
+          1,
+        },
+        {
           "ev",
           1,
         },
@@ -3230,252 +4142,11 @@ return {
         },
         {
           "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "copt",
           2,
         },
         {
           "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
           2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "copt",
-          0,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          1,
         },
         {
           "ev",
@@ -3496,13 +4167,55 @@ return {
         },
         {
           "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
           4,
         },
         {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
           "settle",
         },
         {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
           "xushi",
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -3511,6 +4224,49 @@ return {
         {
           "ev",
           0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          2,
         },
         {
           "settle",
@@ -3520,27 +4276,29 @@ return {
     {
       diff = "story",
       seed = 133933,
-      ending = "E2",
+      ending = "E8",
       variant = nil,
       grade = "D",
-      total = 35,
-      dev = 8,
-      chapter = 1,
+      total = 15,
+      dev = 26,
+      chapter = 3,
       bands = {
+        0,
+        0,
         0,
       },
       attrs = {
-        tupo = 32,
-        wuli = 20,
-        caixue = 62,
-        moulue = 52,
-        biancai = 48,
-        caifu = 0,
-        shengwang = 16,
-        quanshi = 5,
+        tupo = 40,
+        wuli = 30,
+        caixue = 66,
+        moulue = 54,
+        biancai = 50,
+        caifu = 23,
+        shengwang = 17,
+        quanshi = 18,
         zhengji = 0,
-        junxin = 20,
-        weiji = 4,
+        junxin = 31,
+        weiji = 33,
       },
       steps = {
         {
@@ -3616,8 +4374,12 @@ return {
           4,
         },
         {
-          "ev",
+          "copt",
           2,
+        },
+        {
+          "ev",
+          0,
         },
         {
           "settle",
@@ -3629,6 +4391,130 @@ return {
         {
           "ev",
           0,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
         },
         {
           "settle",
@@ -3648,17 +4534,17 @@ return {
         0,
       },
       attrs = {
-        tupo = 31,
-        wuli = 24,
-        caixue = 69,
-        moulue = 51,
-        biancai = 46,
-        caifu = 9,
-        shengwang = 23,
+        tupo = 30,
+        wuli = 20,
+        caixue = 71,
+        moulue = 55,
+        biancai = 47,
+        caifu = 14,
+        shengwang = 20,
         quanshi = 7,
-        zhengji = 1,
-        junxin = 21,
-        weiji = 14,
+        zhengji = 0,
+        junxin = 20,
+        weiji = 7,
       },
       steps = {
         {
@@ -3692,7 +4578,7 @@ return {
         },
         {
           "card",
-          2,
+          1,
         },
         {
           "ev",
@@ -3703,7 +4589,7 @@ return {
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "card",
@@ -3739,7 +4625,7 @@ return {
         },
         {
           "card",
-          3,
+          4,
         },
         {
           "copt",
@@ -3764,12 +4650,19 @@ return {
           2,
         },
         {
-          "card",
+          "copt",
           2,
         },
         {
           "card",
           2,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "xushi",
         },
         {
           "ev",
@@ -3783,29 +4676,29 @@ return {
     {
       diff = "hardcore",
       seed = 149771,
-      ending = "E3",
+      ending = "E8",
       variant = nil,
-      grade = "C",
-      total = 42,
-      dev = 27,
+      grade = "D",
+      total = 27,
+      dev = 34,
       chapter = 3,
       bands = {
         0,
         0,
-        1,
+        0,
       },
       attrs = {
-        tupo = 32,
-        wuli = 28,
-        caixue = 90,
-        moulue = 57,
-        biancai = 48,
-        caifu = 5,
-        shengwang = 54,
-        quanshi = 9,
-        zhengji = 0,
-        junxin = 30,
-        weiji = 43,
+        tupo = 37,
+        wuli = 34,
+        caixue = 86,
+        moulue = 58,
+        biancai = 50,
+        caifu = 2,
+        shengwang = 53,
+        quanshi = 20,
+        zhengji = 5,
+        junxin = 34,
+        weiji = 82,
       },
       steps = {
         {
@@ -3888,15 +4781,16 @@ return {
           3,
         },
         {
-          "copt",
-          1,
+          "card",
+          2,
         },
         {
           "card",
           3,
         },
         {
-          "xushi",
+          "copt",
+          2,
         },
         {
           "ev",
@@ -3911,11 +4805,11 @@ return {
         },
         {
           "card",
-          3,
+          2,
         },
         {
           "card",
-          2,
+          3,
         },
         {
           "ev",
@@ -3932,10 +4826,6 @@ return {
         },
         {
           "card",
-          3,
-        },
-        {
-          "card",
           0,
         },
         {
@@ -3946,48 +4836,8 @@ return {
           "settle",
         },
         {
-          "xushi",
-        },
-        {
           "card",
           1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "xushi",
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
         },
         {
           "copt",
@@ -3995,11 +4845,59 @@ return {
         },
         {
           "card",
-          0,
+          1,
+        },
+        {
+          "card",
+          1,
         },
         {
           "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
           2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          4,
+        },
+        {
+          "copt",
+          1,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          1,
         },
         {
           "settle",
@@ -4012,7 +4910,18 @@ return {
         },
         {
           "card",
-          3,
+          1,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -4020,11 +4929,19 @@ return {
         },
         {
           "card",
+          1,
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "copt",
           1,
         },
         {
           "ev",
-          0,
+          2,
         },
         {
           "settle",
@@ -4034,29 +4951,29 @@ return {
     {
       diff = "story",
       seed = 157690,
-      ending = "E8",
+      ending = "E3",
       variant = nil,
       grade = "D",
-      total = 15,
-      dev = 28,
+      total = 29,
+      dev = 23,
       chapter = 3,
       bands = {
         0,
         0,
-        0,
+        1,
       },
       attrs = {
-        tupo = 25,
+        tupo = 38,
         wuli = 25,
-        caixue = 72,
-        moulue = 55,
-        biancai = 51,
-        caifu = 3,
-        shengwang = 48,
-        quanshi = 13,
-        zhengji = 7,
-        junxin = 34,
-        weiji = 51,
+        caixue = 74,
+        moulue = 56,
+        biancai = 54,
+        caifu = 0,
+        shengwang = 35,
+        quanshi = 19,
+        zhengji = 3,
+        junxin = 37,
+        weiji = 48,
       },
       steps = {
         {
@@ -4064,7 +4981,33 @@ return {
         },
         {
           "card",
+          4,
+        },
+        {
+          "copt",
+          2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
           3,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "card",
@@ -4082,25 +5025,19 @@ return {
         },
         {
           "card",
+          4,
+        },
+        {
+          "copt",
           0,
         },
         {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
           "card",
           3,
         },
         {
-          "xushi",
-        },
-        {
           "card",
-          3,
+          0,
         },
         {
           "ev",
@@ -4120,6 +5057,40 @@ return {
           3,
         },
         {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          3,
+        },
+        {
           "xushi",
         },
         {
@@ -4128,36 +5099,7 @@ return {
         },
         {
           "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "ev",
-          0,
+          1,
         },
         {
           "settle",
@@ -4169,37 +5111,35 @@ return {
           "intro",
         },
         {
-          "xushi",
-        },
-        {
           "card",
-          1,
-        },
-        {
-          "card",
-          3,
+          0,
         },
         {
           "ev",
-          0,
+          2,
         },
         {
           "settle",
         },
         {
           "card",
+          2,
+        },
+        {
+          "copt",
           1,
         },
         {
           "card",
-          3,
+          1,
         },
         {
-          "xushi",
+          "card",
+          1,
         },
         {
           "ev",
-          1,
+          2,
         },
         {
           "settle",
@@ -4220,9 +5160,6 @@ return {
           "settle",
         },
         {
-          "xushi",
-        },
-        {
           "card",
           3,
         },
@@ -4231,8 +5168,16 @@ return {
           2,
         },
         {
-          "ev",
+          "copt",
+          1,
+        },
+        {
+          "card",
           0,
+        },
+        {
+          "ev",
+          1,
         },
         {
           "settle",
@@ -4244,15 +5189,15 @@ return {
           "intro",
         },
         {
+          "card",
+          2,
+        },
+        {
           "xushi",
         },
         {
           "card",
-          1,
-        },
-        {
-          "card",
-          3,
+          2,
         },
         {
           "ev",
@@ -4260,6 +5205,14 @@ return {
         },
         {
           "settle",
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "copt",
+          2,
         },
         {
           "card",
@@ -4271,7 +5224,7 @@ return {
         },
         {
           "ev",
-          2,
+          1,
         },
         {
           "settle",
@@ -4281,29 +5234,29 @@ return {
     {
       diff = "normal",
       seed = 165609,
-      ending = "E8",
-      variant = "cike",
+      ending = "E3",
+      variant = "fugu",
       grade = "D",
-      total = 23,
-      dev = 44,
+      total = 37,
+      dev = 39,
       chapter = 3,
       bands = {
         0,
-        0,
+        1,
         1,
       },
       attrs = {
         tupo = 35,
-        wuli = 25,
+        wuli = 23,
         caixue = 62,
-        moulue = 61,
-        biancai = 52,
-        caifu = 6,
-        shengwang = 60,
-        quanshi = 22,
-        zhengji = 5,
-        junxin = 54,
-        weiji = 100,
+        moulue = 56,
+        biancai = 55,
+        caifu = 25,
+        shengwang = 27,
+        quanshi = 9,
+        zhengji = 1,
+        junxin = 47,
+        weiji = 57,
       },
       steps = {
         {
@@ -4311,7 +5264,7 @@ return {
         },
         {
           "card",
-          1,
+          2,
         },
         {
           "card",
@@ -4347,57 +5300,15 @@ return {
         },
         {
           "card",
-          3,
+          4,
         },
         {
-          "card",
+          "copt",
           0,
         },
         {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "sum",
-        },
-        {
-          "intro",
-        },
-        {
-          "xushi",
-        },
-        {
           "card",
-          2,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
+          1,
         },
         {
           "ev",
@@ -4414,47 +5325,55 @@ return {
         },
         {
           "card",
-          3,
+          2,
+        },
+        {
+          "copt",
+          0,
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          2,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          0,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "card",
+          1,
+        },
+        {
+          "ev",
+          1,
+        },
+        {
+          "settle",
         },
         {
           "xushi",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          3,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
         },
         {
           "card",
@@ -4475,11 +5394,14 @@ return {
         },
         {
           "card",
-          1,
+          0,
         },
         {
-          "card",
+          "ev",
           2,
+        },
+        {
+          "settle",
         },
         {
           "card",
@@ -4487,17 +5409,22 @@ return {
         },
         {
           "ev",
+          0,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
           1,
         },
         {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
           "card",
           2,
+        },
+        {
+          "copt",
+          0,
         },
         {
           "card",
@@ -4519,15 +5446,37 @@ return {
           3,
         },
         {
-          "xushi",
-        },
-        {
-          "ev",
+          "card",
           3,
         },
         {
           "ev",
           2,
+        },
+        {
+          "settle",
+        },
+        {
+          "sum",
+        },
+        {
+          "intro",
+        },
+        {
+          "card",
+          3,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "ev",
+          0,
         },
         {
           "settle",

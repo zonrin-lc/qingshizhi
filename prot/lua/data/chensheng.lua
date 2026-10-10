@@ -2733,29 +2733,39 @@ return {
   },
   ACTIONS = {
     {
+      desc = "聚众讲“苦秦”之理",
+      res = "你站在土台上讲了一个时辰。台下的眼睛，一双双都亮了。散场后，还有人蹲在原地，舍不得走。",
       id = "CS-ACT-1",
       name = "聚义宣讲",
-      desc = "聚众讲“苦秦”之理",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          junxin = 1,
+          biancai = 1,
+          shengwang = 3,
+        },
+      },
       descHidden = "聚众讲“苦秦”之理",
       chapters = {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          shengwang = 3,
-          junxin = 1,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "你站在土台上讲了一个时辰。台下的眼睛，一双双都亮了。散场后，还有人蹲在原地，舍不得走。",
     },
     {
+      desc = "置酒结客（财富-8）",
+      res = "一场大宴，宾主尽欢。散场时，多了几个肯替你说话的人。酒醒之后，话比酒走得更远。",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 1,
+          caifu = -8,
+          biancai = 1,
+          shengwang = 3,
+        },
+      },
       id = "CS-ACT-2",
       name = "置酒高会",
-      desc = "置酒结客（财富-8）",
       descHidden = "置酒结客（耗财）",
       req = {
         caifu = 8,
@@ -2764,21 +2774,20 @@ return {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          caifu = -8,
-          shengwang = 3,
-          junxin = 1,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "一场大宴，宾主尽欢。散场时，多了几个肯替你说话的人。酒醒之后，话比酒走得更远。",
     },
     {
+      desc = "趋府通款，以通声气（需起事）",
+      res = "你在堂下站了半个时辰，换来三句回话。乱世里，门路就是粮道。出门时，门吏看你的眼神热了一点。",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 3,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       id = "CS-ACT-3",
       name = "入府联络",
-      desc = "趋府通款，以通声气（需起事）",
       descHidden = "趋府通款，以通声气（需起事）",
       req = {
         minChapter = 2,
@@ -2787,40 +2796,40 @@ return {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          junxin = 3,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "你在堂下站了半个时辰，换来三句回话。乱世里，门路就是粮道。出门时，门吏看你的眼神热了一点。",
     },
     {
+      desc = "谢客静修，温习兵略",
+      res = "门一关，阵图铺了满案。这一夜，你的兵又精了一分。烛花爆了两次，你没有抬头。",
       id = "CS-ACT-4",
       name = "闭门读兵",
-      desc = "谢客静修，温习兵略",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = -1,
+          weiji = -1,
+          caixue = 2,
+          moulue = 1,
+        },
+      },
       descHidden = "谢客静修，温习兵略",
       chapters = {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          caixue = 2,
-          weiji = -1,
-          moulue = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "门一关，阵图铺了满案。这一夜，你的兵又精了一分。烛花爆了两次，你没有抬头。",
     },
     {
+      desc = "厚币招贤（财富-8）",
+      res = "千金散尽，门下多了几十张嘴，也多了几十双替你看路的眼睛。钱的响声停了，人的脚步声多了。",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -8,
+          weiji = -4,
+          shengwang = 2,
+        },
+      },
       id = "CS-ACT-5",
       name = "散财养士",
-      desc = "厚币招贤（财富-8）",
       descHidden = "厚币招贤（倾囊以聘）",
       req = {
         caifu = 8,
@@ -2829,20 +2838,21 @@ return {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          caifu = -8,
-          weiji = -4,
-          shengwang = 2,
-        },
-        dev = 0,
-      },
-      res = "千金散尽，门下多了几十张嘴，也多了几十双替你看路的眼睛。钱的响声停了，人的脚步声多了。",
     },
     {
+      desc = "闭门称病，避人锋芒（需起事）",
+      res = "病假话说出去，麻烦少了一半。探病的人来了几拨，真心难辨。你躺在帐里，把每个人的来意都过了一遍。",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 1,
+          weiji = -5,
+          junxin = -2,
+          quanshi = -3,
+        },
+      },
       id = "CS-ACT-6",
       name = "称病蛰伏",
-      desc = "闭门称病，避人锋芒（需起事）",
       descHidden = "闭门称病，避人锋芒（需起事）",
       req = {
         minChapter = 2,
@@ -2851,95 +2861,95 @@ return {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          weiji = -5,
-          quanshi = -3,
-          junxin = -2,
-          tupo = 1,
-        },
-        dev = 0,
-      },
-      res = "病假话说出去，麻烦少了一半。探病的人来了几拨，真心难辨。你躺在帐里，把每个人的来意都过了一遍。",
     },
     {
+      desc = "晨起演武，筋骨与艺俱进",
+      res = "你鸡鸣即起，在场院上演武三百回。汗水换了几身短打，臂上的力道一日日攒了下来——锄把换成了矛杆，使力的人还是那个人。",
       id = "CS-ACT-49",
       name = "演武强身",
-      desc = "晨起演武，筋骨与艺俱进",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 3,
+          caifu = -1,
+          tupo = 1,
+        },
+      },
       descHidden = "晨起演武，筋骨与艺俱进",
       chapters = {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          wuli = 3,
-          tupo = 1,
-          caifu = -1,
-        },
-        dev = 0,
-      },
-      res = "你鸡鸣即起，在场院上演武三百回。汗水换了几身短打，臂上的力道一日日攒了下来——锄把换成了矛杆，使力的人还是那个人。",
     },
     {
+      desc = "调息导引，养精神于未衰",
+      res = "你闭帐调息，依图导引，吐纳之间气血渐顺。帐外的人久不见你露面，揣测便淡了——养的是精神，顺带也养了一份清静。",
       id = "CS-ACT-50",
       name = "导引养生",
-      desc = "调息导引，养精神于未衰",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          weiji = -1,
+        },
+      },
       descHidden = "调息导引，养精神于未衰",
       chapters = {
         0,
         6,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          weiji = -1,
-        },
-        dev = 0,
-      },
-      res = "你闭帐调息，依图导引，吐纳之间气血渐顺。帐外的人久不见你露面，揣测便淡了——养的是精神，顺带也养了一份清静。",
     },
     {
+      desc = "代写书信讼状，以笔糊口",
+      res = "你的状纸写得刀刀见骨。润笔不多，够买三日饭。苦主临走时鞠了一躬，比给钱的时候郑重。",
       id = "CS-ACT-7",
       name = "代写书信",
-      desc = "代写书信讼状，以笔糊口",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = 3,
+          caixue = 1,
+          shengwang = -2,
+        },
+      },
       descHidden = "代写书信讼状，以笔糊口",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caifu = 3,
-          shengwang = -2,
-          caixue = 1,
-        },
-        dev = 0,
-      },
-      res = "你的状纸写得刀刀见骨。润笔不多，够买三日饭。苦主临走时鞠了一躬，比给钱的时候郑重。",
     },
     {
+      desc = "多接几亩短工",
+      res = "多锄了三亩地，粮袋里又实了一分。天黑收工，手上的茧又厚了一层。",
       id = "CS-ACT-8",
       name = "帮佣换粮",
-      desc = "多接几亩短工",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 1,
+          caifu = 2,
+        },
+      },
       descHidden = "多接几亩短工",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caifu = 2,
-          tupo = 1,
-        },
-        dev = 0,
-      },
-      res = "多锄了三亩地，粮袋里又实了一分。天黑收工，手上的茧又厚了一层。",
     },
     {
+      desc = "与过路戍卒攀谈（财富-2）",
+      res = "一碗水一把汗，戍卒们的话你也听明白了：天下没有一个不想骂娘的。临别时有人塞给你半张饼——那是戍卒的交情。",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 1,
+          caifu = -2,
+          biancai = 1,
+          shengwang = 2,
+        },
+      },
       id = "CS-ACT-9",
       name = "结交戍卒",
-      desc = "与过路戍卒攀谈（财富-2）",
       descHidden = "与过路戍卒攀谈（略费盘缠）",
       req = {
         caifu = 2,
@@ -2948,40 +2958,39 @@ return {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caifu = -2,
-          shengwang = 2,
-          junxin = 1,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "一碗水一把汗，戍卒们的话你也听明白了：天下没有一个不想骂娘的。临别时有人塞给你半张饼——那是戍卒的交情。",
     },
     {
+      desc = "酒肆听四方消息",
+      res = "咸阳的、渔阳的、大泽的——天下的裂缝，在你耳朵里一点点清楚。听完你走回田里，锄头落下去，比早上重了些。",
       id = "CS-ACT-10",
       name = "听人说天下",
-      desc = "酒肆听四方消息",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -1,
+          caixue = 1,
+          moulue = 1,
+        },
+      },
       descHidden = "酒肆听四方消息",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caixue = 1,
-          moulue = 1,
-          caifu = -1,
-        },
-        dev = 0,
-      },
-      res = "咸阳的、渔阳的、大泽的——天下的裂缝，在你耳朵里一点点清楚。听完你走回田里，锄头落下去，比早上重了些。",
     },
     {
+      desc = "破庙一宿，省资养力（财富-2）",
+      res = "佛前一盏灯，身外一场雨。你在蒲团上睡到自然醒。醒来时雨停了，檐水还在滴，一声一声，很稳。",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 1,
+          caifu = -2,
+          weiji = -3,
+        },
+      },
       id = "CS-ACT-11",
       name = "夜宿破庙",
-      desc = "破庙一宿，省资养力（财富-2）",
       descHidden = "破庙一宿，省资养力（费些许宿钱）",
       req = {
         caifu = 2,
@@ -2990,174 +2999,173 @@ return {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caifu = -2,
-          weiji = -3,
-          tupo = 1,
-        },
-        dev = 0,
-      },
-      res = "佛前一盏灯，身外一场雨。你在蒲团上睡到自然醒。醒来时雨停了，檐水还在滴，一声一声，很稳。",
     },
     {
+      desc = "晨起练武，以健体魄",
+      res = "拳到第三遍，汗透了。这副身板，将来是要经大事的。收势时东方泛白，你比太阳先起来。",
       id = "CS-ACT-12",
       name = "练武强身",
-      desc = "晨起练武，以健体魄",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 2,
+          weiji = 2,
+          caixue = 1,
+          tupo = 1,
+        },
+      },
       descHidden = "晨起练武，以健体魄",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          caixue = 1,
-          weiji = 2,
-          wuli = 2,
-          tupo = 1,
-        },
-        dev = 0,
-      },
-      res = "拳到第三遍，汗透了。这副身板，将来是要经大事的。收势时东方泛白，你比太阳先起来。",
     },
     {
+      desc = "与佣伴较力角抵，筋骨之名渐起",
+      res = "你在陇上放倒了三条壮汉。喝彩声顺着垄沟滚出去，也滚进了里正的耳朵里——乡野的勇名，一半是敬，一半是忌。",
       id = "CS-ACT-51",
       name = "陇上较力",
-      desc = "与佣伴较力角抵，筋骨之名渐起",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 2,
+          weiji = 1,
+          shengwang = 1,
+        },
+      },
       descHidden = "与佣伴较力角抵，筋骨之名渐起",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          wuli = 2,
-          shengwang = 1,
-          weiji = 1,
-        },
-        dev = 0,
-      },
-      res = "你在陇上放倒了三条壮汉。喝彩声顺着垄沟滚出去，也滚进了里正的耳朵里——乡野的勇名，一半是敬，一半是忌。",
     },
     {
+      desc = "负麦帮工，气力换钱",
+      res = "你替人扛了半月的麦袋，肩头的茧厚了一层，囊中的钱也多了几枚。佣耕的人以力换食，你以力换命——这副身板，是往后大事的本钱。",
       id = "CS-ACT-52",
       name = "负麦换钱",
-      desc = "负麦帮工，气力换钱",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          caifu = 1,
+        },
+      },
       descHidden = "负麦帮工，气力换钱",
       chapters = {
         0,
         0,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          caifu = 1,
-        },
-        dev = 0,
-      },
-      res = "你替人扛了半月的麦袋，肩头的茧厚了一层，囊中的钱也多了几枚。佣耕的人以力换食，你以力换命——这副身板，是往后大事的本钱。",
     },
     {
+      desc = "巡铺安抚，以结众心",
+      res = "你走过每个铺位。九百个人心，一点点聚到你身上。走到最后一铺，有人往你手里塞了块烤热的薯。",
       id = "CS-ACT-13",
       name = "安抚戍卒",
-      desc = "巡铺安抚，以结众心",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = -1,
+          junxin = 3,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       descHidden = "巡铺安抚，以结众心",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          junxin = 3,
-          weiji = 2,
-          biancai = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "你走过每个铺位。九百个人心，一点点聚到你身上。走到最后一铺，有人往你手里塞了块烤热的薯。",
     },
     {
+      desc = "与另一屯屯长通款",
+      res = "两个屯长对了一次眼神。什么时候动手，你们心里都有了数。分开时谁也没说话——有些话，说出口就是罪证。",
       id = "CS-ACT-14",
       name = "联络两屯",
-      desc = "与另一屯屯长通款",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          junxin = 2,
+          biancai = 1,
+          zhengji = 1,
+        },
+      },
       descHidden = "与另一屯屯长通款",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          junxin = 2,
-          biancai = 1,
-          weiji = 2,
-          zhengji = 1,
-        },
-        dev = 0,
-      },
-      res = "两个屯长对了一次眼神。什么时候动手，你们心里都有了数。分开时谁也没说话——有些话，说出口就是罪证。",
     },
     {
+      desc = "暗布眼线于队中",
+      res = "队里谁说了什么，你都知道了。眼睛这东西，早一天布早一天有用。当夜收到第一条消息，你记在心上，没写在任何地方。",
       id = "CS-ACT-15",
       name = "密置耳目",
-      desc = "暗布眼线于队中",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -1,
+          weiji = 2,
+          caixue = 1,
+          moulue = 1,
+        },
+      },
       descHidden = "暗布眼线于队中",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          caixue = 1,
-          weiji = 2,
-          moulue = 1,
-          caifu = -1,
-        },
-        dev = 0,
-      },
-      res = "队里谁说了什么，你都知道了。眼睛这东西，早一天布早一天有用。当夜收到第一条消息，你记在心上，没写在任何地方。",
     },
     {
+      desc = "整肃行伍，以立规矩",
+      res = "队伍走得齐了，将尉骂得少了，你的威信也起来了。队列从你面前过去，脚步声齐得像一个人。",
       id = "CS-ACT-16",
       name = "巡查队伍",
-      desc = "整肃行伍，以立规矩",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 1,
+          quanshi = 1,
+        },
+      },
       descHidden = "整肃行伍，以立规矩",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          quanshi = 1,
-          wuli = 1,
-        },
-        dev = 0,
-      },
-      res = "队伍走得齐了，将尉骂得少了，你的威信也起来了。队列从你面前过去，脚步声齐得像一个人。",
     },
     {
+      desc = "夜观营防，默记虚实",
+      res = "营门几重、将尉住哪、兵器在哪——你都记下了。回铺位时，你把草鞋底的泥蹭干净，像没出去过一样。",
       id = "CS-ACT-17",
       name = "夜探营门",
-      desc = "夜观营防，默记虚实",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          caixue = 2,
+          moulue = 1,
+        },
+      },
       descHidden = "夜观营防，默记虚实",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          caixue = 2,
-          weiji = 2,
-          moulue = 1,
-        },
-        dev = 0,
-      },
-      res = "营门几重、将尉住哪、兵器在哪——你都记下了。回铺位时，你把草鞋底的泥蹭干净，像没出去过一样。",
     },
     {
+      desc = "分粮周急（财富-3）",
+      res = "你自己的那份分了一半出去。有人接过粮时，手是抖的。你的晚饭少了半碗，心里的底气多了半碗。",
+      eff = {
+        dev = 0,
+        attrs = {
+          shengwang = 2,
+          caifu = -3,
+        },
+      },
       id = "CS-ACT-18",
       name = "散粮结心",
-      desc = "分粮周急（财富-3）",
       descHidden = "分粮周急（损己之粮）",
       req = {
         caifu = 3,
@@ -3166,133 +3174,133 @@ return {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          caifu = -3,
-          shengwang = 2,
-        },
-        dev = 0,
-      },
-      res = "你自己的那份分了一半出去。有人接过粮时，手是抖的。你的晚饭少了半碗，心里的底气多了半碗。",
     },
     {
+      desc = "雨隙演阵，隐成部曲",
+      res = "雨小的间隙，你把两屯人拉出去排了三遍队列。戍卒们渐渐走得像一支军队了——将尉远远看了一眼，皱着眉走开了。",
       id = "CS-ACT-53",
       name = "雨中演阵",
-      desc = "雨隙演阵，隐成部曲",
-      descHidden = "雨隙演阵，隐成部曲",
-      chapters = {
-        1,
-        1,
-      },
       eff = {
+        dev = 0,
         attrs = {
           wuli = 2,
           junxin = 1,
           weiji = 1,
         },
-        dev = 0,
       },
-      res = "雨小的间隙，你把两屯人拉出去排了三遍队列。戍卒们渐渐走得像一支军队了——将尉远远看了一眼，皱着眉走开了。",
+      descHidden = "雨隙演阵，隐成部曲",
+      chapters = {
+        1,
+        1,
+      },
     },
     {
+      desc = "冒雨探视前路水势",
+      res = "你披着蓑衣蹚出去十几里，把哪段路还能走、哪段已成了泽国都摸了回来。泥水灌了满靴，心里的地图却清楚了。",
       id = "CS-ACT-54",
       name = "冒雨探路",
-      desc = "冒雨探视前路水势",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          caixue = 1,
+        },
+      },
       descHidden = "冒雨探视前路水势",
       chapters = {
         1,
         1,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          caixue = 1,
-        },
-        dev = 0,
-      },
-      res = "你披着蓑衣蹚出去十几里，把哪段路还能走、哪段已成了泽国都摸了回来。泥水灌了满靴，心里的地图却清楚了。",
     },
     {
+      desc = "申令三军，秋毫无犯",
+      res = "三条军令下去，入城的队伍再没有人乱来。箪食壶浆的人更多了。有老妪追到队尾，硬往士卒怀里塞鸡蛋。",
       id = "CS-ACT-19",
       name = "申明军纪",
-      desc = "申令三军，秋毫无犯",
+      eff = {
+        dev = 0,
+        attrs = {
+          zhengji = 1,
+          weiji = 2,
+          junxin = 2,
+          moulue = 1,
+          shengwang = 2,
+        },
+      },
       descHidden = "申令三军，秋毫无犯",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          shengwang = 2,
-          junxin = 2,
-          weiji = 2,
-          moulue = 1,
-          zhengji = 1,
-        },
-        dev = 0,
-      },
-      res = "三条军令下去，入城的队伍再没有人乱来。箪食壶浆的人更多了。有老妪追到队尾，硬往士卒怀里塞鸡蛋。",
     },
     {
+      desc = "收编来降之众",
+      res = "降者感不杀之恩，愿效死力。你的军队，又厚了一层。降卒排队械甲，械完甲，眼里有了光。",
       id = "CS-ACT-20",
       name = "抚降纳叛",
-      desc = "收编来降之众",
+      eff = {
+        dev = 0,
+        attrs = {
+          quanshi = 2,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       descHidden = "收编来降之众",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "降者感不杀之恩，愿效死力。你的军队，又厚了一层。降卒排队械甲，械完甲，眼里有了光。",
     },
     {
+      desc = "就食于野，以充军粮",
+      res = "粮是筹来了，乡里的闲话也起了。你让人记了账：哪村哪户，战后要还。",
       id = "CS-ACT-21",
       name = "筹粮于野",
-      desc = "就食于野，以充军粮",
+      eff = {
+        dev = 0,
+        attrs = {
+          shengwang = -2,
+          caifu = 2,
+        },
+      },
       descHidden = "就食于野，以充军粮",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          caifu = 2,
-          shengwang = -2,
-        },
-        dev = 0,
-      },
-      res = "粮是筹来了，乡里的闲话也起了。你让人记了账：哪村哪户，战后要还。",
     },
     {
+      desc = "亲训新附之卒",
+      res = "昨天还是农夫的人，今天学会了列阵。收操时队列还歪歪扭扭，但已经像一支军队了。",
       id = "CS-ACT-22",
       name = "操练新卒",
-      desc = "亲训新附之卒",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 2,
+          quanshi = 2,
+          tupo = -1,
+        },
+      },
       descHidden = "亲训新附之卒",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          wuli = 2,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "昨天还是农夫的人，今天学会了列阵。收操时队列还歪歪扭扭，但已经像一支军队了。",
     },
     {
+      desc = "以私财犒军（财富-4）",
+      res = "酒肉到营，士气大振。士兵记得陈将军的赏。有人喝醉了抱着矛哭，说跟上你，值。",
+      eff = {
+        dev = 0,
+        attrs = {
+          shengwang = 2,
+          caifu = -4,
+        },
+      },
       id = "CS-ACT-23",
       name = "犒赏士卒",
-      desc = "以私财犒军（财富-4）",
       descHidden = "以私财犒军（耗私财）",
       req = {
         caifu = 4,
@@ -3301,75 +3309,76 @@ return {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          caifu = -4,
-          shengwang = 2,
-        },
-        dev = 0,
-      },
-      res = "酒肉到营，士气大振。士兵记得陈将军的赏。有人喝醉了抱着矛哭，说跟上你，值。",
     },
     {
+      desc = "先遣细探，再图攻坚",
+      res = "城里守军多少、人心向背，你都摸清了。细探回来时鞋底磨穿，你赏了他一双新的。",
       id = "CS-ACT-24",
       name = "探城虚实",
-      desc = "先遣细探，再图攻坚",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          caixue = 2,
+          moulue = 1,
+        },
+      },
       descHidden = "先遣细探，再图攻坚",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          caixue = 2,
-          weiji = 2,
-          moulue = 1,
-        },
-        dev = 0,
-      },
-      res = "城里守军多少、人心向背，你都摸清了。细探回来时鞋底磨穿，你赏了他一双新的。",
     },
     {
+      desc = "小阵试锋，以战练胆",
+      res = "你挑了一队新卒，择一处坞壁小试锋芒。箭放了三轮，门就开了——兵是练出来的，胆是打出来的。",
       id = "CS-ACT-55",
       name = "阵前试锋",
-      desc = "小阵试锋，以战练胆",
-      descHidden = "小阵试锋，以战练胆",
-      chapters = {
-        2,
-        2,
-      },
       eff = {
+        dev = 0,
         attrs = {
           wuli = 2,
           quanshi = 1,
           weiji = 1,
         },
-        dev = 0,
       },
-      res = "你挑了一队新卒，择一处坞壁小试锋芒。箭放了三轮，门就开了——兵是练出来的，胆是打出来的。",
+      descHidden = "小阵试锋，以战练胆",
+      chapters = {
+        2,
+        2,
+      },
     },
     {
+      desc = "与士卒同炊共爨",
+      res = "你蹲在灶边和士卒分同一锅羹。有人说将军不该吃这个，你把最后一口喝净：大泽乡出来的，什么没吃过。",
       id = "CS-ACT-56",
       name = "与卒同炊",
-      desc = "与士卒同炊共爨",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          junxin = 1,
+        },
+      },
       descHidden = "与士卒同炊共爨",
       chapters = {
         2,
         2,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          junxin = 1,
-        },
-        dev = 0,
-      },
-      res = "你蹲在灶边和士卒分同一锅羹。有人说将军不该吃这个，你把最后一口喝净：大泽乡出来的，什么没吃过。",
     },
     {
+      desc = "开仓放粮（财富-3）",
+      res = "仓开了，陈人山呼。民心这种东西，是拿粮换的，也值。领粮的队伍排到街尾，没人插队。",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -3,
+          weiji = -1,
+          shengwang = 3,
+        },
+      },
       id = "CS-ACT-25",
       name = "开仓赈民",
-      desc = "开仓放粮（财富-3）",
       descHidden = "开仓放粮（损仓廪之积）",
       req = {
         caifu = 3,
@@ -3378,153 +3387,154 @@ return {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          caifu = -3,
-          shengwang = 3,
-          weiji = -1,
-        },
-        dev = 0,
-      },
-      res = "仓开了，陈人山呼。民心这种东西，是拿粮换的，也值。领粮的队伍排到街尾，没人插队。",
     },
     {
+      desc = "礼请三老豪杰",
+      res = "三老们从堂上下来时，腰板比进去时直了三分。他们在堂下商量了一路，声音压得很低，笑意压不住。",
       id = "CS-ACT-26",
       name = "召见三老",
-      desc = "礼请三老豪杰",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -1,
+          junxin = 2,
+          biancai = 1,
+          shengwang = 1,
+        },
+      },
       descHidden = "礼请三老豪杰",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          junxin = 2,
-          shengwang = 1,
-          biancai = 1,
-          caifu = -1,
-        },
-        dev = 0,
-      },
-      res = "三老们从堂上下来时，腰板比进去时直了三分。他们在堂下商量了一路，声音压得很低，笑意压不住。",
     },
     {
+      desc = "缮城固防，深根固本",
+      res = "陈城的墙高了一尺。守得住的根本，才是根本。夯土声从早响到晚，路过的人都要仰头看一眼。",
       id = "CS-ACT-27",
       name = "修筑城防",
-      desc = "缮城固防，深根固本",
+      eff = {
+        dev = 0,
+        attrs = {
+          zhengji = 1,
+          quanshi = 2,
+        },
+      },
       descHidden = "缮城固防，深根固本",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          zhengji = 1,
-        },
-        dev = 0,
-      },
-      res = "陈城的墙高了一尺。守得住的根本，才是根本。夯土声从早响到晚，路过的人都要仰头看一眼。",
     },
     {
+      desc = "汰弱留强，以精其军",
+      res = "老弱遣归，精壮留下。军是精了，骂名也起了。遣归的人走到辕门外，回头望了一眼旗。",
       id = "CS-ACT-28",
       name = "裁汰老弱",
-      desc = "汰弱留强，以精其军",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          quanshi = 2,
+          moulue = 1,
+          shengwang = -2,
+        },
+      },
       descHidden = "汰弱留强，以精其军",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 2,
-          shengwang = -2,
-          moulue = 1,
-        },
-        dev = 0,
-      },
-      res = "老弱遣归，精壮留下。军是精了，骂名也起了。遣归的人走到辕门外，回头望了一眼旗。",
     },
     {
+      desc = "以旧部领新附",
+      res = "大泽乡的老人各领一营。刀把子，还是握在自己人手里稳。夜里你睡得踏实了些——踏实这东西，也是花人心换的。",
       id = "CS-ACT-29",
       name = "安插亲信",
-      desc = "以旧部领新附",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          quanshi = 1,
+          moulue = 1,
+          junxin = 1,
+        },
+      },
       descHidden = "以旧部领新附",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          quanshi = 1,
-          junxin = 1,
-          weiji = 2,
-          moulue = 1,
-        },
-        dev = 0,
-      },
-      res = "大泽乡的老人各领一营。刀把子，还是握在自己人手里稳。夜里你睡得踏实了些——踏实这东西，也是花人心换的。",
     },
     {
+      desc = "核收陈之府库",
+      res = "府库的账核清了。张楚的家底，你心里有数了。算盘珠子响到半夜，响完你心里亮堂了。",
       id = "CS-ACT-30",
       name = "清查府库",
-      desc = "核收陈之府库",
+      eff = {
+        dev = 0,
+        attrs = {
+          zhengji = 1,
+          caifu = 3,
+        },
+      },
       descHidden = "核收陈之府库",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          caifu = 3,
-          zhengji = 1,
-        },
-        dev = 0,
-      },
-      res = "府库的账核清了。张楚的家底，你心里有数了。算盘珠子响到半夜，响完你心里亮堂了。",
     },
     {
+      desc = "置官属，定号令，立张楚之制",
+      res = "你设官分职，颁号令于诸县：仓有守，狱有吏，赋有籍。张楚不再只是一面旗，成了一架转得动的机器——咸阳的案上，你的名字又描深了一笔。",
       id = "CS-ACT-57",
       name = "置官定号",
-      desc = "置官属，定号令，立张楚之制",
+      eff = {
+        dev = 0,
+        attrs = {
+          quanshi = 1,
+          weiji = 2,
+          zhengji = 2,
+        },
+      },
       descHidden = "置官属，定号令，立张楚之制",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          zhengji = 2,
-          quanshi = 1,
-          weiji = 2,
-        },
-        dev = 0,
-      },
-      res = "你设官分职，颁号令于诸县：仓有守，狱有吏，赋有籍。张楚不再只是一面旗，成了一架转得动的机器——咸阳的案上，你的名字又描深了一笔。",
     },
     {
+      desc = "登城巡夜，与守卒同警",
+      res = "你披衣登城，一更一更巡过去。守卒见王旗在城头移动，腰杆都挺直了些——寒气钻进衣领，你想起佣耕时的霜。",
       id = "CS-ACT-58",
       name = "登陴巡夜",
-      desc = "登城巡夜，与守卒同警",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          junxin = 1,
+        },
+      },
       descHidden = "登城巡夜，与守卒同警",
       chapters = {
         3,
         3,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          junxin = 1,
-        },
-        dev = 0,
-      },
-      res = "你披衣登城，一更一更巡过去。守卒见王旗在城头移动，腰杆都挺直了些——寒气钻进衣领，你想起佣耕时的霜。",
     },
     {
+      desc = "亲巡徇地诸军（权势≥25 诸将方听）",
+      res = "你走了一趟北线。诸将见你亲来，收敛的收敛，抖擞的抖擞。回程时，各营的军容都比你去时齐整。",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 1,
+          quanshi = 2,
+          tupo = -1,
+          weiji = 3,
+        },
+      },
       id = "CS-ACT-31",
       name = "督察徇地",
-      desc = "亲巡徇地诸军（权势≥25 诸将方听）",
       descHidden = "亲巡徇地诸军（威重方听）",
       req = {
         quanshi = 25,
@@ -3533,21 +3543,20 @@ return {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 3,
-          wuli = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "你走了一趟北线。诸将见你亲来，收敛的收敛，抖擞的抖擞。回程时，各营的军容都比你去时齐整。",
     },
     {
+      desc = "犒赏徇地归者（财富-4）",
+      res = "归师的赏发下去了。下回出兵，个个争先。赏薄意厚——领赏的人记住的是后者。",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = -4,
+          junxin = 1,
+          shengwang = 2,
+        },
+      },
       id = "CS-ACT-32",
       name = "犒赏归师",
-      desc = "犒赏徇地归者（财富-4）",
       descHidden = "犒赏徇地归者（耗财犒军）",
       req = {
         caifu = 4,
@@ -3556,39 +3565,40 @@ return {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          caifu = -4,
-          shengwang = 2,
-          junxin = 1,
-        },
-        dev = 0,
-      },
-      res = "归师的赏发下去了。下回出兵，个个争先。赏薄意厚——领赏的人记住的是后者。",
     },
     {
+      desc = "为诸将和功",
+      res = "两个争功的将领被你按回座位。和事佬不好当，但总得有人当。散帐时两人互相拱了拱手，劲儿还别着，火是压下去了。",
       id = "CS-ACT-33",
       name = "调解争功",
-      desc = "为诸将和功",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 2,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       descHidden = "为诸将和功",
       chapters = {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          junxin = 2,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "两个争功的将领被你按回座位。和事佬不好当，但总得有人当。散帐时两人互相拱了拱手，劲儿还别着，火是压下去了。",
     },
     {
+      desc = "遣使通好（财富-3）",
+      res = "使者四出，回话都极恭敬。只是恭敬这个东西，最经不起风。你把回书一封封收好，也一封封打了折扣。",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 1,
+          caifu = -3,
+          biancai = 1,
+          shengwang = 1,
+        },
+      },
       id = "CS-ACT-34",
       name = "联络诸侯",
-      desc = "遣使通好（财富-3）",
       descHidden = "遣使通好（费币帛）",
       req = {
         caifu = 3,
@@ -3597,154 +3607,152 @@ return {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          caifu = -3,
-          junxin = 1,
-          shengwang = 1,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "使者四出，回话都极恭敬。只是恭敬这个东西，最经不起风。你把回书一封封收好，也一封封打了折扣。",
     },
     {
+      desc = "大阅诸营新军",
+      res = "新军列阵，已经有模有样。尘土扬起来，落下去，阵形没有乱。",
       id = "CS-ACT-35",
       name = "检阅新军",
-      desc = "大阅诸营新军",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 1,
+          quanshi = 2,
+        },
+      },
       descHidden = "大阅诸营新军",
       chapters = {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          wuli = 1,
-        },
-        dev = 0,
-      },
-      res = "新军列阵，已经有模有样。尘土扬起来，落下去，阵形没有乱。",
     },
     {
+      desc = "收编败散之卒",
+      res = "败兵重新捏成了军队。能聚人，才是真本事。归队的人低着头，你让他们抬起来——败过一场，不等于输了整个人。",
       id = "CS-ACT-36",
       name = "收拢溃卒",
-      desc = "收编败散之卒",
+      eff = {
+        dev = 0,
+        attrs = {
+          quanshi = 2,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       descHidden = "收编败散之卒",
       chapters = {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "败兵重新捏成了军队。能聚人，才是真本事。归队的人低着头，你让他们抬起来——败过一场，不等于输了整个人。",
     },
     {
+      desc = "驰赴各营，马上阅阵",
+      res = "你一马一鞭跑遍了三座大营。尘土灌了满喉，各营的虚实也看了个透——将校们私下说：大王眼睛是亮的。",
       id = "CS-ACT-59",
       name = "马上阅阵",
-      desc = "驰赴各营，马上阅阵",
-      descHidden = "驰赴各营，马上阅阵",
-      chapters = {
-        4,
-        4,
-      },
       eff = {
+        dev = 0,
         attrs = {
           wuli = 2,
           quanshi = 1,
           tupo = -1,
         },
-        dev = 0,
       },
-      res = "你一马一鞭跑遍了三座大营。尘土灌了满喉，各营的虚实也看了个透——将校们私下说：大王眼睛是亮的。",
+      descHidden = "驰赴各营，马上阅阵",
+      chapters = {
+        4,
+        4,
+      },
     },
     {
+      desc = "偷得半日闲，卸甲养神",
+      res = "你把甲卸了，睡了这半年来第一个整觉。醒来时军报堆了半案，精神却回来了——弦绷得太紧，是会断的。",
       id = "CS-ACT-60",
       name = "卸甲小憩",
-      desc = "偷得半日闲，卸甲养神",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          weiji = -1,
+        },
+      },
       descHidden = "偷得半日闲，卸甲养神",
       chapters = {
         4,
         4,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          weiji = -1,
-        },
-        dev = 0,
-      },
-      res = "你把甲卸了，睡了这半年来第一个整觉。醒来时军报堆了半案，精神却回来了——弦绷得太紧，是会断的。",
     },
     {
+      desc = "亲赴荥阳军中",
+      res = "你出现在军前那天，全军的呼声响了三里。荥阳城头的守军也听见了，旗帜动了一阵，又静下去。",
       id = "CS-ACT-37",
       name = "亲赴军前",
-      desc = "亲赴荥阳军中",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 1,
+          quanshi = 2,
+          weiji = 3,
+          tupo = -1,
+          shengwang = 1,
+        },
+      },
       descHidden = "亲赴荥阳军中",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 3,
-          shengwang = 1,
-          wuli = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "你出现在军前那天，全军的呼声响了三里。荥阳城头的守军也听见了，旗帜动了一阵，又静下去。",
     },
     {
+      desc = "以义励众，以固军心",
+      res = "你说：楚虽三户，亡秦必楚。将士的眼里，火又着了。回声滚过营盘，一营接一营，滚了半个时辰。",
       id = "CS-ACT-38",
       name = "激励将士",
-      desc = "以义励众，以固军心",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = -1,
+          junxin = 2,
+          biancai = 1,
+          shengwang = 2,
+        },
+      },
       descHidden = "以义励众，以固军心",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          shengwang = 2,
-          junxin = 2,
-          biancai = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "你说：楚虽三户，亡秦必楚。将士的眼里，火又着了。回声滚过营盘，一营接一营，滚了半个时辰。",
     },
     {
+      desc = "缮治敖仓壁垒",
+      res = "⟦敖仓⟧的粮与垒，都是命。民夫往来如蚁，新垒一日高过一日。",
       id = "CS-ACT-39",
       name = "加固敖仓",
-      desc = "缮治敖仓壁垒",
+      eff = {
+        dev = 0,
+        attrs = {
+          caifu = 1,
+          quanshi = 2,
+        },
+      },
       descHidden = "缮治敖仓壁垒",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          caifu = 1,
-        },
-        dev = 0,
-      },
-      res = "⟦敖仓⟧的粮与垒，都是命。民夫往来如蚁，新垒一日高过一日。",
     },
     {
+      desc = "重金募敢死之士（财富-5）",
+      res = "千金之下，必有勇夫。应募的人排开一列，个个把赏金先寄回了家。",
+      eff = {
+        dev = 0,
+        attrs = {
+          quanshi = 2,
+          caifu = -5,
+        },
+      },
       id = "CS-ACT-40",
       name = "购募死士",
-      desc = "重金募敢死之士（财富-5）",
       descHidden = "重金募敢死之士（所费不赀）",
       req = {
         caifu = 5,
@@ -3753,39 +3761,40 @@ return {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          caifu = -5,
-          quanshi = 2,
-        },
-        dev = 0,
-      },
-      res = "千金之下，必有勇夫。应募的人排开一列，个个把赏金先寄回了家。",
     },
     {
+      desc = "为两将解仇",
+      res = "两只握刀的手被你按回了桌上。和事佬不好当，但总得有人当。两人碰了杯酒，酒是苦的，好歹碰了。",
       id = "CS-ACT-41",
       name = "调解宿怨",
-      desc = "为两将解仇",
+      eff = {
+        dev = 0,
+        attrs = {
+          weiji = 2,
+          junxin = 2,
+          biancai = 1,
+          zhengji = 1,
+        },
+      },
       descHidden = "为两将解仇",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          junxin = 2,
-          weiji = 2,
-          biancai = 1,
-          zhengji = 1,
-        },
-        dev = 0,
-      },
-      res = "两只握刀的手被你按回了桌上。和事佬不好当，但总得有人当。两人碰了杯酒，酒是苦的，好歹碰了。",
     },
     {
+      desc = "与诸将夜议军机（才学≥40 方能服众）",
+      res = "舆图前的烛火，烧到了四更。散帐时诸将各怀计较，但方向只有一个了。",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = -1,
+          caixue = 2,
+          moulue = 2,
+        },
+      },
       id = "CS-ACT-42",
       name = "夜议军机",
-      desc = "与诸将夜议军机（才学≥40 方能服众）",
       descHidden = "与诸将夜议军机（才学不足则须冒险）",
       req = {
         caixue = 40,
@@ -3794,201 +3803,811 @@ return {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          caixue = 2,
-          moulue = 2,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "舆图前的烛火，烧到了四更。散帐时诸将各怀计较，但方向只有一个了。",
     },
     {
+      desc = "亲陷小阵，夺旗励众",
+      res = "你带着亲兵咬下了秦军一处哨垒，旗拔了回来。全军看得真切：陈王的刀还快。哨垒的烟，飘到荥阳城头都看得见。",
       id = "CS-ACT-61",
       name = "阵前夺旗",
-      desc = "亲陷小阵，夺旗励众",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 2,
+          weiji = 1,
+          shengwang = 1,
+        },
+      },
       descHidden = "亲陷小阵，夺旗励众",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          wuli = 2,
-          shengwang = 1,
-          weiji = 1,
-        },
-        dev = 0,
-      },
-      res = "你带着亲兵咬下了秦军一处哨垒，旗拔了回来。全军看得真切：陈王的刀还快。哨垒的烟，飘到荥阳城头都看得见。",
     },
     {
+      desc = "与民夫同负土，亲筑营垒",
+      res = "你挽起袖子和民夫一起背土上垒。土筐压弯了扁担，垒墙一日高过一日——佣耕出身的人，力气还在身上。",
       id = "CS-ACT-62",
       name = "负土筑垒",
-      desc = "与民夫同负土，亲筑营垒",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          quanshi = 1,
+        },
+      },
       descHidden = "与民夫同负土，亲筑营垒",
       chapters = {
         5,
         5,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          quanshi = 1,
-        },
-        dev = 0,
-      },
-      res = "你挽起袖子和民夫一起背土上垒。土筐压弯了扁担，垒墙一日高过一日——佣耕出身的人，力气还在身上。",
     },
     {
+      desc = "收拢溃散之众",
+      res = "溃散的人马一点点聚回来。还肯回来的，都是真心跟着你的。有人走了三天三夜，进营门时只说了句：屯长，我回来了。",
       id = "CS-ACT-43",
       name = "收拢残部",
-      desc = "收拢溃散之众",
+      eff = {
+        dev = 0,
+        attrs = {
+          quanshi = 2,
+          biancai = 1,
+          weiji = 2,
+        },
+      },
       descHidden = "收拢溃散之众",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          quanshi = 2,
-          weiji = 2,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "溃散的人马一点点聚回来。还肯回来的，都是真心跟着你的。有人走了三天三夜，进营门时只说了句：屯长，我回来了。",
     },
     {
+      desc = "抚辑逃亡，以安余众",
+      res = "逃卒一个个回来领罪。你没罚，只说了句：回来了就好。营门那晚没有锁——锁了，就真没人回来了。",
       id = "CS-ACT-44",
       name = "安抚逃卒",
-      desc = "抚辑逃亡，以安余众",
+      eff = {
+        dev = 0,
+        attrs = {
+          junxin = 2,
+          biancai = 1,
+          shengwang = 1,
+        },
+      },
       descHidden = "抚辑逃亡，以安余众",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          junxin = 2,
-          shengwang = 1,
-          biancai = 1,
-        },
-        dev = 0,
-      },
-      res = "逃卒一个个回来领罪。你没罚，只说了句：回来了就好。营门那晚没有锁——锁了，就真没人回来了。",
     },
     {
+      desc = "亲巡夜哨，以肃余部",
+      res = "你查到第三座营时，偷睡的两个哨兵从此不敢合眼。后半夜你再巡一遍，哨声应答，无一遗漏。",
       id = "CS-ACT-45",
       name = "夜巡残营",
-      desc = "亲巡夜哨，以肃余部",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 1,
+          weiji = -2,
+          tupo = -1,
+        },
+      },
       descHidden = "亲巡夜哨，以肃余部",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          weiji = -2,
-          wuli = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "你查到第三座营时，偷睡的两个哨兵从此不敢合眼。后半夜你再巡一遍，哨声应答，无一遗漏。",
     },
     {
+      desc = "鬻王者仪仗以充军资",
+      res = "仪仗卖了个干净。人穷到这个地步，体面就顾不上了。换来的粮倒进锅里时，士卒们说今天的粥特别稠。",
       id = "CS-ACT-46",
       name = "变卖仪仗",
-      desc = "鬻王者仪仗以充军资",
+      eff = {
+        dev = 0,
+        attrs = {
+          shengwang = -2,
+          caifu = 3,
+        },
+      },
       descHidden = "鬻王者仪仗以充军资",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          caifu = 3,
-          shengwang = -2,
-        },
-        dev = 0,
-      },
-      res = "仪仗卖了个干净。人穷到这个地步，体面就顾不上了。换来的粮倒进锅里时，士卒们说今天的粥特别稠。",
     },
     {
+      desc = "遣人觇章邯之踪",
+      res = "追兵离你多远，你比谁都清楚——清楚到夜夜睡不着。斥候回报的数字一天一换，你在心里给它留了一格。",
       id = "CS-ACT-47",
       name = "密探追兵",
-      desc = "遣人觇章邯之踪",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = -1,
+          weiji = 2,
+          caixue = 2,
+          moulue = 1,
+        },
+      },
       descHidden = "遣人觇章邯之踪",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          caixue = 2,
-          weiji = 2,
-          moulue = 1,
-          tupo = -1,
-        },
-        dev = 0,
-      },
-      res = "追兵离你多远，你比谁都清楚——清楚到夜夜睡不着。斥候回报的数字一天一换，你在心里给它留了一格。",
     },
     {
+      desc = "于南郊休整残军",
+      res = "残军饱餐休整。下一程往南，还得靠这些人。马吃饱了打响鼻，人吃饱了，眼里又有了活气。",
       id = "CS-ACT-48",
       name = "秣马南郊",
-      desc = "于南郊休整残军",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 1,
+          weiji = -2,
+        },
+      },
       descHidden = "于南郊休整残军",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          weiji = -2,
-          tupo = 1,
-        },
-        dev = 0,
-      },
-      res = "残军饱餐休整。下一程往南，还得靠这些人。马吃饱了打响鼻，人吃饱了，眼里又有了活气。",
     },
     {
+      desc = "雪夜磨刃，意态犹雄",
+      res = "雪粒子打着帐布，你把佩刀磨了一遍又一遍。刃口映着火光，像一线不肯冻的河——刀还利，人就还没输。",
       id = "CS-ACT-63",
       name = "雪夜磨刃",
-      desc = "雪夜磨刃，意态犹雄",
+      eff = {
+        dev = 0,
+        attrs = {
+          wuli = 2,
+          weiji = -1,
+        },
+      },
       descHidden = "雪夜磨刃，意态犹雄",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          wuli = 2,
-          weiji = -1,
-        },
-        dev = 0,
-      },
-      res = "雪粒子打着帐布，你把佩刀磨了一遍又一遍。刃口映着火光，像一线不肯冻的河——刀还利，人就还没输。",
     },
     {
+      desc = "拥炉与残卒话大泽旧事",
+      res = "你和老卒们围着火，从大泽乡的雨讲到陈城的旗。讲到好笑处，一帐人都笑了——火快熄了，笑声把寒气顶了回去。",
       id = "CS-ACT-64",
       name = "拥炉话旧",
-      desc = "拥炉与残卒话大泽旧事",
+      eff = {
+        dev = 0,
+        attrs = {
+          tupo = 2,
+          junxin = 1,
+        },
+      },
       descHidden = "拥炉与残卒话大泽旧事",
       chapters = {
         6,
         6,
       },
-      eff = {
-        attrs = {
-          tupo = 2,
-          junxin = 1,
+    },
+    {
+      desc = "佣者笑你：若为佣耕，何富贵也——这口气怎么出",
+      id = "CS-ACT-65",
+      name = "燕雀之嘲",
+      descHidden = "佣者笑你：若为佣耕，何富贵也——这口气怎么出",
+      choice = {
+        segs = {
+          "辍耕之垄上，你怅恨久之，曰：「苟富贵，无相忘。」佣者笑而应曰：「若为佣耕，何富贵也？」",
+          "你望着他们，太息曰：「嗟乎，燕雀安知鸿鹄之志哉！」笑声更响了。这口气，怎么出？",
         },
-        dev = 0,
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                tupo = 1,
+                shengwang = 1,
+              },
+            },
+            res = "你折了根树枝，在垄上划下深深一道：「今日之言，立此为证。」佣伴笑你痴。那道痕被雨水冲掉了——话没有。",
+            t = "刻木为誓",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 1,
+                weiji = -1,
+              },
+            },
+            res = "你不再辩，弯腰把剩下的田耕完。志向说给燕雀听，本就是浪费。从那天起，你的话少了，眼睛亮了。",
+            t = "默然耕罢",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                biancai = 1,
+                shengwang = 2,
+              },
+            },
+            res = "你索性坐下来，把胸中的天下大势讲给满垄的人听。笑声渐渐停了。散工时，有两个年轻人跟在你身后走了很远。",
+            t = "说与众听",
+          },
+        },
       },
-      res = "你和老卒们围着火，从大泽乡的雨讲到陈城的旗。讲到好笑处，一帐人都笑了——火快熄了，笑声把寒气顶了回去。",
+      chapters = {
+        0,
+        0,
+      },
+    },
+    {
+      desc = "里胥拍门催口赋——缸里的米，只够三日",
+      id = "CS-ACT-66",
+      name = "闾左之赋",
+      descHidden = "里胥拍门催口赋——缸里的米，只够三日",
+      choice = {
+        segs = {
+          "里胥又来催口赋，拍着你的门板：「闾左贫户，也不例外！」缸里的米，只够三日。",
+          "门外的声音又急又横。这间破屋，交不出钱，只交得出人。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                weiji = -2,
+                caifu = -3,
+              },
+            },
+            res = "你解下腰间旧剑，换了赋钱。里胥掂着钱走了。你摸着空荡荡的剑鞘想：剑没了可以再买，人进去了，就出不来了。",
+            t = "卖剑完赋",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -1,
+                caifu = -2,
+              },
+            },
+            res = "你向邻家举债完赋。债主的算盘打得比里胥的嗓门还响。贫贱之家百事哀——何况你连个帮你骂街的人都没有。",
+            t = "举债应之",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                tupo = -1,
+                weiji = 1,
+                moulue = 1,
+              },
+            },
+            res = "你翻后墙出去，在河边躲了三日。回来时里胥已经走了，门上多了道催符。躲得过初一——你盯着那道符，忽然觉得大泽乡也未必是绝路。",
+            t = "避役三日",
+          },
+        },
+      },
+      chapters = {
+        0,
+        0,
+      },
+    },
+    {
+      desc = "行事前夜，吴广问你：若事败，当如何",
+      id = "CS-ACT-67",
+      name = "大泽之约",
+      descHidden = "行事前夜，吴广问你：若事败，当如何",
+      choice = {
+        segs = {
+          "鱼书既藏，狐鸣既备。行事前夜，吴广与你对坐篝火旁，忽然问：「若事败，当如何？」",
+          "火光跳在他脸上。九百人的命，就押在你们两人这一问一答之间。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                junxin = 1,
+                shengwang = 2,
+              },
+            },
+            res = "你答：「同举事，共存亡。」吴广伸出手，两掌相击。篝火毕剥作响——这誓言后来传遍九百戍卒，没人再想过逃。",
+            t = "约以共存亡",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 2,
+                weiji = -1,
+              },
+            },
+            res = "你答：「败则分头举火，薪不尽，火不灭。」吴广沉吟良久，点头。理性的安排压过了热血——乱世里，活下来比死在一起有用。",
+            t = "约以分举",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                tupo = 1,
+                biancai = 1,
+              },
+            },
+            res = "你把酒泼进火里：「起事前不言败字！」火苗轰地窜起三尺。吴广大笑。这一夜之后，你们之间再没提过「败」。",
+            t = "不言败字",
+          },
+        },
+      },
+      chapters = {
+        1,
+        1,
+      },
+    },
+    {
+      desc = "老卒染疫而亡，同伍凑不出一副薄棺",
+      id = "CS-ACT-68",
+      name = "老卒之葬",
+      descHidden = "老卒染疫而亡，同伍凑不出一副薄棺",
+      choice = {
+        segs = {
+          "屯于大泽，连日淫雨。有老卒染疫而亡，身无分文，同伍凑不出一副薄棺。",
+          "尸体停在草棚里，雨声敲着棚顶。九百双眼睛，都在看将尉——也在看你。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = 3,
+                caifu = -3,
+              },
+            },
+            res = "你解囊尽出，为老卒置棺。下葬那日，九百人默默列队。一个素不相识的老卒入土了，九百颗心却聚拢了——这买卖，值。",
+            t = "倾囊葬之",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = 1,
+                weiji = -1,
+              },
+            },
+            res = "你主张火葬，省费且防疫。老卒的同乡起初不忿，见你亲自执火，也就不再言语。雨夜里那堆火，烧掉的不只是尸身。",
+            t = "火葬从简",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 1,
+                shengwang = -1,
+              },
+            },
+            res = "你把事情报给将尉。将尉骂骂咧咧扔出两个钱，算是抚恤。规矩是尽了——只是戍卒们看你的眼神，淡了几分。",
+            t = "报备将尉",
+          },
+        },
+      },
+      chapters = {
+        1,
+        1,
+      },
+    },
+    {
+      desc = "葛婴擅立楚王又杀之谢罪，跪在堂下等你发落",
+      id = "CS-ACT-69",
+      name = "葛婴之报",
+      descHidden = "葛婴擅立楚王又杀之谢罪，跪在堂下等你发落",
+      choice = {
+        segs = {
+          "葛婴徇地东城，擅立襄强为楚王。闻你已自立，他杀襄强，还报请罪，跪在堂下等你发落。",
+          "堂上文武分列。这一刀落不落，定的不是葛婴的罪，是张楚的规矩。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -2,
+                quanshi = 2,
+              },
+            },
+            res = "你掷下令牌：「擅立者，斩。」葛婴血溅丹墀。诸将凛然——你的王威立住了，只是徇地诸将的密报里，从此多了几分惶恐。",
+            t = "诛之立威",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                quanshi = -1,
+                shengwang = 2,
+              },
+            },
+            res = "你扶他起来：「知错能改，仍为我将。」葛婴感激涕零，此后战必争先。可堂下有人私语：王之法，原来是可以商量的。",
+            t = "赦而用之",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 2,
+                weiji = 1,
+              },
+            },
+            res = "你夺其兵符，留其性命，贬为卒伍。恩威并施，恰到好处——只是葛婴看你的眼神里，有什么东西碎了，你看得分明。",
+            t = "夺兵留用",
+          },
+        },
+      },
+      chapters = {
+        2,
+        2,
+      },
+    },
+    {
+      desc = "旧秦降卒冒雪来投，衣甲上秦徽未除",
+      id = "CS-ACT-70",
+      name = "雪中来投",
+      descHidden = "旧秦降卒冒雪来投，衣甲上秦徽未除",
+      choice = {
+        segs = {
+          "进军路上，滚雪球般收编义军。今日一队旧秦降卒冒雪来投，衣甲上秦徽未除。",
+          "雪中跪着的几十号人，冻得嘴唇发紫。收他们，是兵员，也是隐患。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                wuli = 2,
+                weiji = 1,
+              },
+            },
+            res = "你开营尽收，旧秦卒感激效死。兵力涨了一截，帐下老兵的脸色也沉了一截——秦卒楚卒一锅煮，火候难掌。",
+            t = "尽收麾下",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 2,
+                shengwang = 1,
+              },
+            },
+            res = "你拣壮者二十人入营，老弱发给干粮遣散。既得了人，又没担包袱。被遣散的人跪谢而去——其中会不会有秦的耳目？你没问。",
+            t = "择壮而遣",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -1,
+                weiji = -2,
+              },
+            },
+            res = "你令紧闭营门，任其在雪中散去。当夜有人听见雪里有哭声。谨慎保住了营盘，也冻住了名声——此后来投的人，少了。",
+            t = "疑而不收",
+          },
+        },
+      },
+      chapters = {
+        2,
+        2,
+      },
+    },
+    {
+      desc = "旧时佣耕伙伴入宫大惊：伙颐！涉之为王沉沉者",
+      id = "CS-ACT-71",
+      name = "故人叩门",
+      descHidden = "旧时佣耕伙伴入宫大惊：伙颐！涉之为王沉沉者",
+      choice = {
+        segs = {
+          "你既称王，旧时佣耕的伙伴辗转来投。他入宫见殿屋帷帐，大惊：「伙颐！涉之为王沉沉者！」",
+          "他逢人便说你的贫贱旧事，说得眉飞色舞。近侍低声进言：「客愚无知，颛妄言，轻威。」",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                quanshi = -1,
+                shengwang = 2,
+              },
+            },
+            res = "你大笑受之，赐金留馆。故人越发得意，旧事越讲越细。诸将看在眼里，有人赞你念旧，有人笑你威轻——「苟富贵无相忘」，原来这么难。",
+            t = "留而厚待",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -1,
+                weiji = -1,
+              },
+            },
+            res = "你赐金遣归，客客气气送出城门。故人抱着金子，逢人便说陈王寡情。你不知道的是，乡间老屋里的旧交，自此绝了投奔的念头。",
+            t = "逐出陈城",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                quanshi = 3,
+                weiji = 1,
+                shengwang = -3,
+              },
+            },
+            res = "你咬牙掷下令牌。血溅宫门的那一刻，「陈王斩故人」传遍诸营——诸将自此凛然，旧友自此绝迹。威是立起来了，只是夜里你会梦见垄上。",
+            t = "斩之立威",
+          },
+        },
+      },
+      chapters = {
+        3,
+        3,
+      },
+    },
+    {
+      desc = "称王次日议分封，吴广独坐阶下不说话",
+      id = "CS-ACT-72",
+      name = "假王之封",
+      descHidden = "称王次日议分封，吴广独坐阶下不说话",
+      choice = {
+        segs = {
+          "称王次日，议分封诸将。吴广独坐阶下，不说话。他与你同举大计，九百戍卒眼里，他是半个王。",
+          "封他什么，怎么封，满殿的人都在等。封轻了寒心，封重了……",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                junxin = 1,
+                quanshi = 2,
+              },
+            },
+            res = "你以吴广为假王，监诸将西击荥阳。吴广拜谢而出，背影挺直。同举的义气了了分明——只是「假王」二字，多少有点烫手。",
+            t = "封为假王",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 2,
+                weiji = -1,
+              },
+            },
+            res = "你留吴广坐镇陈城，不入征伐之列。他叩首领命，神色如常。嫡系在身边，兵权在手上——可你分明记得大泽乡那夜的击掌。",
+            t = "留镇陈城",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                biancai = 1,
+                shengwang = 1,
+              },
+            },
+            res = "你当众问他：「兄长欲何往？」吴广慨然请击荥阳，你顺势封假王。皆大欢喜——问与不问之间，君臣的名分，悄悄立住了。",
+            t = "征询其志",
+          },
+        },
+      },
+      chapters = {
+        3,
+        3,
+      },
+    },
+    {
+      desc = "武臣自立为赵王，遣使来告——承认，还是讨伐",
+      id = "CS-ACT-73",
+      name = "武臣自立",
+      descHidden = "武臣自立为赵王，遣使来告——承认，还是讨伐",
+      choice = {
+        segs = {
+          "武臣徇赵，自立为赵王，遣使来告。使者跪在殿下，奉上赵王的「贺表」——贺你称王，也贺他自己。",
+          "柱国低声谏：「秦未亡而诛武臣等家，此生一秦也。」承认，还是讨伐？",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 2,
+                weiji = 1,
+              },
+            },
+            res = "你咽下这口气，遣使贺赵王，徙其家眷入宫「奉养」。面上是盟好，手里是人质。使者出城时你望着北方——赵国这块棋，且走着瞧。",
+            t = "遣使往贺",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                wuli = 2,
+                quanshi = 1,
+                weiji = 2,
+              },
+            },
+            res = "你拍案命点兵。柱国死谏，群臣苦劝，兵终究没出城。怒火压下去了，「陈王不能制诸将」的话，却随着商队传遍了四方。",
+            t = "怒而欲伐",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -1,
+                weiji = -1,
+              },
+            },
+            res = "你扣下使者，不贺不伐，搁置不问。赵国等不到答复，索性自己过得热热闹闹。不问也是一种回答——软弱的回答。",
+            t = "扣使不问",
+          },
+        },
+      },
+      chapters = {
+        4,
+        4,
+      },
+    },
+    {
+      desc = "两将为一座县城的归属，当庭按剑相目",
+      id = "CS-ACT-74",
+      name = "殿下争功",
+      descHidden = "两将为一座县城的归属，当庭按剑相目",
+      choice = {
+        segs = {
+          "诸将四出徇地，捷报与争功的文书一齐飞来。今日两将当庭对质，为一座县城的归属，按剑相目。",
+          "殿上的空气绷得像弓弦。赏罚，是你手里仅剩的两件兵器。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                quanshi = -1,
+                weiji = -2,
+              },
+            },
+            res = "你各罚俸一月，县城另派官吏。两将悻悻退朝。公平是公平了——只是打胜仗的人从此学会了先抢文书、再抢城。",
+            t = "各打五十",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = 1,
+                zhengji = 2,
+              },
+            },
+            res = "你调来战报，逐条核功，先登者受城。断案如断阵，两将心服口服。诸将奔走相告：在陈王麾下，功是要凭实据的。",
+            t = "论功定赏",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                wuli = 1,
+                moulue = 1,
+                shengwang = -1,
+              },
+            },
+            res = "你命二人校场较射，胜者得城。三箭既毕，输者掷弓大笑。殿争变成了赌赛——痛快是痛快，只是国事渐渐有了江湖气。",
+            t = "令其赌赛",
+          },
+        },
+      },
+      chapters = {
+        4,
+        4,
+      },
+    },
+    {
+      desc = "田臧矫令杀吴广，献首于陈——木匣里，吴广的眼睛没有闭",
+      id = "CS-ACT-75",
+      name = "田臧献首",
+      descHidden = "田臧矫令杀吴广，献首于陈——木匣里，吴广的眼睛没有闭",
+      choice = {
+        segs = {
+          "荥阳军报：田臧矫称王令，杀假王吴广，献首于陈。木匣就摆在案上，吴广的眼睛没有闭。",
+          "田臧的使者还在殿外候赏。杀矫诏者，则荥阳军乱；赏他，则你如何面对大泽乡的篝火？",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                weiji = 2,
+                moulue = 2,
+                shengwang = -2,
+              },
+            },
+            res = "你赐田臧楚令尹印，以为上将。使者欢天喜地地去了。你独坐殿中，把吴广的眼睛合上——大泽乡的火，从今夜起，只剩你一个人守着了。",
+            t = "赐印为上将",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                wuli = 1,
+                weiji = 3,
+                shengwang = 2,
+              },
+            },
+            res = "你掷印于地，缚来使，誓师问罪。殿上死一般寂静。章邯的大军就在荥阳城外——这一缚，缚住的是公道，还是命脉？",
+            t = "缚使问罪",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                tupo = -2,
+                weiji = 1,
+                quanshi = -1,
+              },
+            },
+            res = "你既不赏也不问，把木匣葬了，把奏报烧了。田臧在荥阳等了三日，明白了——你什么都做不了。假王的血，晾在了半空。",
+            t = "隐忍不问",
+          },
+        },
+      },
+      chapters = {
+        5,
+        5,
+      },
+    },
+    {
+      desc = "夜宿下城父，御者庄贾添炭，忽然问：王尚忆垄上之言乎",
+      id = "CS-ACT-76",
+      name = "雪夜添炭",
+      descHidden = "夜宿下城父，御者庄贾添炭，忽然问：王尚忆垄上之言乎",
+      choice = {
+        segs = {
+          "腊月南徙，雪大如掌。夜宿下城父，御者庄贾进帐添炭，忽然低声问：「王尚忆垄上之言乎？」",
+          "炭火哔剥。你抬眼看他。这个跟了你半年的御者，眼底有你读不懂的东西。",
+        },
+        options = {
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                tupo = 1,
+                shengwang = 1,
+              },
+            },
+            res = "你答：「苟富贵，无相忘——不敢忘。」庄贾低头添炭，不再言语。他退出去的时候，帐帘掀起一线风雪，冷得你打了个寒颤。",
+            t = "答不敢忘",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                moulue = 1,
+                weiji = -1,
+              },
+            },
+            res = "你盯着炭火，没有接话。庄贾站了一会儿，悄无声息地退了。有些话在败军之中问出来，本身就是答案——你握紧了枕下的剑。",
+            t = "不答",
+          },
+          {
+            eff = {
+              dev = 0,
+              attrs = {
+                shengwang = -1,
+                weiji = 1,
+              },
+            },
+            res = "你挥手令其退下。帐帘落下，炭火独明。你忽然想起垄上那群笑得前仰后合的佣伴——如今，连笑你的人都没有了。",
+            t = "令其退下",
+          },
+        },
+      },
+      chapters = {
+        6,
+        6,
+      },
     },
   },
   GLOSSARY = {

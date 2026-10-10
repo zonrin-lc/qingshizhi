@@ -29,8 +29,8 @@ function play(diffKey, script, rng, endScript, hook, streams) {
       const keyId = offer[0].eventId;
       if (script[keyId] != null) { g.playCard(0); continue; }
       let ai = -1;
-      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && offer[i].usedCount === 0) { ai = i; break; }
-      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky) { ai = i; break; }
+      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice && offer[i].usedCount === 0) { ai = i; break; }
+      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice) { ai = i; break; }
       if (ai < 0) ai = 0;
       const r = g.playCard(ai);
       if (!r) { g.playCard(0); continue; }
@@ -54,6 +54,13 @@ function play(diffKey, script, rng, endScript, hook, streams) {
       if (idx == null) throw new Error('事件 ' + ev.id + ' 没有可用选择（script 未指定或全部锁定）');
       trace.push([ev.id, ev.options[idx].t, g.dev]);
       g.choose(idx);
+      continue;
+    }
+    // 抉择卡默认不入自动出牌（避免挤占剧本既定路线）；脚本显式指定时仍会走到这里
+    if (g.phase === 'choice') {
+      const v = g.getChoiceCard();
+      trace.push([v.id, v.options[0].t, g.dev]);
+      g.chooseCardOption(0);
       continue;
     }
     if (g.phase === 'settle') { g.proceed(); continue; }
@@ -311,15 +318,19 @@ function has(g, ach) { return g.ach.includes(ach); }
   const bad = [];
   const ZG_WHITE = {}; // 威胁值白名单：陈胜本无任何 eff.zg 卡（精确比对）
   D.ACTIONS.forEach(a => {
-    const eff = a.eff || {};
+    // 抉择卡无顶层 eff，逐选项检查；普通卡查自身 eff
+    const effList = a.choice ? (a.choice.options || []).map(o => o.eff || {}) : [a.eff || {}];
+    effList.forEach(eff => {
     Object.keys(eff.attrs || {}).forEach(k => { if (Math.abs(eff.attrs[k]) > 8) bad.push(a.id + ' ' + k); });
     if (eff.zg && ZG_WHITE[a.id] !== eff.zg) bad.push(a.id + ' zg=' + eff.zg);
     if (eff.flags || eff.rmflags || eff.hist || eff.merit || eff.ach) bad.push(a.id + ' 干扰结局树字段');
     if (eff.dev) bad.push(a.id + ' dev');
+    });
   });
   const pools = [];
   for (let ci = 0; ci <= 6; ci++) pools.push(D.ACTIONS.filter(a => (a.chapters || [0, 6])[0] <= ci && ci <= (a.chapters || [0, 6])[1]).length);
-  if (D.ACTIONS.length === 64 && bad.length === 0 && pools.every(n => n === 16)) { pass++; console.log('✔ 64 个行动数据卫生（卡牌 v2）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、零 zg 卡、每章池 16（' + pools.join('/') + '）'); }
+  const poolExpect = [18, 18, 18, 18, 18, 17, 17];
+  if (D.ACTIONS.length === 76 && bad.length === 0 && pools.every((n, i) => n === poolExpect[i])) { pass++; console.log('✔ 76 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、零 zg 卡、每章池 ' + poolExpect.join('/') + '（实测 ' + pools.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + pools.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 
   let badach = [];

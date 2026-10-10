@@ -32,8 +32,8 @@ function play(diffKey, script0, rng, endScript, hook) {
       const keyId = offer[0].eventId;
       if (script[keyId] != null) { g.playCard(0); continue; }
       let ai = -1;
-      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && offer[i].usedCount === 0) { ai = i; break; }
-      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky) { ai = i; break; }
+      for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice && offer[i].usedCount === 0) { ai = i; break; }
+      if (ai < 0) for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].risky && !offer[i].choice) { ai = i; break; }
       if (ai < 0) ai = 0;
       const r = g.playCard(ai);
       if (!r) { g.playCard(0); continue; }
@@ -57,6 +57,13 @@ function play(diffKey, script0, rng, endScript, hook) {
       if (idx == null) throw new Error('事件 ' + ev.id + ' 没有可用选择（script 未指定或全部锁定）');
       trace.push([ev.id, ev.options[idx].t, g.dev]);
       g.choose(idx);
+      continue;
+    }
+    // 抉择卡默认不入自动出牌（避免挤占剧本既定路线）；脚本显式指定时仍会走到这里
+    if (g.phase === 'choice') {
+      const v = g.getChoiceCard();
+      trace.push([v.id, v.options[0].t, g.dev]);
+      g.chooseCardOption(0);
       continue;
     }
     if (g.phase === 'settle') { g.proceed(); continue; }
@@ -362,15 +369,18 @@ function has(g, ach) { return g.ach.includes(ach); }
   const bad = [];
   const ZG_WHITE = { 'JK-ACT-21': 3, 'JK-ACT-41': -4 }; // 威胁值白名单：仅此两卡可挂 eff.zg 且值固定
   D.ACTIONS.forEach(a => {
-    const eff = a.eff || {};
+    // 抉择卡无顶层 eff，逐选项检查；普通卡查自身 eff
+    const effList = a.choice ? (a.choice.options || []).map(o => o.eff || {}) : [a.eff || {}];
+    effList.forEach(eff => {
     Object.keys(eff.attrs || {}).forEach(k => { if (Math.abs(eff.attrs[k]) > 8) bad.push(a.id + ' ' + k); });
     if (eff.zg && ZG_WHITE[a.id] !== eff.zg) bad.push(a.id + ' zg=' + eff.zg);
     if (eff.flags || eff.rmflags || eff.hist || eff.merit || eff.ach) bad.push(a.id + ' 干扰结局树字段');
     if (eff.dev) bad.push(a.id + ' dev');
+    });
   });
   const pools = [];
   for (let ci = 0; ci <= 5; ci++) pools.push(D.ACTIONS.filter(a => (a.chapters || [0, 5])[0] <= ci && ci <= (a.chapters || [0, 5])[1]).length);
-  if (D.ACTIONS.length === 56 && bad.length === 0 && pools.every(n => n === 16)) { pass++; console.log('✔ 56 个行动数据卫生（卡牌 v2）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、zg 白名单（JK-ACT-21 +3 / JK-ACT-41 -4）、每章池 16（' + pools.join('/') + '）'); }
+  if (D.ACTIONS.length === 68 && bad.length === 0 && pools.every(n => n === 18)) { pass++; console.log('✔ 68 个行动数据卫生（卡牌 v2 + 12 抉择卡）：单项 ≤±8、dev 恒 0、无 flags/hist/merit/ach/rmflags、zg 白名单（JK-ACT-21 +3 / JK-ACT-41 -4）、每章池 18（' + pools.join('/') + '）'); }
   else { fail++; console.log('✘ 行动数据卫生异常：' + (bad.join('；') || '池大小 ' + pools.join('/') + ' 总数 ' + D.ACTIONS.length)); }
 
   const g = mkGame('normal', rngHigh);

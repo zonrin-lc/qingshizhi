@@ -374,8 +374,6 @@ function M.attach(Shell)
     S.clearMain(); S.clearOpts()
     local gg = g()
     local v = gg:getChoiceCard()
-    print('[抉择] renderCardChoice phase=' .. tostring(gg.phase) .. ' v=' .. tostring(v ~= nil)
-      .. (v and (' id=' .. tostring(v.id) .. ' segs=' .. #v.segs .. ' options=' .. #v.options) or ''))
     if not v then M.renderRound() return end
     mainAdd(T.lbl { t = '抉择 · 事有两端', size = T.FS.note, color = C.gold })
     mainAdd(T.lbl { t = v.title, size = T.FS.title, color = C.inkHeavy, bold = true, mb = 4 })
@@ -385,15 +383,11 @@ function M.attach(Shell)
     for _, s in ipairs(v.segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
     S.renderSide(v.segs)
-    S.revealSegs(items, function()
-      print('[抉择] reveal done → renderChoiceOptions')
-      M.renderChoiceOptions(v)
-    end)
+    S.revealSegs(items, function() M.renderChoiceOptions(v) end)
   end
 
   function M.renderChoiceOptions(v)
     S.clearOpts()
-    print('[抉择] renderChoiceOptions options=' .. #(v.options or {}))
     for i, o in ipairs(v.options) do
       -- 与回合页卡片同款 flex 布局:自适应宽 + wrap 文本在 Yoga 下会塌成细条(实测 21px),flex 定宽才可见
       env.optBox:AddChild(T.Card {
@@ -407,7 +401,6 @@ function M.attach(Shell)
       onClick = function() if g():cancelChoice() then M.renderRound() end end,
       children = { T.lbl { t = '且搁置', size = T.FS.ui, color = C.inkDim } },
     })
-    S.probeOptBox = 10   -- [临时诊断] 10 帧后量取决策区尺寸
   end
 
   function M.doChooseCardOpt(i)
