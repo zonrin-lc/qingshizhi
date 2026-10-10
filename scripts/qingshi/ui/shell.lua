@@ -167,6 +167,28 @@ function Shell.Update(timeStep)
   if Shell.tickMenuAnim then Shell.tickMenuAnim(timeStep) end
   -- 选择页齿轮等常驻自绘控件
   if Shell.tickWidgets then Shell.tickWidgets(timeStep) end
+  -- [临时诊断] 抉择页选项布局探针：渲染若干帧后量取决策区实际尺寸
+  if Shell.probeOptBox then
+    Shell.probeOptBox = Shell.probeOptBox - 1
+    if Shell.probeOptBox <= 0 then
+      Shell.probeOptBox = nil
+      local pok, perr = pcall(function()
+        local ob = env_.optBox
+        local bb = env_.bottomBar
+        local msg = '[抉择][probe] children=' .. #ob.children
+          .. ' bbVis=' .. tostring(bb:IsVisible())
+          .. ' optW=' .. tostring(YGNodeLayoutGetWidth(ob.node))
+          .. ' optH=' .. tostring(YGNodeLayoutGetHeight(ob.node))
+          .. ' bbH=' .. tostring(YGNodeLayoutGetHeight(bb.node))
+        if ob.children[1] then
+          msg = msg .. ' card0W=' .. tostring(YGNodeLayoutGetWidth(ob.children[1].node))
+            .. ' card0H=' .. tostring(YGNodeLayoutGetHeight(ob.children[1].node))
+        end
+        print(msg)
+      end)
+      if not pok then print('[抉择][probe] err: ' .. tostring(perr)) end
+    end
+  end
   local rv = Shell.revealing
   if not rv then return end
   rv.timer = rv.timer + timeStep

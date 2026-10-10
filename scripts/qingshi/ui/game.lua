@@ -406,6 +406,7 @@ function M.attach(Shell)
       onClick = function() if g():cancelChoice() then M.renderRound() end end,
       children = { T.lbl { t = '且搁置', size = T.FS.ui, color = C.inkDim } },
     })
+    S.probeOptBox = 10   -- [临时诊断] 10 帧后量取决策区尺寸
   end
 
   function M.doChooseCardOpt(i)
