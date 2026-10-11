@@ -12,6 +12,9 @@ local CHAR_IMG = {
   ['李斯'] = 'lisi', ['荆轲'] = 'jingke', ['韩信'] = 'hanxin', ['项羽'] = 'xiangyu', ['陈胜'] = 'chensheng',
   ['赵高'] = 'zhaogao', ['嬴政'] = 'yingzheng', ['韩非'] = 'hanfei', ['蒙恬'] = 'mengtian',
   ['扶苏'] = 'fusu', ['胡亥'] = 'huhai', ['章邯'] = 'zhanghan', ['萧何'] = 'xiaohe',
+  -- 第一批补充(2026-10-11)
+  ['李由'] = 'liyou', ['樊哙'] = 'fankuai', ['荀卿'] = 'xunqing',
+  ['彭越'] = 'pengyue', ['张良'] = 'zhangliang', ['吴广'] = 'wuguang',
 }
 
 local BAND_WARNS = {

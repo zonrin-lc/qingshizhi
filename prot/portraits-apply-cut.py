@@ -11,7 +11,9 @@ import numpy as np
 from PIL import Image
 
 NAMES = ["mengtian", "chensheng", "fusu", "hanfei", "hanxin", "huhai",
-         "jingke", "lisi", "xiangyu", "xiaohe", "yingzheng", "zhanghan", "zhaogao"]
+         "jingke", "lisi", "xiangyu", "xiaohe", "yingzheng", "zhanghan", "zhaogao",
+         # 第一批补充角色(2026-10-11)
+         "liyou", "fankuai", "xunqing", "pengyue", "zhangliang", "wuguang"]
 
 DST = "assets/image/portraits"
 ok, bad = 0, []
