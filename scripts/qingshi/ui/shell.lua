@@ -60,7 +60,7 @@ end
 
 function Shell.showMenu()
   env_.root:SetBackgroundImage(T.BG_INK)
-  Music.Stop()                     -- 待机静音:主菜单不播 BGM
+  Music.SetScenario('idle')        -- 待机:切菜单主题曲(同曲重入不打断)
   env_.menuLayer:SetVisible(true)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -78,7 +78,7 @@ end
 function Shell.showHome()
   env_.menuAnim = nil          -- 离开菜单:停止入场/星火时序(控件已不可见)
   env_.root:SetBackgroundImage(T.BG_INK)
-  Music.Stop()                 -- 选择页仍属待机:静音
+  Music.SetScenario('idle')    -- 选择页仍属待机:续播菜单主题曲
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)

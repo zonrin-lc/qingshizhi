@@ -19,12 +19,15 @@ local scene_ = nil
 local node_ = nil
 ---@type SoundSource|nil
 local source_ = nil
----@type Sound|nil
-local current_ = nil
 
 -- 曲库:剧本 id → { inst=无人声版路径, vocal=有人声版路径, durInst/durVocal=时长(秒) }
 -- 时长由 ffprobe 量得,用于循环点判定(引擎不暴露精确时长)。
+-- 无 vocal 字段者(如待机曲)为单轨循环,不切人声版。
 local TRACKS = {
+  idle = {
+    inst = "audio/bgm_idle.ogg",
+    durInst = 193.20,
+  },
   lisi = {
     inst = "audio/bgm_lisi_inst.ogg",
     vocal = "audio/bgm_lisi_vocal.ogg",
@@ -80,7 +83,6 @@ local function playMode(mode)
   source_:SetFrequency(0)
   applyGain()
   source_:Play(sound)
-  current_ = sound
   mode_ = mode
 end
 
@@ -104,7 +106,6 @@ function M.Stop()
   scen_ = nil
   mode_ = "inst"
   timer_ = 0
-  current_ = nil
   if source_ then source_:Stop() end
 end
 
@@ -114,7 +115,13 @@ function M.Update(dt)
   local tr = trackOf(scen_)
   if not tr then return end
   timer_ = timer_ + dt
-  if mode_ == "inst" then
+  if not tr.vocal then
+    -- 单轨(待机曲):放完即从头重播
+    if timer_ >= tr.durInst then
+      timer_ = 0
+      playMode("inst")
+    end
+  elseif mode_ == "inst" then
     if timer_ >= tr.durInst then
       -- 无人声版放完一遍 → 接有人声版
       timer_ = 0
@@ -141,7 +148,6 @@ function M.SetEnabled(on)
   if not enabled_ then
     if source_ then source_:Stop() end
     active_ = false
-    current_ = nil
     return
   end
   -- 重新开启:若正在某剧本且未播,从头播起
