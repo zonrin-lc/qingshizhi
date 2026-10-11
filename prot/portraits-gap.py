@@ -10,7 +10,9 @@ import glob
 import os
 import re
 
-FILES = sorted(glob.glob("scripts/qingshi/data/*.lua"))
+# 只扫五部剧本;排除 voice-manifest.lua 等非剧本数据
+SCENARIOS = ["lisi", "jingke", "hanxin", "xiangyu", "chensheng"]
+FILES = ["scripts/qingshi/data/%s.lua" % n for n in SCENARIOS]
 PAT = re.compile(r"⟦([^⟧]*)⟧")
 
 # 已有立绘(CHAR_IMG 的中文名)
@@ -21,6 +23,7 @@ HAVE = {
     "春申君", "庄贾", "太子丹", "吕不韦",
     "高渐离", "项燕", "项伯", "陈豨", "蒯通", "李园", "王离", "徐夫人",
     "宋义", "周文", "葛婴", "田臧", "景驹", "侯公",
+    "淳于越", "李左车", "周青臣", "范增", "樊於期", "王翦", "田光", "嫪毐", "郑国", "盖聂",
 }
 
 # ⟦⟧ 里确认不是人物的词(地名/官名/器物/事件/群体/制度)
