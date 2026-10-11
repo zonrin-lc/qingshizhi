@@ -238,12 +238,14 @@ function Shell.Build()
   }
 
   -- 立绘列:常驻左卷轴内侧;出场角色切换,无出场角色时显示主角(game.lua renderPortrait 驱动)
-  env_.portraitImg = UI.Panel { width = "100%", flexGrow = 1, flexBasis = 0,
-    backgroundFit = "contain", pointerEvents = "none" }
+  -- 立绘统一 512x768(2:3):面板按宽高比定高 + fill 精确映射;
+  -- 不用 contain——面板与贴图间的留白区会以贴图边缘行晕染(clamp),顶部会拖出竖向色带
+  env_.portraitImg = UI.Panel { width = "100%", aspectRatio = 512 / 768,
+    backgroundFit = "fill", pointerEvents = "none" }
   env_.portraitName = T.lbl { t = '', size = T.FS.note, color = T.COLOR.inkDim, wrap = false }
   local portraitCol = UI.Panel { id = "portraitCol", width = "30%", height = "100%",
-    flexDirection = "column", alignItems = "center", justifyContent = "center",
-    gap = 4, paddingRight = 8, pointerEvents = "none",
+    flexDirection = "column", alignItems = "center", justifyContent = "flex-end",
+    gap = 4, paddingRight = 8, paddingBottom = 10, pointerEvents = "none",
     children = { env_.portraitImg, env_.portraitName } }
 
   -- 右栏:常驻竖栏 tab(属性 / 图鉴),默认展示属性,竖卷轴底板。
