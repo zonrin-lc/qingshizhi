@@ -15,16 +15,9 @@ SCENARIOS = ["lisi", "jingke", "hanxin", "xiangyu", "chensheng"]
 FILES = ["scripts/qingshi/data/%s.lua" % n for n in SCENARIOS]
 PAT = re.compile(r"⟦([^⟧]*)⟧")
 
-# 已有立绘(CHAR_IMG 的中文名)
-HAVE = {
-    "李斯", "荆轲", "韩信", "项羽", "陈胜", "赵高", "嬴政", "韩非", "蒙恬",
-    "扶苏", "胡亥", "章邯", "萧何", "李由", "樊哙", "荀卿", "彭越", "张良", "吴广",
-    "吕后", "项梁", "项庄", "陈平", "虞姬", "蒙嘉", "英布", "秦舞阳", "滕公",
-    "春申君", "庄贾", "太子丹", "吕不韦",
-    "高渐离", "项燕", "项伯", "陈豨", "蒯通", "李园", "王离", "徐夫人",
-    "宋义", "周文", "葛婴", "田臧", "景驹", "侯公",
-    "淳于越", "李左车", "周青臣", "范增", "樊於期", "王翦", "田光", "嫪毐", "郑国", "盖聂",
-}
+# 已有立绘:直接从 game.lua 的 CHAR_IMG 解析,避免两份表不同步
+CHAR_IMG_SRC = "scripts/qingshi/ui/game.lua"
+HAVE = set(re.findall(r"\['([^']+)'\]\s*=", open(CHAR_IMG_SRC, encoding="utf-8").read()))
 
 # ⟦⟧ 里确认不是人物的词(地名/官名/器物/事件/群体/制度)
 NOT_PERSON = {

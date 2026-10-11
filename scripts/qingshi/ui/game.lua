@@ -33,6 +33,13 @@ local CHAR_IMG = {
   ['范增'] = 'fanzeng', ['樊於期'] = 'fanyuqi', ['王翦'] = 'wangjian',
   ['田光'] = 'tianguang', ['嫪毐'] = 'laoai', ['郑国'] = 'zhengguo',
   ['盖聂'] = 'genie',
+  -- 第五批(2026-10-11,补完 ⟦⟧ 出场角色)
+  ['殷通'] = 'yintong', ['曹无伤'] = 'caowushang', ['韩生'] = 'hansheng',
+  ['义帝'] = 'yidi', ['田荣'] = 'tianrong', ['吕马童'] = 'lvmatong',
+  ['鲁句践'] = 'lujujian', ['曹沫'] = 'caomo', ['夏无且'] = 'xiawuju',
+  ['漂母'] = 'piaomu', ['龙且'] = 'longju', ['钟离眜'] = 'zhonglimo',
+  ['襄强'] = 'xiangqiang', ['武臣'] = 'wuchen', ['孔鲋'] = 'kongfu',
+  ['姚贾'] = 'yaojia',
 }
 
 local BAND_WARNS = {
