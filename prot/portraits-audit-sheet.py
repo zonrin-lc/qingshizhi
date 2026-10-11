@@ -9,8 +9,9 @@ from PIL import Image, ImageDraw
 
 GAME = "scripts/qingshi/ui/game.lua"
 src = open(GAME, encoding="utf-8").read()
-# 按 CHAR_IMG 表里出现的顺序取 (中文名, id)
-pairs = re.findall(r"\['([^']+)'\]\s*=\s*'([^']+)'", src)
+# 只在 CHAR_IMG 块内取 (中文名, id),避免误匹配 BAND_WARNS 等
+block = src.split("local CHAR_IMG = {", 1)[1].split("\n}", 1)[0]
+pairs = re.findall(r"\['([^']+)'\]\s*=\s*'([^']+)'", block)
 
 COLS, CW, CH, PAD, BAR = 8, 150, 225, 5, 20
 rows = (len(pairs) + COLS - 1) // COLS
