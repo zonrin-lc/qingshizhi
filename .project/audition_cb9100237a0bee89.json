@@ -1,0 +1,39 @@
+{
+  "version": "2.0",
+  "provider": "elevenlabs",
+  "character_name": "说书人C",
+  "character_description": "青年男性，二十五至三十岁，清朗通透的中高音，音色干净温润，如玉磬相击，气息平稳均匀。语速从容偏慢，吐字清晰利落，句尾自然轻收，停顿干净有呼吸感。情感内敛克制，带书卷气与温和的悲悯，娓娓道来而不动声色，清冷中有一丝暖意。风格为中国古典文学的有声书讲述者、人文纪录片旁白式的念白，文雅清正。专业录音棚音质，发音圆润清晰，无背景噪音。",
+  "audition_line": "吏舍后的厕中，几只老鼠瘦小惊惶，毛色灰败，肋骨根根可数，一见人影便炸开般四散窜入墙缝，只留一片窸窣的余响在暗处慢慢熄灭。午后你入粮仓盘账。仓中之鼠肥硕安闲，踞于粟积之下，见人不避，须眉皆油光，一双小眼懒洋洋地眯着，仿佛满仓粟米天经地义就该归它所有。",
+  "created_at": "2026-10-11T13:44:09.521Z",
+  "recommended_index": 1,
+  "candidates": [
+    {
+      "index": 1,
+      "provider": "elevenlabs",
+      "generated_voice_id": "mncSbCOvvCUz0cWA9oVi",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_1_1791726219202.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_1_1791726219202.mp3",
+      "duration_seconds": 36.05083333333334,
+      "description": "青年男性，二十五至三十岁，清朗通透的中高音，音色干净温润，如玉磬相击，气息平稳均匀。语速从容偏慢，吐字清晰利落，句尾自然轻收，停顿干净有呼吸感。情感内敛克制，带书卷气与温和的悲悯，娓娓道来而不动声色，清冷中有一丝暖意。风格为中国古典文学的有声书讲述者、人文纪录片旁白式的念白，文雅清正。专业录音棚音质，发音圆润清晰，无背景噪音。"
+    },
+    {
+      "index": 2,
+      "provider": "elevenlabs",
+      "generated_voice_id": "R6fWww2SKDFzTiblkLht",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_2_1791726235087.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_2_1791726235087.mp3",
+      "duration_seconds": 36.20758333333333,
+      "description": "青年男性，二十五至三十岁，清朗通透的中高音，音色干净温润，如玉磬相击，气息平稳均匀。语速从容偏慢，吐字清晰利落，句尾自然轻收，停顿干净有呼吸感。情感内敛克制，带书卷气与温和的悲悯，娓娓道来而不动声色，清冷中有一丝暖意。风格为中国古典文学的有声书讲述者、人文纪录片旁白式的念白，文雅清正。专业录音棚音质，发音圆润清晰，无背景噪音。"
+    },
+    {
+      "index": 3,
+      "provider": "elevenlabs",
+      "generated_voice_id": "p7ICzr1XlTa4k8YJfpAR",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_3_1791726249322.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_cb9100237a0bee89_candidate_3_1791726249322.mp3",
+      "duration_seconds": 36.59941666666667,
+      "description": "青年男性，二十五至三十岁，清朗通透的中高音，音色干净温润，如玉磬相击，气息平稳均匀。语速从容偏慢，吐字清晰利落，句尾自然轻收，停顿干净有呼吸感。情感内敛克制，带书卷气与温和的悲悯，娓娓道来而不动声色，清冷中有一丝暖意。风格为中国古典文学的有声书讲述者、人文纪录片旁白式的念白，文雅清正。专业录音棚音质，发音圆润清晰，无背景噪音。"
+    }
+  ],
+  "use_voice_design": true
+}
