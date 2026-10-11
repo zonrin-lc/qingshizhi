@@ -28,6 +28,11 @@ local CHAR_IMG = {
   ['王离'] = 'wangli', ['徐夫人'] = 'xufuren', ['宋义'] = 'songyi',
   ['周文'] = 'zhouwen', ['葛婴'] = 'geying', ['田臧'] = 'tianzang',
   ['景驹'] = 'jingju', ['侯公'] = 'hougong',
+  -- 第四批(2026-10-11,按剧情分量)
+  ['淳于越'] = 'chunyuyue', ['李左车'] = 'lizuoche', ['周青臣'] = 'zhouqingchen',
+  ['范增'] = 'fanzeng', ['樊於期'] = 'fanyuqi', ['王翦'] = 'wangjian',
+  ['田光'] = 'tianguang', ['嫪毐'] = 'laoai', ['郑国'] = 'zhengguo',
+  ['盖聂'] = 'genie',
 }
 
 local BAND_WARNS = {
