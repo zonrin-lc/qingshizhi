@@ -1,4 +1,4 @@
--- qingshi/ui/shell.lua —— 对局壳:安全区 + 66/34 双栏(叙事 | 属性面板·立绘)+ 底部横向决策区
+-- qingshi/ui/shell.lua —— 对局壳:安全区 + 单行顶栏(牌匾按钮+大标题) + 66/34 双卷轴(叙事·立绘 | 属性)+ 底部牌匾决策区
 -- 规避刘海与 TapTap 胶囊:全部可交互内容包在 SafeAreaView(nativeMenuInset)内。
 -- 底栏选项横向排列(超宽自动换行),决策不再占整块竖向空间。
 local UI = require("urhox-libs/UI")
@@ -24,12 +24,12 @@ end
 
 -- ---------- 顶部状态条 ----------
 
--- 顶栏小按钮:透明底 + 细墨线框,不遮挡纸纹
-local function pill(text, color, onClick, id, borderCol)
+-- 顶栏牌匾按钮:美术牌匾底图 + 居中文字
+local function plaqueBtn(text, img, color, onClick, id)
   return UI.Panel {
-    id = id, padding = 5, paddingLeft = 11, paddingRight = 11,
-    backgroundColor = { 0, 0, 0, 0 }, borderRadius = 13,
-    borderWidth = 1, borderColor = borderCol or T.COLOR.line,
+    id = id, width = 96, height = 34,
+    backgroundImage = img, backgroundFit = "fill",
+    alignItems = "center", justifyContent = "center",
     pointerEvents = "auto", onClick = onClick,
     children = { T.lbl { t = text, size = T.FS.cap, color = color or T.COLOR.inkSoft, wrap = false } },
   }
@@ -38,30 +38,26 @@ end
 local function topbarWidgets()
   local chap = UI.Label {
     text = '', fontSize = T.FS.title, fontColor = T.COLOR.inkHeavy, fontWeight = "bold",
-    fontFamily = T.FONT_KAI, whiteSpace = "nowrap", maxLines = 1, flexGrow = 1, flexBasis = 0,
+    fontFamily = T.FONT_KAI, whiteSpace = "nowrap", maxLines = 1,
   }
-  local bandName = T.lbl { t = '', size = T.FS.note, color = T.COLOR.qing, bold = true, wrap = false }
-  local devNum = T.lbl { t = '0', size = T.FS.note, color = T.COLOR.warn, bold = true, wrap = false }
-  local fill = UI.Panel { id = "devFill", height = "100%", width = "0%", backgroundColor = T.COLOR.qing, borderRadius = 3 }
-  local bar = UI.Panel {
-    id = "devBar", flexGrow = 1, flexBasis = 0, height = 5, borderRadius = 3,
-    backgroundColor = T.COLOR.track, overflow = "hidden", children = { fill },
-  }
-  local backtrackBtn = pill('回溯', T.COLOR.zhu, function() Shell.backtrackAsk() end, "btnBack", T.COLOR.zhu)
+  -- 大标题下金线菱饰分隔(美术素材,横线 + 中央菱饰)
+  local rule = UI.Panel { width = "72%", height = 10,
+    backgroundImage = T.PART.titleRule, backgroundFit = "fill", pointerEvents = "none" }
+  local backtrackBtn = plaqueBtn('回溯', T.PART.plateRewind, T.COLOR.card, function() Shell.backtrackAsk() end, "btnBack")
   env_.backLbl = backtrackBtn.children[1]
   env_.backBox = backtrackBtn
   -- 返回主菜单:确认后离局(进度已在存档里)
-  local homeBtn = pill('← 返回', T.COLOR.inkSoft, function()
+  local homeBtn = plaqueBtn('← 返回', T.PART.plateBack, T.COLOR.inkSoft, function()
     Shell.confirm('返回主菜单?', '当前进度已保存,可随时从「继续旅程」回来。',
       function() Shell.showMenu() end, '返 回')
   end, "btnHome")
-  return { chap = chap, bandName = bandName, devNum = devNum, fill = fill, bar = bar,
-           backBtn = backtrackBtn, homeBtn = homeBtn, row = nil }
+  return { chap = chap, rule = rule, backBtn = backtrackBtn, homeBtn = homeBtn, row = nil }
 end
 
 -- ---------- 页面切换 ----------
 
 function Shell.showMenu()
+  env_.root:SetBackgroundImage(T.BG_INK)
   env_.menuLayer:SetVisible(true)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -78,6 +74,7 @@ end
 
 function Shell.showHome()
   env_.menuAnim = nil          -- 离开菜单:停止入场/星火时序(控件已不可见)
+  env_.root:SetBackgroundImage(T.BG_INK)
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -88,6 +85,7 @@ end
 
 function Shell.showGame()
   env_.menuAnim = nil          -- 同上:入对局即停菜单时序
+  env_.root:SetBackgroundImage(T.BG_GAME)   -- 对局页整幅山水底
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(true)
   env_.homeSC:SetVisible(false)
@@ -101,19 +99,10 @@ function Shell.renderTop()
   if not g then return end
   local tw = env_.tw
   local ch = g:chapter()
-  local title = ch and ch.title or ''
-  if ch and (g.phase == 'round' or g.phase == 'event') then
-    local pr = g:chapterProgress()
-    title = title .. ' · ' .. pr.done .. '/' .. pr.total
-  end
-  tw.chap:SetText(title)
-  local band = g:devBand()
-  local bd = g.d.DEV_BANDS[band + 1]
-  tw.fill:SetWidth(g.dev .. '%')
-  tw.fill:SetBackgroundColor(T.hex2rgba(bd.color))
-  tw.bandName:SetText(bd.name)
-  tw.bandName:SetFontColor(T.hex2rgba(bd.color))
-  tw.devNum:SetText(tostring(g.dev))
+  -- 大标题:剧本名 ｜ 章名(章名内的「｜」换空格,偏离度已挪至右栏底部)
+  local ct = ch and ch.title or ''
+  ct = ct:gsub('｜', ' ')
+  tw.chap:SetText(g.d.SCENARIO.name .. ' ｜ ' .. ct)
   -- 回溯:可回溯时亮起,不可回溯(硬核/次数用尽)时压暗;有次数则显示剩余
   env_.backBox:SetOpacity(g:canBacktrack() and 1 or 0.35)
   env_.backLbl:SetText(g.diff.backtrack > 0
@@ -224,38 +213,46 @@ function Shell.Build()
   local tw = topbarWidgets()
   env_.tw = tw
 
+  -- 顶栏:单行(返回牌匾 ｜ 居中大标题+金线菱饰 ｜ 回溯牌匾)
   local topRow_ = UI.Panel {
-    id = "topRow", flexDirection = "column", padding = 8, paddingLeft = 16, paddingRight = 16, gap = 6,
-    borderBottomWidth = 1, borderColor = T.COLOR.line,
+    id = "topRow", flexDirection = "row", alignItems = "center",
+    padding = 6, paddingLeft = 16, paddingRight = 16, gap = 10,
     children = {
-      UI.Row { width = "100%", alignItems = "center", gap = 8,
-        children = { tw.homeBtn, tw.chap, tw.backBtn } },
-      UI.Row { width = "100%", alignItems = "center", gap = 8,
-        children = { tw.bandName, tw.bar, tw.devNum } },
+      tw.homeBtn,
+      UI.Panel { flexGrow = 1, flexBasis = 0, flexDirection = "column",
+        alignItems = "center", gap = 2, children = { tw.chap, tw.rule } },
+      tw.backBtn,
     },
   }
   tw.row = topRow_
 
-  -- 左栏:叙事(66%)
+  -- 左栏:叙事(66%),横卷轴底板;内分 立绘列 | 正文滚动列
   local mainBox = UI.Panel { id = "mainBox", width = "100%", flexDirection = "column", gap = 2,
-    alignItems = "stretch", pointerEvents = "box-none", padding = 16 }
+    alignItems = "stretch", pointerEvents = "box-none", padding = 6 }
   env_.mainBox = mainBox
   env_.mainSC = UI.ScrollView {
-    id = "mainScroll", width = "100%", flexGrow = 1, flexBasis = 0,
+    id = "mainScroll", flexGrow = 1, flexBasis = 0, height = "100%",
     scrollY = true, showScrollbar = false,
     onClick = function() Shell.TapReveal() end,
     children = { mainBox },
   }
 
-  -- 右栏:常驻竖栏 tab(属性 / 图鉴),默认展示属性。
-  -- 立绘已移入正文区,故这里不再作立绘背景。
+  -- 立绘列:常驻左卷轴内侧;出场角色切换,无出场角色时显示主角(game.lua renderPortrait 驱动)
+  env_.portraitImg = UI.Panel { width = "100%", flexGrow = 1, flexBasis = 0,
+    backgroundFit = "contain", pointerEvents = "none" }
+  env_.portraitName = T.lbl { t = '', size = T.FS.note, color = T.COLOR.inkDim, wrap = false }
+  local portraitCol = UI.Panel { id = "portraitCol", width = "30%", height = "100%",
+    flexDirection = "column", alignItems = "center", justifyContent = "center",
+    gap = 4, paddingRight = 8, pointerEvents = "none",
+    children = { env_.portraitImg, env_.portraitName } }
+
+  -- 右栏:常驻竖栏 tab(属性 / 图鉴),默认展示属性,竖卷轴底板。
   env_.sideCol = UI.Panel { id = "sideCol", width = "34%", height = "100%",
-    backgroundColor = T.COLOR.paper, overflow = "hidden",
+    backgroundImage = T.PART.scrollSide, backgroundFit = "fill", overflow = "hidden",
     flexDirection = "column", children = {
-      -- tab 条:两枚互斥页签
-      UI.Row { id = "sideTabs", width = "100%", gap = 0,
-        borderBottomWidth = 1, borderColor = T.COLOR.line, children = {} },
-      -- tab 内容(由 game.lua 的 renderSide 填充)
+      -- 头部:题字「属 性」+ 金线菱饰(由 game.lua renderSideTabs 填充)
+      UI.Panel { id = "sideTabs", width = "100%", flexDirection = "column", children = {} },
+      -- 内容(由 game.lua 的 renderSide 填充)
       UI.Panel { id = "sideBody", width = "100%", flexGrow = 1, flexBasis = 0,
         children = {} },
     } }
@@ -263,7 +260,12 @@ function Shell.Build()
   env_.gameArea = UI.Row {
     id = "gameArea", width = "100%", flexGrow = 1, flexBasis = 0,
     children = {
-      UI.Panel { id = "narrCol", width = "66%", height = "100%", children = { env_.mainSC } },
+      UI.Panel { id = "narrCol", width = "66%", height = "100%",
+        backgroundImage = T.PART.scrollStory, backgroundFit = "fill",
+        paddingLeft = 42, paddingRight = 30, paddingTop = 22, paddingBottom = 16,
+        children = {
+          UI.Row { width = "100%", height = "100%", children = { portraitCol, env_.mainSC } },
+        } },
       env_.sideCol,
     },
   }
@@ -273,7 +275,6 @@ function Shell.Build()
     gap = 8, alignItems = "stretch", padding = 10, justifyContent = "center" }
   env_.bottomBar = UI.Panel {
     id = "bottomBar", width = "100%", maxHeight = "42%", overflow = "scroll",
-    backgroundColor = T.COLOR.paper, borderTopWidth = 1, borderColor = T.COLOR.line,
     children = { env_.optBox },
   }
 

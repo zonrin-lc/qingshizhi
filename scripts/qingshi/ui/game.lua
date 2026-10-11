@@ -1,5 +1,5 @@
 -- qingshi/ui/game.lua —— 纸墨对局渲染与路由(对应 JS ui-round/ui-event/ui-overlays/ui-ending)
--- 卡面数字改写(cardDesc)/立绘行/雷达图为后续批次;核心循环全通。
+-- 对局页 v2:横卷轴叙事(左,含常驻立绘列) + 竖卷轴属性栏(右) + 底部牌匾选项;卡面数字改写(cardDesc)为后续批次。
 local UI = require("urhox-libs/UI")
 local T = require("qingshi/ui/theme")
 local Store = require("qingshi/store")
@@ -60,47 +60,29 @@ function M.attach(Shell)
     for _, t in ipairs(SIDE_TABS) do if t.k == env.sideTab_ then valid = true end end
     if env.sideTab_ and valid then return end
     env.sideTab_ = 'attrs'
+    -- 参考图式头部:居中题字「属 性」+ 金线菱饰分隔(素材 title_rule)
     local bar = env.sideCol:GetChildAt(1)
-    local function paint()
-      T.destroyChildren(bar)
-      for _, t in ipairs(SIDE_TABS) do
-        local on = (env.sideTab_ == t.k)
-        bar:AddChild(UI.Panel {
-          flexGrow = 1, flexBasis = 0, paddingTop = 9, paddingBottom = 9,
-          alignItems = "center", justifyContent = "center", pointerEvents = "auto",
-          borderBottomWidth = on and 2 or 0, borderColor = C.zhu,
-          onClick = function()
-            if env.sideTab_ == t.k then return end
-            env.sideTab_ = t.k
-            paint()
-            S.renderSide(env.lastTexts)
-          end,
-          children = { T.lbl { t = t.n, size = T.FS.note, bold = on,
-            color = on and C.inkHeavy or C.inkDim, ls = 2, wrap = false } },
-        })
-      end
-    end
-    paint()
+    T.destroyChildren(bar)
+    bar:AddChild(UI.Panel { width = "100%", flexDirection = "column", alignItems = "center",
+      paddingTop = 16, paddingBottom = 2, gap = 3, children = {
+        T.lbl { t = '属 性', size = T.FS.title, color = C.inkHeavy, bold = true, ls = 4, wrap = false },
+        UI.Panel { width = "62%", height = 8, backgroundImage = T.PART.titleRule,
+          backgroundFit = "fill", pointerEvents = "none" },
+      } })
   end
 
-  -- 正文区插图:当前说话人立绘(带名签)。无立绘的角色不插图。
-  local function insertPortrait(texts)
+  -- 左卷轴常驻立绘:出场角色切换(带名签);无出场角色时显示主角
+  function S.renderPortrait(texts)
     local gg = g()
     if not gg then return end
-    local spk = currentSpeaker(texts)
-    if not spk then return end
+    local spk = currentSpeaker(texts) or gg.d.SCENARIO.protag
     local id = CHAR_IMG[spk]
-    if not id then return end
-    -- 立绘 512:768(2:3),按屏高取尺寸,保证纵向不喧宾夺主
-    local ph = math.floor(graphics:GetHeight() / T.GetScale() * 0.34)
-    local pw = math.floor(ph * 512 / 768)
-    mainAdd(UI.Panel { width = "100%", alignItems = "center", marginTop = 10, marginBottom = 10,
-      children = {
-        UI.Panel { width = pw, height = ph,
-          backgroundImage = "image/portraits/char_" .. id .. ".png",
-          backgroundFit = "cover" },
-        T.lbl { t = '— ' .. spk .. ' —', size = T.FS.cap, color = C.inkDim, mt = 4, wrap = false },
-      } })
+    if id then
+      env.portraitImg:SetBackgroundImage("image/portraits/char_" .. id .. ".png")
+    else
+      env.portraitImg:SetBackgroundImage(nil)   -- 无立绘的角色:纸底留白
+    end
+    env.portraitName:SetText('— ' .. spk .. ' —')
   end
 
   function S.renderSide(texts)
@@ -114,12 +96,8 @@ function M.attach(Shell)
       S.openDrawer('gloss', body)
       return
     end
-    local spk = currentSpeaker(texts)
     local panel = UI.Panel { width = "100%", height = "100%", flexDirection = "column",
-      padding = 10, gap = 6, pointerEvents = "box-none" }
-    if spk then
-      panel:AddChild(T.lbl { t = '出场 ｜ ' .. spk, size = T.FS.cap, color = C.zhuHi, bold = true, wrap = false })
-    end
+      padding = 10, paddingLeft = 22, paddingRight = 22, gap = 6, pointerEvents = "box-none" }
     local SELF = { 'tupo', 'wuli', 'caixue', 'moulue', 'biancai' }
     local vals, labels = {}, {}
     for _, k in ipairs(SELF) do
@@ -272,7 +250,7 @@ function M.attach(Shell)
     mainAdd(T.lbl { t = (string.match(ch.title, '｜%s*(.+)$') or ch.title),
       size = T.FS.h2, color = C.inkHeavy, bold = true, mb = 4 })
     mainAdd(UI.Panel { width = 52, height = 2, backgroundColor = C.gold, marginBottom = 14 })
-    insertPortrait(ch.intro)                 -- 正文插图:本章出场人物立绘
+    S.renderPortrait(ch.intro)                 -- 立绘列:本章出场人物(无则主角)
     local items = {}
     for _, s in ipairs(ch.intro or {}) do items[#items + 1] = segW(s) end
     for _, n in ipairs(g().introNotes or {}) do items[#items + 1] = noteW(n) end
@@ -306,7 +284,7 @@ function M.attach(Shell)
     mainAdd(UI.Panel { width = 44, height = 2, backgroundColor = isInsert and C.zhu or C.gold, marginBottom = 12 })
     local segs = ev.segs
     if ev.altSegs and g().flags[ev.altSegs.flag] then segs = ev.altSegs.segs end
-    insertPortrait(segs)                     -- 正文插图:本事件出场人物立绘
+    S.renderPortrait(segs)                     -- 立绘列:本事件出场人物(无则主角)
     local items = {}
     for _, s in ipairs(segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
@@ -343,8 +321,8 @@ function M.attach(Shell)
       -- (Lua 里 `x and nil or y` 恒等于 y,锁定项照样会挂上 handler)
       local onClick = nil
       if not o.locked then onClick = function() M.doChoose(i - 1) end end
-      env.optBox:AddChild(T.Card {
-        width = "24%", pad = 11, gap = 3, danger = o.risky and true or nil,
+      env.optBox:AddChild(T.Plaque {
+        w = "24%", pad = 11, gap = 3, danger = o.risky and true or nil,
         opacity = o.locked and 0.55 or 1,
         onClick = onClick,
         children = kids,
@@ -378,7 +356,7 @@ function M.attach(Shell)
     mainAdd(T.lbl { t = '抉择 · 事有两端', size = T.FS.note, color = C.gold })
     mainAdd(T.lbl { t = v.title, size = T.FS.title, color = C.inkHeavy, bold = true, mb = 4 })
     mainAdd(UI.Panel { width = 44, height = 2, backgroundColor = C.gold, marginBottom = 12 })
-    insertPortrait(v.segs)                   -- 正文插图:本抉择出场人物立绘
+    S.renderPortrait(v.segs)                   -- 立绘列:本抉择出场人物(无则主角)
     local items = {}
     for _, s in ipairs(v.segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
@@ -390,13 +368,13 @@ function M.attach(Shell)
     S.clearOpts()
     for i, o in ipairs(v.options) do
       -- 与回合页卡片同款 flex 布局:自适应宽 + wrap 文本在 Yoga 下会塌成细条(实测 21px),flex 定宽才可见
-      env.optBox:AddChild(T.Card {
+      env.optBox:AddChild(T.Plaque {
         flex = true, pad = 11, gap = 3,
         onClick = function() M.doChooseCardOpt(i - 1) end,
         children = { T.lbl { t = o.t, size = T.FS.ui, color = C.ink, bold = true } },
       })
     end
-    env.optBox:AddChild(T.Card {
+    env.optBox:AddChild(T.Plaque {
       flex = true, pad = 11, gap = 3,
       onClick = function() if g():cancelChoice() then M.renderRound() end end,
       children = { T.lbl { t = '且搁置', size = T.FS.ui, color = C.inkDim } },
@@ -430,6 +408,7 @@ function M.attach(Shell)
     for _, e in ipairs(offer) do if e.type == 'key' then key = e end end
     -- 回合页右栏维持主角立绘 + 属性(无新出场角色)
     S.renderSide({})
+    S.renderPortrait({})
     mainAdd(T.lbl { t = gg:chapter().title, size = T.FS.note, color = C.inkDim, mb = 4 })
     if env.lastSettleText then
       mainAdd(T.richSeg(env.lastSettleText, { size = T.FS.ui, color = C.inkDim }))
@@ -458,8 +437,8 @@ function M.attach(Shell)
         if e.enterable then
           kids[#kids + 1] = T.lbl { t = '此局已无可择之处——点此了断本章', size = T.FS.note, color = C.warn }
         end
-        env.optBox:AddChild(T.Card {
-          flex = true, pad = 11, gap = 3, gold = not e.inserted, danger = e.inserted, sel = e.enterable,
+        env.optBox:AddChild(T.Plaque {
+          flex = true, pad = 11, gap = 3, danger = e.inserted, sel = e.enterable,
           onClick = e.enterable and (function() M.doPlayCard(i - 1) end) or nil,
           children = kids,
         })
@@ -486,7 +465,7 @@ function M.attach(Shell)
         end
         local cardClick = nil
         if not e.locked then cardClick = function() M.doPlayCard(i - 1) end end
-        env.optBox:AddChild(T.Card {
+        env.optBox:AddChild(T.Plaque {
           flex = true, pad = 11, gap = 3, danger = e.risky and true or nil,
           onClick = cardClick,
           children = kids,
@@ -494,7 +473,7 @@ function M.attach(Shell)
         })
       end
     end
-    env.optBox:AddChild(T.Card {
+    env.optBox:AddChild(T.Plaque {
       flex = true, pad = 11, gap = 3,
       onClick = (not gg.xushi) and function() M.doXushi() end or nil,
       children = {
@@ -546,6 +525,7 @@ function M.attach(Shell)
       return
     end
     mainAdd(T.lbl { t = ev.title, size = T.FS.title, color = C.inkHeavy, bold = true, mb = 10 })
+    S.renderPortrait(ev.segs)                -- 立绘列:章末事件出场人物(无则主角)
     local items = {}
     for _, s in ipairs(ev.segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
@@ -567,7 +547,7 @@ function M.attach(Shell)
             end)
           end
         end
-        env.optBox:AddChild(T.Card {
+        env.optBox:AddChild(T.Plaque {
           flex = true, pad = 11, gap = 3,
           onClick = evClick,
           children = kids,
@@ -583,6 +563,7 @@ function M.attach(Shell)
     S.showGame()
     S.clearMain(); S.clearOpts()
     S.scrollMainTop()                        -- 上一页可能停在渐显兜底,结算页须回卷首
+    S.renderPortrait({})                     -- 立绘列回到主角
     mainAdd(T.lbl { t = '章 末 结 算', size = T.FS.note, color = C.inkDim, mb = 2 })
     mainAdd(T.lbl { t = (string.match(s.chapter, '^(.-)｜') or s.chapter) .. ' 终',
       size = T.FS.h2, color = C.inkHeavy, bold = true })
@@ -632,6 +613,7 @@ function M.attach(Shell)
     Store.remove(Store.saveKey(gg.d.SCENARIO.id))
     S.clearMain(); S.clearOpts()
     S.scrollMainTop()                        -- 结局页从头呈现,不沿用上一页滚动位置
+    S.renderPortrait({})                     -- 立绘列回到主角
     mainAdd(T.lbl { t = '〔' .. tostring(en.seal) .. ' · ' .. tostring(en.diffName) .. '〕',
       size = T.FS.note, color = C.zhuHi, align = "center", mt = 12 })
     mainAdd(T.lbl { t = en.name, size = T.FS.h2, color = C.inkHeavy, bold = true, align = "center", mb = 4 })

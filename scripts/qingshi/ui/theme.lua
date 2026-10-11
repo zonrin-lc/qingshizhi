@@ -73,7 +73,17 @@ Theme.PART = {
   diffOff    = "ui/parts/diff_off.png",     -- 难度胶囊·未选中
   btnEnter   = "ui/parts/btn_enter.png",    -- 入局按钮(旧素材,已不用)
   vortex     = "ui/parts/btn_vortex.png",   -- 入局按钮底:水墨漩涡(透明底)
+  -- 对局页 v2(牌匾/卷轴素材)
+  scrollStory = "ui/parts/scroll_story.png",   -- 左侧剧情横卷轴底板
+  scrollSide  = "ui/parts/scroll_side.png",    -- 右侧属性竖卷轴底板
+  plateBack   = "ui/parts/plate_back.png",     -- 顶栏返回牌匾
+  plateRewind = "ui/parts/plate_rewind.png",   -- 顶栏回溯牌匾(朱)
+  plateOpt    = "ui/parts/plate_opt.png",      -- 底部选项牌匾(常态)
+  plateOptHot = "ui/parts/plate_opt_hover.png",-- 底部选项牌匾(悬停)
+  titleRule   = "ui/parts/title_rule.png",     -- 顶栏大标题下金线菱饰分隔
 }
+-- 对局页整幅山水底(梅枝/竹/扁舟)
+Theme.BG_GAME = "ui/bg-game.png"
 -- 五朝建筑剪影(罗盘中心背景)
 Theme.ARCH = {
   ['秦'] = "arch/qin.jpg", ['汉'] = "arch/han.jpg", ['唐'] = "arch/tang.jpg",
@@ -206,6 +216,37 @@ function Theme.Card(o)
     children = o.children,
   }
   if o.opacity then panel:SetOpacity(o.opacity) end
+  return panel
+end
+
+-- ---------- 牌匾选项卡(对局页底部决策区:图片底 + 悬停换图;保留多行信息结构) ----------
+-- o:{flex, w, pad, gap, onClick, children, locked, danger, sel, mb, mt, opacity}
+function Theme.Plaque(o)
+  o = o or {}
+  local C = Theme.COLOR
+  local panel = UI.Panel {
+    width = o.w, flexGrow = o.flex and 1 or nil, flexBasis = o.flex and 0 or nil,
+    flexShrink = o.flex and 1 or nil,
+    minWidth = o.flex and 190 or nil,
+    padding = o.pad or 10, paddingLeft = (o.pad or 10) + 14, paddingRight = (o.pad or 10) + 14,
+    gap = o.gap or 3,
+    flexDirection = "column",
+    justifyContent = "center",
+    backgroundColor = { 0, 0, 0, 0 },
+    backgroundImage = Theme.PART.plateOpt, backgroundFit = "fill",
+    borderWidth = (o.danger or o.sel) and 1 or 0,
+    borderColor = o.danger and C.zhu or C.gold,
+    borderRadius = 4,
+    pointerEvents = o.onClick and "auto" or "none",
+    onClick = o.onClick,
+    marginBottom = o.mb, marginTop = o.mt,
+    children = o.children,
+  }
+  if o.opacity then panel:SetOpacity(o.opacity) end
+  if o.onClick then
+    panel.props.onPointerEnter = function() panel:SetBackgroundImage(Theme.PART.plateOptHot) end
+    panel.props.onPointerLeave = function() panel:SetBackgroundImage(Theme.PART.plateOpt) end
+  end
   return panel
 end
 
