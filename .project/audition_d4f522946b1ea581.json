@@ -1,0 +1,39 @@
+{
+  "version": "2.0",
+  "provider": "elevenlabs",
+  "character_name": "说书人B",
+  "character_description": "老年男性，五十五至六十五岁，极低沉的胸腔共鸣，嗓音醇厚如金石，沧桑而有分量。语速缓慢，抑扬顿挫分明，句读之间留有顿挫与回味，重音落得沉稳。情感深藏不露，冷峻中带一丝阅尽兴亡的叹息，说书人式的从容与威严，不疾不徐、不悲不喜。风格为中国传统评书宗师、历史正剧旁白的念白，古朴庄严。专业录音棚音质，字正腔圆，无背景噪音。",
+  "audition_line": "吏舍后的厕中，几只老鼠瘦小惊惶，毛色灰败，肋骨根根可数，一见人影便炸开般四散窜入墙缝，只留一片窸窣的余响在暗处慢慢熄灭。午后你入粮仓盘账。仓中之鼠肥硕安闲，踞于粟积之下，见人不避，须眉皆油光，一双小眼懒洋洋地眯着，仿佛满仓粟米天经地义就该归它所有。",
+  "created_at": "2026-10-11T13:42:00.203Z",
+  "recommended_index": 1,
+  "candidates": [
+    {
+      "index": 1,
+      "provider": "elevenlabs",
+      "generated_voice_id": "TztEmRHf53kSTRaPfIee",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_1_1791726083260.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_1_1791726083260.mp3",
+      "duration_seconds": 51.332458333333335,
+      "description": "老年男性，五十五至六十五岁，极低沉的胸腔共鸣，嗓音醇厚如金石，沧桑而有分量。语速缓慢，抑扬顿挫分明，句读之间留有顿挫与回味，重音落得沉稳。情感深藏不露，冷峻中带一丝阅尽兴亡的叹息，说书人式的从容与威严，不疾不徐、不悲不喜。风格为中国传统评书宗师、历史正剧旁白的念白，古朴庄严。专业录音棚音质，字正腔圆，无背景噪音。"
+    },
+    {
+      "index": 2,
+      "provider": "elevenlabs",
+      "generated_voice_id": "5eLZeweGZtf6L0zoBhoe",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_2_1791726101106.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_2_1791726101106.mp3",
+      "duration_seconds": 47.962666666666664,
+      "description": "老年男性，五十五至六十五岁，极低沉的胸腔共鸣，嗓音醇厚如金石，沧桑而有分量。语速缓慢，抑扬顿挫分明，句读之间留有顿挫与回味，重音落得沉稳。情感深藏不露，冷峻中带一丝阅尽兴亡的叹息，说书人式的从容与威严，不疾不徐、不悲不喜。风格为中国传统评书宗师、历史正剧旁白的念白，古朴庄严。专业录音棚音质，字正腔圆，无背景噪音。"
+    },
+    {
+      "index": 3,
+      "provider": "elevenlabs",
+      "generated_voice_id": "BWNmIq3gEiaIjRr7IhX7",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_3_1791726118888.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_d4f522946b1ea581_candidate_3_1791726118888.mp3",
+      "duration_seconds": 50.522666666666666,
+      "description": "老年男性，五十五至六十五岁，极低沉的胸腔共鸣，嗓音醇厚如金石，沧桑而有分量。语速缓慢，抑扬顿挫分明，句读之间留有顿挫与回味，重音落得沉稳。情感深藏不露，冷峻中带一丝阅尽兴亡的叹息，说书人式的从容与威严，不疾不徐、不悲不喜。风格为中国传统评书宗师、历史正剧旁白的念白，古朴庄严。专业录音棚音质，字正腔圆，无背景噪音。"
+    }
+  ],
+  "use_voice_design": true
+}
