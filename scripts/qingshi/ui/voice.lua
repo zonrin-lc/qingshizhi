@@ -25,6 +25,10 @@ local qi_ = 0            -- 已取到第几条
 local current_ = nil     -- 当前 Sound 资源
 local stopped_ = true    -- 是否已停止(避免 Stop 后由 Update 续播)
 
+-- 段间停顿(秒):上一段播完到下一段起音之间的静默,避免两段紧贴听感局促
+local gap_ = 0.35
+local gapWait_ = 0       -- 当前段结束后待消耗的停顿余量
+
 -- 设置(由 home.lua 设置页写入)
 local enabled_ = true
 local gain_ = 1.0
@@ -36,6 +40,9 @@ local function ensureSource()
   source_ = node_:CreateComponent("SoundSource")
   if not source_ then return false end
   source_:SetSoundType(SOUND_VOICE)
+  -- 关掉 declick:其默认起音淡入会削掉每个音频片段的开头半个字
+  -- (TTS 片段自带约 50ms 自然起音,再叠一层淡入便听成"被截")
+  source_:SetDeclickEnabled(false)
   source_.gain = gain_
   return true
 end
@@ -60,6 +67,7 @@ function M.Play(paths)
   if not ensureSource() then return end
   queue_ = paths
   qi_ = 0
+  gapWait_ = 0
   stopped_ = false
   M.Advance()
 end
@@ -79,24 +87,40 @@ function M.Stop()
   stopped_ = true
   queue_ = {}
   qi_ = 0
+  gapWait_ = 0
   current_ = nil
   if source_ then source_:Stop() end
 end
 
+-- 「朗读会话是否进行中」:含段间停顿(供 BGM 压低判定,避免段间音量抖动)
 function M.IsPlaying()
-  return source_ ~= nil and source_:IsPlaying()
+  return not stopped_
 end
 
--- 由 Shell.Update 每帧调用:当前段播完自动续播下一段
-function M.Update()
+-- 由 Shell.Update 每帧调用:当前段播完,先等段间停顿,再续播下一段
+function M.Update(timeStep)
   if stopped_ then return end
+  local dt = timeStep or 0
+
+  -- 停顿阶段:上一段已播完,正在等段间静默
+  if gapWait_ > 0 then
+    gapWait_ = gapWait_ - dt
+    if gapWait_ > 0 then return end
+    gapWait_ = 0
+    if qi_ >= #queue_ then stopped_ = true; current_ = nil; return end
+    M.Advance()
+    return
+  end
+
+  -- 播放阶段:当前段仍在播则等待
   if current_ and source_ and source_:IsPlaying() then return end
   if qi_ >= #queue_ then
     stopped_ = true
     current_ = nil
     return
   end
-  M.Advance()
+  -- 当前段播完:进入段间停顿(最后一段播完直接收尾,不再停顿)
+  if gap_ > 0 then gapWait_ = gap_ else M.Advance() end
 end
 
 -- ---------- 设置 ----------

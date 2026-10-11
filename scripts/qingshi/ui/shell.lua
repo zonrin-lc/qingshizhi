@@ -4,6 +4,7 @@
 local UI = require("urhox-libs/UI")
 local T = require("qingshi/ui/theme")
 local Voice = require("qingshi/ui/voice")
+local Music = require("qingshi/ui/music")
 
 local Shell = {}
 
@@ -59,6 +60,7 @@ end
 
 function Shell.showMenu()
   env_.root:SetBackgroundImage(T.BG_INK)
+  Music.Stop()                     -- 待机静音:主菜单不播 BGM
   env_.menuLayer:SetVisible(true)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -76,6 +78,7 @@ end
 function Shell.showHome()
   env_.menuAnim = nil          -- 离开菜单:停止入场/星火时序(控件已不可见)
   env_.root:SetBackgroundImage(T.BG_INK)
+  Music.Stop()                 -- 选择页仍属待机:静音
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(false)
   env_.gameArea:SetVisible(false)
@@ -87,6 +90,8 @@ end
 function Shell.showGame()
   env_.menuAnim = nil          -- 同上:入对局即停菜单时序
   env_.root:SetBackgroundImage(T.BG_GAME)   -- 对局页整幅山水底
+  -- 按当前剧本切换主题曲:首次进入从无人声版起播,同剧本重入不打断
+  if env_.game then Music.SetScenario(env_.game.d.SCENARIO.id) end
   env_.menuLayer:SetVisible(false)
   env_.tw.row:SetVisible(true)
   env_.homeSC:SetVisible(false)
@@ -158,7 +163,8 @@ function Shell.Update(timeStep)
   if Shell.tickMenuAnim then Shell.tickMenuAnim(timeStep) end
   -- 选择页齿轮等常驻自绘控件
   if Shell.tickWidgets then Shell.tickWidgets(timeStep) end
-  Voice.Update()                   -- 朗读:当前段播完自动续播下一段
+  Voice.Update(timeStep)           -- 朗读:当前段播完,隔一小段停顿后续播下一段
+  Music.Update(timeStep)           -- BGM:无人声/人声两版循环 + 朗读时压低
   local rv = Shell.revealing
   if not rv then return end
   rv.timer = rv.timer + timeStep

@@ -9,6 +9,7 @@ local Wheel = require("qingshi/ui/wheel")
 local ClipImage = require("qingshi/ui/clipimage")
 local InkVortex = require("qingshi/ui/inkvortex")
 local Voice = require("qingshi/ui/voice")
+local Music = require("qingshi/ui/music")
 
 local DATA = {
   lisi = require("qingshi/data/lisi"),
@@ -284,19 +285,21 @@ function M.attach(Shell)
 
   -- 设置存储:与存档同机制(引擎 File API),键 settings_v1
   local SETTINGS_KEY = 'settings_v1'
-  local DEFAULTS = { scale = 'default', segDelay = 0.65, textScale = 'normal', voice = true, voiceGain = 1.0 }
+  local DEFAULTS = { scale = 'default', segDelay = 0.65, textScale = 'normal', voice = true, voiceGain = 1.0, music = true, musicGain = 0.6 }
   local SCALE_OPTS = { { 'small', '小' }, { 'default', '标准' }, { 'large', '大' } }
   local SPEED_OPTS = { { 1.1, '慢' }, { 0.65, '标准' }, { 0.3, '快' } }
   local TEXT_OPTS = { { 'small', '小' }, { 'normal', '标准' }, { 'large', '大' } }
   local VOICE_OPTS = { { true, '开' }, { false, '关' } }
   local VOICE_GAIN_OPTS = { { 0.5, '轻' }, { 0.8, '标准' }, { 1.0, '响' } }
+  local MUSIC_GAIN_OPTS = { { 0.3, '轻' }, { 0.6, '标准' }, { 0.9, '响' } }
 
   local function loadSettings()
     local s = Store.read(SETTINGS_KEY)
     -- 同 loadSaveInfo:脏设置档解出可能是 number/boolean,索引会崩 → 回落默认值
     if type(s) ~= 'table' then
       return { scale = DEFAULTS.scale, segDelay = DEFAULTS.segDelay, textScale = DEFAULTS.textScale,
-        voice = DEFAULTS.voice, voiceGain = DEFAULTS.voiceGain }
+        voice = DEFAULTS.voice, voiceGain = DEFAULTS.voiceGain,
+        music = DEFAULTS.music, musicGain = DEFAULTS.musicGain }
     end
     return {
       scale = s.scale or DEFAULTS.scale,
@@ -304,6 +307,8 @@ function M.attach(Shell)
       textScale = s.textScale or DEFAULTS.textScale,
       voice = (s.voice == nil) and DEFAULTS.voice or s.voice,
       voiceGain = s.voiceGain or DEFAULTS.voiceGain,
+      music = (s.music == nil) and DEFAULTS.music or s.music,
+      musicGain = s.musicGain or DEFAULTS.musicGain,
     }
   end
 
@@ -326,6 +331,8 @@ function M.attach(Shell)
     env.textScale = s.textScale
     Voice.SetEnabled(s.voice)
     Voice.SetGain(s.voiceGain)
+    Music.SetEnabled(s.music)
+    Music.SetGain(s.musicGain)
     Store.write(SETTINGS_KEY, s)
   end
   Shell.applySettings = applySettings
@@ -376,6 +383,12 @@ function M.attach(Shell)
     end))
     c:AddChild(settingRow('朗读音量', VOICE_GAIN_OPTS, s.voiceGain, function(v)
       s.voiceGain = v; applySettings(s); repaint()
+    end))
+    c:AddChild(settingRow('背景音乐', VOICE_OPTS, s.music, function(v)
+      s.music = v; applySettings(s); repaint()
+    end))
+    c:AddChild(settingRow('音乐音量', MUSIC_GAIN_OPTS, s.musicGain, function(v)
+      s.musicGain = v; applySettings(s); repaint()
     end))
 
     c:AddChild(T.lbl { t = '设置即时生效,并保存在本地。', size = T.FS.cap, color = C.inkDim, mt = 4, mb = 20 })
