@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "provider": "elevenlabs",
+  "default_language": "cmn",
+  "default_stability": 0.5,
+  "characters": {
+    "说书人C": {
+      "voice_id": "R6fWww2SKDFzTiblkLht",
+      "voice_name": "说书人C_voice",
+      "description": "Voice Design - 青年男性，二十五至三十岁，清朗通透的中高音，音色干净温润，如玉磬相击，气息平稳均匀。语速从容偏慢，吐字清晰利落，句尾自然轻收，停顿干净有呼吸感。情感内敛克制，带书卷气与温和的悲悯，娓娓道来而不动声色，清冷中有一丝暖意。风格为中国古典文学的有声书讲述者、人文纪录片旁白式的念白，文雅清正。专业录音棚音质，发音圆润清晰，无背景噪音。",
+      "language": "cmn",
+      "stability": 0.5,
+      "created_at": "2026-10-11T13:46:33.043Z",
+      "last_used": "2026-10-11T13:46:33.043Z"
+    }
+  },
+  "special_voices": {}
+}

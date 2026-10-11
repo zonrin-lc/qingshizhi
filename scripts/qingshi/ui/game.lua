@@ -21,6 +21,12 @@ local CHAR_IMG = {
   ['英布'] = 'yingbu', ['秦舞阳'] = 'qinwuyang', ['滕公'] = 'tenggong',
   ['春申君'] = 'chunshenjun', ['庄贾'] = 'zhuangjia', ['太子丹'] = 'taizidan',
   ['吕不韦'] = 'lvbuwei',
+  -- 第三批(2026-10-11)
+  ['高渐离'] = 'gaojianli', ['项燕'] = 'xiangyan', ['项伯'] = 'xiangbo',
+  ['陈豨'] = 'chenxi', ['蒯通'] = 'kuaitong', ['李园'] = 'liyuan',
+  ['王离'] = 'wangli', ['徐夫人'] = 'xufuren', ['宋义'] = 'songyi',
+  ['周文'] = 'zhouwen', ['葛婴'] = 'geying', ['田臧'] = 'tianzang',
+  ['景驹'] = 'jingju', ['侯公'] = 'hougong',
 }
 
 local BAND_WARNS = {

@@ -17,7 +17,11 @@ NAMES = ["mengtian", "chensheng", "fusu", "hanfei", "hanxin", "huhai",
          # 第二批角色(2026-10-11)
          "lvhou", "xiangliang", "xiangzhuang", "chenping", "yuji", "mengjia",
          "yingbu", "qinwuyang", "tenggong", "chunshenjun",
-         "zhuangjia", "taizidan", "lvbuwei"]
+         "zhuangjia", "taizidan", "lvbuwei",
+         # 第三批角色(2026-10-11)
+         "gaojianli", "xiangyan", "xiangbo", "chenxi", "kuaitong", "liyuan",
+         "wangli", "xufuren", "songyi", "zhouwen", "geying", "tianzang",
+         "jingju", "hougong"]
 
 DST = "assets/image/portraits"
 ok, bad = 0, []
