@@ -4,6 +4,7 @@ local UI = require("urhox-libs/UI")
 local T = require("qingshi/ui/theme")
 local Store = require("qingshi/store")
 local Radar = require("qingshi/ui/radar")
+local Voice = require("qingshi/ui/voice")
 
 local M = {}
 
@@ -274,6 +275,7 @@ function M.attach(Shell)
     end
     S.scrollMainTop()
     S.renderSide(ch.intro)
+    Voice.Play(Voice.IntroPaths(g().d.SCENARIO.id, ch.id))
     S.revealSegs(items, function()
       S.clearOpts()
       env.optBox:AddChild(T.Btn { text = '继 续', variant = 'primary', size = T.FS.ui, w = 200,
@@ -304,6 +306,7 @@ function M.attach(Shell)
     for _, s in ipairs(segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
     S.renderSide(segs)
+    Voice.Play(Voice.SegPaths(g().d.SCENARIO.id, ch.id, ev.id))
     S.revealSegs(items, function() M.renderOptions() end)
   end
 
@@ -350,6 +353,10 @@ function M.attach(Shell)
     local r = gg:choose(i)
     if not r then S.thawOpts('这个选项眼下走不通（已试过或条件已变）。') return end
     env.lastSettleText = r.text
+    -- 选项结算朗读:取本事件下第 i 条结算音频(仅未触发结局时;触发结局会转 renderEnding 播结局旁白)
+    if not r.forcedEnding then
+      Voice.Play({ Voice.OptPath(gg.d.SCENARIO.id, gg:chapter().id, gg.eventId, i) })
+    end
     local title = r.risk and gg:riskTitle(r) or ''
     S.showSettle(title, r.text, r.changes, r.devDelta, r.achNew, r.bandUp and r.bandName or nil, function()
       if r.failed then
@@ -376,6 +383,7 @@ function M.attach(Shell)
     for _, s in ipairs(v.segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
     S.renderSide(v.segs)
+    Voice.Play(Voice.CardPaths(gg.d.SCENARIO.id, v.id))
     S.revealSegs(items, function() M.renderChoiceOptions(v) end)
   end
 
@@ -401,6 +409,9 @@ function M.attach(Shell)
     local r = gg:chooseCardOption(i)
     if not r then S.thawOpts('这一抉择眼下走不通（状态已变）。') return end
     env.lastSettleText = r.text
+    if not r.forcedEnding then
+      Voice.Play({ Voice.OptPath(gg.d.SCENARIO.id, gg:chapter().id, gg.pendingCardId, i) })
+    end
     S.showSettle('抉择', r.text, r.changes, r.devDelta, r.achNew, nil, function()
       if r.forcedEnding then S.handleRoute(gg:proceed()) return end
       if r.forcedKey then M.renderEvent() return end
@@ -545,6 +556,7 @@ function M.attach(Shell)
     for _, s in ipairs(ev.segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
     S.renderSide(ev.segs)
+    Voice.Play(Voice.SegPaths(g().d.SCENARIO.id, g():chapter().id, ev.id))
     S.revealSegs(items, function()
       for i, o in ipairs(ev.options) do
         local c = o.req and g():check(o.req) or { ok = true, reason = nil }
@@ -635,6 +647,7 @@ function M.attach(Shell)
     mainAdd(UI.Row { justifyContent = "center", marginBottom = 12, children = {
       UI.Panel { width = 60, height = 2, backgroundColor = C.gold } } })
     if en.achNew then mainAdd(T.lbl { t = '成就解锁 ｜ ' .. en.achNew, size = T.FS.note, color = C.gold, mb = 8 }) end
+    Voice.Play(Voice.EndingPath(gg.d.SCENARIO.id, en.id, en.variant))
     mainAdd(segW(en.zhuan))
     if en.aliveNote then mainAdd(T.lbl { t = en.aliveNote, size = T.FS.note, color = C.qing, mb = 6 }) end
     mainAdd(T.lbl { t = '评 分', size = T.FS.ui, color = C.warn, mt = 12, mb = 6 })

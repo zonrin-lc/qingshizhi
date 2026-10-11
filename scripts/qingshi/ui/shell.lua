@@ -3,6 +3,7 @@
 -- 底栏选项横向排列(超宽自动换行),决策不再占整块竖向空间。
 local UI = require("urhox-libs/UI")
 local T = require("qingshi/ui/theme")
+local Voice = require("qingshi/ui/voice")
 
 local Shell = {}
 
@@ -113,6 +114,7 @@ function Shell.clearMain()
   -- 先 cancel 后 clear:cancelReveal 会把未播完的段落 AddChild 回 mainBox,
   -- 顺序颠倒会让上一页的残留文本混进新页面
   Shell.cancelReveal()
+  Voice.Stop()                     -- 切页即停当前朗读;各页 renderX 随后按新内容重新 Play
   T.destroyChildren(env_.mainBox)
 end
 
@@ -156,6 +158,7 @@ function Shell.Update(timeStep)
   if Shell.tickMenuAnim then Shell.tickMenuAnim(timeStep) end
   -- 选择页齿轮等常驻自绘控件
   if Shell.tickWidgets then Shell.tickWidgets(timeStep) end
+  Voice.Update()                   -- 朗读:当前段播完自动续播下一段
   local rv = Shell.revealing
   if not rv then return end
   rv.timer = rv.timer + timeStep
