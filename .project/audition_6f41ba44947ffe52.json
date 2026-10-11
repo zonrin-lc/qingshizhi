@@ -1,0 +1,39 @@
+{
+  "version": "2.0",
+  "provider": "elevenlabs",
+  "character_name": "说书人",
+  "character_description": "成年男性，四十至五十岁，低沉稳重的中音，嗓音略带沙哑的颗粒质感，气息绵长。语速缓慢从容，字字清晰，句尾微微下沉，有停顿与留白。情感克制而苍凉，带历史叙事的厚重感与俯瞰众生的悲悯，不煽情、不夸张。风格为中国古典史书说书人、纪录片旁白式的念白，庄重典雅。专业录音棚音质，发音清晰饱满，无背景噪音。",
+  "audition_line": "吏舍后的厕中，几只老鼠瘦小惊惶，毛色灰败，肋骨根根可数，一见人影便炸开般四散窜入墙缝，只留一片窸窣的余响在暗处慢慢熄灭。午后你入粮仓盘账。仓中之鼠肥硕安闲，踞于粟积之下，见人不避，须眉皆油光，一双小眼懒洋洋地眯着，仿佛满仓粟米天经地义就该归它所有。",
+  "created_at": "2026-10-11T13:28:47.049Z",
+  "recommended_index": 1,
+  "candidates": [
+    {
+      "index": 1,
+      "provider": "elevenlabs",
+      "generated_voice_id": "BVxXjUfeDE0A9Luh1ynb",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_1_1791725296144.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_1_1791725296144.mp3",
+      "duration_seconds": 45.559416666666664,
+      "description": "成年男性，四十至五十岁，低沉稳重的中音，嗓音略带沙哑的颗粒质感，气息绵长。语速缓慢从容，字字清晰，句尾微微下沉，有停顿与留白。情感克制而苍凉，带历史叙事的厚重感与俯瞰众生的悲悯，不煽情、不夸张。风格为中国古典史书说书人、纪录片旁白式的念白，庄重典雅。专业录音棚音质，发音清晰饱满，无背景噪音。"
+    },
+    {
+      "index": 2,
+      "provider": "elevenlabs",
+      "generated_voice_id": "HUavv4Y01jLfWoHkYyAv",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_2_1791725312253.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_2_1791725312253.mp3",
+      "duration_seconds": 42.68595833333333,
+      "description": "成年男性，四十至五十岁，低沉稳重的中音，嗓音略带沙哑的颗粒质感，气息绵长。语速缓慢从容，字字清晰，句尾微微下沉，有停顿与留白。情感克制而苍凉，带历史叙事的厚重感与俯瞰众生的悲悯，不煽情、不夸张。风格为中国古典史书说书人、纪录片旁白式的念白，庄重典雅。专业录音棚音质，发音清晰饱满，无背景噪音。"
+    },
+    {
+      "index": 3,
+      "provider": "elevenlabs",
+      "generated_voice_id": "UMYNVxb0EukrOJfBL0hM",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_3_1791725326870.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_6f41ba44947ffe52_candidate_3_1791725326870.mp3",
+      "duration_seconds": 44.044291666666666,
+      "description": "成年男性，四十至五十岁，低沉稳重的中音，嗓音略带沙哑的颗粒质感，气息绵长。语速缓慢从容，字字清晰，句尾微微下沉，有停顿与留白。情感克制而苍凉，带历史叙事的厚重感与俯瞰众生的悲悯，不煽情、不夸张。风格为中国古典史书说书人、纪录片旁白式的念白，庄重典雅。专业录音棚音质，发音清晰饱满，无背景噪音。"
+    }
+  ],
+  "use_voice_design": true
+}

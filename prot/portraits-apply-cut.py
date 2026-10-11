@@ -13,7 +13,11 @@ from PIL import Image
 NAMES = ["mengtian", "chensheng", "fusu", "hanfei", "hanxin", "huhai",
          "jingke", "lisi", "xiangyu", "xiaohe", "yingzheng", "zhanghan", "zhaogao",
          # 第一批补充角色(2026-10-11)
-         "liyou", "fankuai", "xunqing", "pengyue", "zhangliang", "wuguang"]
+         "liyou", "fankuai", "xunqing", "pengyue", "zhangliang", "wuguang",
+         # 第二批角色(2026-10-11)
+         "lvhou", "xiangliang", "xiangzhuang", "chenping", "yuji", "mengjia",
+         "yingbu", "qinwuyang", "tenggong", "chunshenjun",
+         "zhuangjia", "taizidan", "lvbuwei"]
 
 DST = "assets/image/portraits"
 ok, bad = 0, []
