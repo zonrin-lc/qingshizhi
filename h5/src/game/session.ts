@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 对局会话:驱动引擎相位并渲染视图。
  *
  * 控制流严格对齐 Lua 版 scripts/qingshi/ui/game.lua 的 handleRoute /
@@ -10,6 +10,8 @@
 import type { AttrKey, CardResult, ChangeView, Game, Route, ScenarioData, SummaryView } from '../../types/scenario';
 import { parseRuns } from './gloss';
 import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
+import { renderRadar } from '../ui/radar';
+import lisiPortrait from '../assets/portrait/lisi.webp';
 
 /** 右栏要显示的属性(Lua 版「身外」那一组) */
 const SHOWN_ATTRS: AttrKey[] = ['caifu', 'shengwang', 'quanshi', 'zhengji', 'junxin', 'weiji'];
@@ -57,12 +59,20 @@ export class Session {
   renderTop(): void {
     const g = this.game;
     const ch = g.chapter();
-    let title = ch?.title ?? '';
+    // 顶栏格式对齐参考图:「李斯·仓鼠之局 ｜ 第五章 初见秦王」
+    const sc = this.data.SCENARIO;
+    let right = ch?.title ?? '';
     if (ch && (g.phase === 'round' || g.phase === 'event')) {
       const p = g.chapterProgress();
-      title += ` · ${p.done}/${p.total}`;
+      right += ` · ${p.done}/${p.total}`;
     }
-    this.chapEl.textContent = title;
+    this.chapEl.innerHTML = '';
+    const left = el('span', 'stage__sc');
+    left.textContent = sc.name;
+    const sep = el('span', 'stage__sep', '｜');
+    const r = el('span', 'stage__ch');
+    r.textContent = right;
+    this.chapEl.append(left, sep, r);
 
     const band = this.data.DEV_BANDS[g.devBand()];
     if (band) {
@@ -74,8 +84,8 @@ export class Session {
     // 回溯:常驻但不可用时压暗(对齐 Lua shell.lua:113-115)
     const can = g.canBacktrack();
     const quota = g.diff.backtrack;
-    const left = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
-    this.backBtn.textContent = left === null ? '回溯' : `回溯 ${left}`;
+    const left2 = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
+    this.backBtn.textContent = left2 === null ? '回溯' : `回溯 ${left2}`;
     this.backBtn.classList.toggle('is-locked', !can);
     if (can) this.backBtn.removeAttribute('aria-disabled');
     else this.backBtn.setAttribute('aria-disabled', 'true');
@@ -162,6 +172,33 @@ export class Session {
     clear(this.opts);
   }
 
+  /**
+   * 立绘。P3 只交付了李斯一张,其余剧本/章节走空态框——
+   * 与用户确认过的取舍:不拿李斯顶替其他剧本,免得误导。
+   */
+  private portrait(): HTMLElement {
+    const box = el('div', 'portrait');
+    const isLisi = this.data.SCENARIO.id === 'lisi';
+    if (isLisi) {
+      const img = el('img', 'portrait__img');
+      img.src = lisiPortrait;
+      img.alt = '李斯';
+      img.loading = 'eager';
+      box.append(img);
+    } else {
+      box.classList.add('portrait--empty');
+      box.append(lbl('立绘待补', ''));
+    }
+    // 参考图里立绘下只写人物名(「— 李斯 —」),不写剧本名
+    box.append(lbl(this.data.SCENARIO.name.split(/[·・]/)[0] ?? this.data.SCENARIO.name, 'portrait__name'));
+    return box;
+  }
+
+  /** 叙事正文容器(与立绘并排) */
+  private proseBody(): HTMLElement {
+    return el('div', 'prose-body');
+  }
+
   // ---------- 结算浮层 ----------
 
   private showSettle(title: string, text: string | null, changes: ChangeView[], body?: string): void {
@@ -224,15 +261,18 @@ export class Session {
     if (!ch) return;
     this.lastSettleText = null;
 
-    if (ch.sub) this.main.append(lbl(ch.sub, 'u-dim chapter__sub'));
+    this.main.append(this.portrait());
+    const body = this.proseBody();
+    this.main.append(body);
+    if (ch.sub) body.append(lbl(ch.sub, 'u-dim chapter__sub'));
     // 「第一章 ｜ 兰陵问道」取竖线后的主标题
-    this.main.append(lbl(this.shortTitle(ch.title), 'chapter__title u-kai u-heavy'));
-    this.main.append(el('div', 'rule'));
-    for (const seg of ch.intro ?? []) this.main.append(this.prose(seg));
-    for (const n of this.game.introNotes) this.main.append(lbl(n, 'intro-note u-qing'));
+    body.append(lbl(this.shortTitle(ch.title), 'chapter__title u-kai u-heavy'));
+    body.append(el('div', 'rule'));
+    for (const seg of ch.intro ?? []) body.append(this.prose(seg));
+    for (const n of this.game.introNotes) body.append(lbl(n, 'intro-note u-qing'));
     // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
     if (fromBacktrack) {
-      this.main.append(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
+      body.append(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
     }
 
     this.opts.append(btn('继 续', { variant: 'primary', onClick: () => this.route(this.game.beginEvents()) }));
@@ -261,13 +301,18 @@ export class Session {
 
     const ch = g.chapter();
     if (ch) this.main.append(lbl(ch.title, 'u-dim chapter__sub'));
+    // 回合页也要立绘:否则剧情卷轴整块空着,右侧属性卷轴又满,
+    // 视觉重心全偏在一半屏幕上(参考图的回合页同样有立绘与回显文案)。
+    this.main.append(this.portrait());
+    const body = this.proseBody();
+    this.main.append(body);
     if (this.lastSettleText) {
-      this.main.append(this.prose(this.lastSettleText, 'prose settle-recall u-dim'));
+      body.append(this.prose(this.lastSettleText, 'prose settle-recall u-dim'));
     }
 
     const key = offer.find((e) => e.type === 'key');
     if (key && key.type === 'key') {
-      this.main.append(
+      body.append(
         el(
           'div',
           'prompt',
@@ -342,10 +387,13 @@ export class Session {
     const inserted = g.currentRandom != null;
     const ch = g.chapter();
     const kicker = inserted ? '际遇 · 随机事件' : this.chapterNo(ch?.title ?? '');
-    if (kicker) this.main.append(lbl(kicker, 'u-dim chapter__sub'));
-    this.main.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
-    this.main.append(el('div', 'rule'));
-    for (const seg of ev.segs ?? []) this.main.append(this.prose(seg));
+    this.main.append(this.portrait());
+    const body = this.proseBody();
+    this.main.append(body);
+    if (kicker) body.append(lbl(kicker, 'u-dim chapter__sub'));
+    body.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
+    body.append(el('div', 'rule'));
+    for (const seg of ev.segs ?? []) body.append(this.prose(seg));
     this.renderOptions();
   }
 
@@ -663,15 +711,29 @@ export class Session {
     this.renderIntro();
   }
 
-  /** 右栏属性(P2 用列表;P3 换雷达图) */
-  attrRows(): HTMLElement[] {
-    return SHOWN_ATTRS.map((k) => {
+  /**
+   * 右栏内容:雷达(自身五维) + 条形(身外六维) + 页脚(偏离/年龄)。
+   * 对应参考图右栏的属性卷轴布局。
+   */
+  sideContent(): Element[] {
+    const nodes: Element[] = [lbl('属 性', 'side__title u-kai'), renderRadar(this.game)];
+    for (const k of SHOWN_ATTRS) {
       const v = this.game.attrs[k] ?? 0;
       const shown = this.game.diff.hideAttrs ? this.game.attrWord(k) : String(v);
       const row = kv(this.data.ATTR_NAMES[k], shown);
-      row.append(meter((v / this.game.attrMax(k)) * 100, k === 'weiji' ? 'var(--zhu)' : 'var(--gold)'));
-      return row;
-    });
+      row.append(meter((v / this.game.attrMax(k)) * 100));
+      nodes.push(row);
+    }
+    // 页脚:偏离(段位) · 年岁
+    const band = this.data.DEV_BANDS[this.game.devBand()];
+    const foot = el('div', 'side__foot');
+    const ageTxt = this.game.age != null ? ` · ${this.game.age} 岁` : '';
+    foot.append(
+      el('span', 'u-zhu u-strong', `偏离 ${this.game.dev}`),
+      lbl(`(${band ? band.name : '—'})${ageTxt}`),
+    );
+    nodes.push(foot);
+    return nodes;
   }
 }
 

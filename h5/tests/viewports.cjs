@@ -29,12 +29,20 @@ const PROBE = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
-  for (let i = 0; i < 80 && g.phase !== 'round'; i++) {
-    await sleep(10);
-    const ov = q('.overlay');
-    if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(4); continue; }
-    if (g.phase === 'intro') { q('.stage__foot .btn--primary').click(); await sleep(4); }
-    else if (g.phase === 'event') { (qa('.stage__foot .card--tappable')[0]||{}).click?.(); await sleep(4); }
+  // 「是否竖屏」必须由视口方向判定,不能看引导层是否显示——
+  // 否则引导层一旦在横屏误开,测试会以为「竖屏本就不渲染对局」而直接放过,
+  // 变成假绿(这正是第一版踩的坑:1280x720 也被引导盖住却报 ok)。
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const hint = q('.rotate-hint');
+  const rotateHint = !!(hint && getComputedStyle(hint).display !== 'none');
+  if (!isPortrait) {
+    for (let i = 0; i < 80 && g.phase !== 'round'; i++) {
+      await sleep(10);
+      const ov = q('.overlay');
+      if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(4); continue; }
+      if (g.phase === 'intro') { q('.stage__foot .btn--primary').click(); await sleep(4); }
+      else if (g.phase === 'event') { (qa('.stage__foot .card--tappable')[0]||{}).click?.(); await sleep(4); }
+    }
   }
   await sleep(60);
   const stage = q('.stage'), main = q('.stage__main'), foot = q('.stage__foot'), side = q('.stage__side');
@@ -43,6 +51,9 @@ const PROBE = `(async () => {
   const sr = r(stage), mr = r(main), fr = r(foot), dr = r(side);
   return {
     phase: g.phase,
+    isPortrait,
+    rotateHint,
+    rotateHintVisible: !!hint && hint.getBoundingClientRect().height > 0,
     docOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     stageW: sr ? Math.round(sr.width) : 0,
     stageH: sr ? Math.round(sr.height) : 0,
@@ -66,18 +77,24 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     const stacked = o.sideW / o.stageW > 0.9;
     const mainShare = o.stageW ? +(o.mainW / o.stageW).toFixed(3) : 0;
     const sideShare = o.stageW ? +(o.sideW / o.stageW).toFixed(3) : 0;
+    // 竖屏改为「请横屏」引导:不再硬渲染对局,叙事区高度不再有意义
+    const portrait = o.isPortrait;
 
     const problems = [];
     if (o.docOverflowX > 0) problems.push(`横向溢出${o.docOverflowX}px`);
-    if (o.zeroCards > 0) problems.push(`压扁卡${o.zeroCards}张`);
-    if (o.phase !== 'round') problems.push('未进到回合页');
-    if (o.stageH && o.footH > o.stageH) problems.push('决策区顶穿棋盘');
-    if (stacked) { if (mainShare < 0.9) problems.push(`叙事区仅占${mainShare}`); }
-    else if (sideShare > 0.28) problems.push(`右栏过宽${sideShare}`);
-    if (o.mainW < 240) problems.push(`叙事区过窄${o.mainW}px`);
-    // 高度也要看:竖屏下顶栏/右栏条/决策区三者会把叙事区压没。
-    // 之前只断言宽度,结果叙事区一度掉到 16px(约一行字)却仍然报 ok —— 补上这条。
-    if (o.mainH < 56) problems.push(`叙事区过矮${o.mainH}px`);
+    // 引导层与朝向必须一致:竖屏该有、横屏绝不能有
+    if (portrait && !o.rotateHintVisible) problems.push('竖屏未显示转屏提示');
+    if (!portrait && o.rotateHintVisible) problems.push('横屏竟显示转屏提示');
+    if (!portrait) {
+      if (o.zeroCards > 0) problems.push(`压扁卡${o.zeroCards}张`);
+      if (o.phase !== 'round') problems.push('未进到回合页');
+      if (o.stageH && o.footH > o.stageH) problems.push('决策区顶穿棋盘');
+      if (stacked) { if (mainShare < 0.9) problems.push(`叙事区仅占${mainShare}`); }
+      else if (sideShare > 0.28) problems.push(`右栏过宽${sideShare}`);
+      if (o.mainW < 240) problems.push(`叙事区过窄${o.mainW}px`);
+      // 高度也要看:之前只断言宽度,叙事区一度掉到 16px 却仍报 ok —— 补上这条。
+      if (o.mainH < 56) problems.push(`叙事区过矮${o.mainH}px`);
+    }
 
     rows.push([name, problems]);
     console.log(
@@ -88,7 +105,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
         String(o.footH).padEnd(8) +
         String(o.cards).padEnd(6) +
         String(o.docOverflowX).padEnd(9) +
-        (stacked ? `main${mainShare}` : `side${sideShare}`).padEnd(9) +
+        (portrait ? '转屏提示' : stacked ? `main${mainShare}` : `side${sideShare}`).padEnd(9) +
         (problems.length ? 'FAIL ' + problems.join('/') : 'ok'),
     );
   }

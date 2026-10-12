@@ -102,12 +102,12 @@ export function kv(label: string, value: string): HTMLElement {
   return row;
 }
 
-/** 细进度条 */
-export function meter(pct: number, color: string): HTMLElement {
+/** 细进度条。color 省略时走 CSS 的金色渐变(见 art.css .meter__fill) */
+export function meter(pct: number, color?: string): HTMLElement {
   const track = el('div', 'meter');
   const fill = el('div', 'meter__fill');
   fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
-  fill.style.background = color;
+  if (color) fill.style.background = color;
   track.append(fill);
   return track;
 }

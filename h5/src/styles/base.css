@@ -57,8 +57,12 @@
 
   /* ---------- 字体栈 ----------
      楷体用于叙事/标题(古籍感),宋体作正文兜底,无衬线作 UI。
-     刻意不内嵌霞鹜文楷:该字体 1.39MB,首屏体积预算留给 P6 瘦身时再议。 */
-  --font-kai: 'LXGW WenKai', '霞鹜文楷', 'Kaiti SC', 'STKaiti', KaiTi, '楷体', serif;
+     刻意不内嵌霞鹜文楷:该字体 1.39MB,首屏体积预算留给 P6 瘦身时再议。
+
+     ⚠ 顺序有讲究:STKaiti(华文楷体)必须排在 KaiTi 之后。
+     STKaiti 的笔画本身是斜的,放在前面会让全站正文变成一种仿手写斜体,
+     与参考图的端正楷体差很远。KaiTi(Windows 的 simkai.ttf)才是正解。 */
+  --font-kai: 'LXGW WenKai', '霞鹜文楷', KaiTi, '楷体', 'Kaiti SC', STKaiti, serif;
   --font-song: 'Songti SC', 'STSong', 'Source Han Serif SC', 'Noto Serif SC', SimSun, '宋体', serif;
   --font-sans: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui,
     -apple-system, 'Segoe UI', sans-serif;

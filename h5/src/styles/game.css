@@ -104,18 +104,23 @@
   justify-content: center;
   gap: var(--sp-sm);
   overflow-y: auto;
+  /* P3:底图由 .stage 承担,决策区必须透明,
+     否则会在棋盘底部压出一条与背景割裂的米色带。 */
+  background: transparent;
+  border-top: 0;
 }
 
 .card {
-  flex: 1 1 12rem;
-  max-width: 22rem;
-  min-width: 10rem;
-  padding: var(--sp-sm) var(--sp-md);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-md);
-  background: var(--paper-card);
-  color: var(--ink);
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  flex: 1 1 9rem;
+  max-width: 15rem;
+  min-width: 8rem;
+  padding: var(--sp-xs) var(--sp-md);
+  border-style: solid;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+/* 决策区在棋盘底部,卡片整体上移一点,别贴着屏幕边缘 */
+.stage__foot {
+  padding: var(--sp-sm) var(--sp-lg) var(--sp-md);
 }
 .card--tappable {
   cursor: pointer;
@@ -516,9 +521,10 @@
     line-height: 1.75;
   }
 
-  /* 决策区限高:百分比相对 .stage 的确定高度,竖屏下才不会顶穿棋盘 */
+  /* 决策区限高:百分比相对 .stage 的确定高度,竖屏下才不会顶穿棋盘。
+   * 46% 在 360px 高的横屏上会把叙事区压到 50px 出头,收到 30%。 */
   .stage__foot {
-    max-height: 46%;
+    max-height: 30%;
     padding: var(--sp-xs) var(--sp-sm);
   }
   .card {

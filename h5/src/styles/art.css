@@ -1,0 +1,528 @@
+/* ============================================================================
+ * P3 美术层
+ *
+ * 只管「贴图」:背景、九宫格面板、按钮底、装饰枝叶。
+ * 布局与语义仍在 stage.css / game.css,两者靠类名叠加,不互相覆盖选择器。
+ *
+ * 九宫格说明:卷轴/面板/卡片都是「固定角 + 可拉伸中段」的结构,
+ * 用 border-image-slice 一次搞定任意尺寸,且中段拉伸的是平铺纸纹,不会失真。
+ * slice 值是对着源图量出来的——改素材尺寸时必须同步复核这几个数字。
+ * ==========================================================================*/
+
+/* ---------- 背景层 ---------- */
+.stage {
+  background-color: var(--paper);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+.stage[data-bg='game']     { background-image: url('../assets/bg/game.webp'); }
+.stage[data-bg='select']   { background-image: url('../assets/bg/select.webp'); }
+.stage[data-bg='save']     { background-image: url('../assets/bg/save.webp'); }
+.stage[data-bg='settings'] { background-image: url('../assets/bg/settings.webp'); }
+.stage[data-bg='summary']  { background-image: url('../assets/bg/summary.webp'); }
+.stage[data-bg='ending']   { background-image: url('../assets/bg/ending.webp'); }
+
+/* ---------- 九宫格面板 ---------- */
+
+/* 剧情卷轴:左右是木质轴杆,上下是平金线。左右切片要含整根轴杆 */
+.panel-scroll {
+  border-image: url('../assets/panel/scroll-main.webp') 50 62 50 62 fill;
+  border-image-width: 50px 62px 50px 62px;
+  border-style: solid;
+}
+
+/* 属性面板:圆角矩形 + 内嵌双金线 + 四角回纹。
+ * 切片必须比剧情卷轴小很多:右栏本身只有 ~15rem 宽,
+ * 62px 的四边切片会吃掉 124px,正文只剩几十像素,属性行全被挤扁。 */
+.panel-plain {
+  border-image: url('../assets/panel/attr.webp') 62 fill;
+  border-image-width: 26px;
+  border-style: solid;
+}
+
+/* 章末 / 结局卷轴:同族圆角卷轴,换一张底 */
+.panel-scroll--summary { border-image: url('../assets/panel/scroll-summary.webp') 62 fill; border-image-width: 62px; }
+.panel-scroll--ending  { border-image: url('../assets/panel/scroll-ending.webp')  62 fill; border-image-width: 62px; }
+
+/* 弹窗:四角有祥云头饰,切片要给够角饰 */
+.panel-dialog {
+  border-image: url('../assets/panel/dialog.webp') 78 fill;
+  border-image-width: 78px;
+  border-style: solid;
+}
+.panel-dialog--tall {
+  border-image: url('../assets/panel/dialog-tall.webp') 78 fill;
+  border-image-width: 78px;
+}
+
+/* 选项卡:八角切角 + 两侧菱形饰 */
+.card {
+  border-image: url('../assets/card/card.webp') 58 fill;
+  border-image-width: 58px;
+  border-style: solid;
+  background-color: transparent;
+  border-color: transparent;
+}
+.card--tappable:hover,
+.card--tappable:focus-visible,
+.card.is-hi {
+  border-image-source: url('../assets/card/card-hi.webp');
+  background-color: transparent;
+}
+.card.is-locked {
+  border-image-source: url('../assets/card/card.webp');
+  opacity: 0.5;
+}
+
+/* ---------- 按钮底 ---------- */
+.btn {
+  border: 0;
+  background: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  color: var(--ink-strong);
+  padding: var(--sp-xs) calc(var(--sp-md) + 2.2rem);
+  min-height: 2.6rem;
+}
+.btn--primary {
+  border-image: url('../assets/btn/ok.webp') 38 44 38 44 fill;
+  border-image-width: 38px 44px 38px 44px;
+  border-style: solid;
+  color: var(--zhu-hi);
+  font-weight: 700;
+}
+.btn--ghost {
+  border-image: url('../assets/btn/ghost.webp') 38 44 38 44 fill;
+  border-image-width: 38px 44px 38px 44px;
+  border-style: solid;
+  color: var(--ink-soft);
+}
+
+/* ---------- 顶栏 ---------- */
+.stage__bar {
+  background: transparent;
+  border-bottom: 0;
+  padding: var(--sp-sm) var(--sp-lg);
+  align-items: center;
+}
+.stage__chap {
+  font-size: var(--fs-title);
+  color: var(--ink-heavy);
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+.stage__sc {
+  font-weight: 700;
+}
+.stage__sep {
+  color: var(--gold);
+  margin: 0 0.5rem;
+}
+.stage__ch {
+  color: var(--ink-strong);
+}
+/* 标题下的金线 + 菱形饰 */
+.stage__rule {
+  height: 1.7rem;
+  margin: 0.15rem auto 0;
+  width: min(34rem, 70%);
+  background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
+}
+.stage__band {
+  color: var(--zhu);
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+  min-width: 5.5rem;
+  text-align: right;
+}
+
+/* 朱漆牌匾。
+ * 注意:backbtn 元素上同时挂着 .btn / .btn--ghost(来自 kit.btn 工厂),
+ * 必须显式把 border-image 关掉,否则通用按钮的九宫格会盖在红漆底图上,
+ * 表现为一圈很淡的描边。 */
+.topbtn,
+.backbtn {
+  border-image: none;
+  border: 0;
+}
+.topbtn--back {
+  background-image: url('../assets/btn/back.webp');
+  width: 8.4rem;
+  height: 3rem;
+  background-size: 100% 100%;
+  color: var(--ink-strong);
+  font-size: var(--fs-ui);
+}
+/* 朱漆牌匾 */
+.backbtn {
+  background-image: url('../assets/btn/backtrack.webp');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  width: 9.6rem;
+  height: 3rem;
+  cursor: pointer;
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.1em;
+  color: #f6efe0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  /* 「回溯 1」必须一行,牌匾高度不够换行会溢出红漆底 */
+  white-space: nowrap;
+}
+.backbtn.is-locked {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+/* ---------- 装饰枝叶 ---------- */
+/* 装饰在 .stage__deco 层里,pointer-events:none,不吃点击 */
+.stage__deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.deco-plum-tr {
+  position: absolute;
+  top: -1.5rem;
+  right: -1rem;
+  width: 22rem;
+  max-width: 46vw;
+  background: url('../assets/decor/plum-tr.webp') right top / contain no-repeat;
+  aspect-ratio: 509 / 515;
+}
+.deco-bamboo-l {
+  position: absolute;
+  left: -1.5rem;
+  bottom: 1rem;
+  width: 15rem;
+  max-width: 38vw;
+  background: url('../assets/decor/bamboo-l.webp') left bottom / contain no-repeat;
+  aspect-ratio: 475 / 795;
+}
+
+/* ---------- 剧情卷轴内布局 ---------- */
+.stage__main,
+.stage__side,
+.stage__foot {
+  position: relative;
+  z-index: 2;
+}
+.stage__main {
+  display: flex;
+  gap: var(--sp-lg);
+  align-items: flex-start;
+  background: transparent;
+}
+.stage__side {
+  background: transparent;
+  border-left: 0;
+}
+
+/* 立绘 */
+.portrait {
+  flex: 0 0 auto;
+  width: 13rem;
+  max-width: 34%;
+  text-align: center;
+}
+.portrait__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* 立绘是白底抠图,直接铺在纸面上 */
+  mix-blend-mode: multiply;
+}
+.portrait__name {
+  margin-top: var(--sp-xs);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.4em;
+  color: var(--ink-strong);
+}
+.portrait--empty {
+  opacity: 0.4;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-lg) var(--sp-sm);
+  color: var(--ink-dim);
+  font-size: var(--fs-cap);
+}
+
+.prose-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 分隔题签:换成金线 + 菱形贴图 */
+.divider {
+  background: none;
+  gap: 0;
+}
+.divider__rule,
+.divider__gem {
+  display: none;
+}
+.divider__txt {
+  position: relative;
+  padding: 0.9rem 0 0;
+  width: 100%;
+  background: url('../assets/deco/rule-thin.webp') center top / 100% 0.6rem no-repeat;
+  color: var(--ink-soft);
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+.rule {
+  height: 0.85rem;
+  width: 60%;
+  margin: 0 auto var(--sp-sm);
+  background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
+}
+
+/* ---------- 属性面板 ---------- */
+.side__title {
+  color: var(--ink-strong);
+  letter-spacing: 0.5em;
+  font-size: var(--fs-title);
+  text-align: center;
+}
+.radar {
+  display: block;
+  width: 100%;
+  max-width: 17rem;
+  margin: var(--sp-xs) auto var(--sp-sm);
+  overflow: visible;
+}
+.radar__ring {
+  stroke: var(--line);
+  stroke-width: 0.6;
+}
+.radar__ring--outer {
+  stroke: var(--gold);
+  stroke-width: 1;
+}
+.radar__axis {
+  stroke: var(--line-soft);
+  stroke-width: 0.6;
+}
+.radar__data {
+  fill: rgba(176, 67, 47, 0.28);
+  stroke: var(--zhu);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.radar__dot {
+  fill: var(--zhu);
+}
+.radar__label {
+  font-family: var(--font-kai);
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+.radar__label--name {
+  font-size: 10px;
+  fill: var(--ink-strong);
+}
+.radar__label--val {
+  font-size: 9px;
+  fill: var(--zhu);
+}
+
+/* 属性行:名称 + 数值一行,进度条另起一行。
+ * 不能继续用 .kv 的 flex-row —— meter 是被 append 进 .kv 的第三个子元素,
+ * 在 row 里会把标签挤到一个字宽(约 18px),中文于是逐字竖排。 */
+.stage__side .kv {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'k . v' 'm m m';
+  column-gap: var(--sp-sm);
+  align-items: baseline;
+  margin-bottom: var(--sp-sm);
+  font-size: var(--fs-ui);
+}
+.stage__side .kv__k { grid-area: k; color: var(--ink); white-space: nowrap; }
+.stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; }
+.stage__side .kv .meter { grid-area: m; }
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(138, 106, 52, 0.16);
+}
+.meter__fill {
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold-hi), var(--gold));
+}
+.side__foot {
+  margin-top: var(--sp-sm);
+  padding-top: var(--sp-sm);
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+}
+
+/* ---------- 浮层 ---------- */
+.overlay {
+  background: rgba(42, 37, 29, 0.34);
+  backdrop-filter: blur(1.5px);
+}
+.overlay__box {
+  background: transparent;
+  border: 0;
+  box-shadow: 0 1.2rem 3rem rgba(42, 37, 29, 0.3);
+  padding: 3.4rem 3.6rem 2.6rem;
+}
+.overlay__title {
+  color: var(--ink-heavy);
+  position: relative;
+  padding-bottom: var(--sp-md);
+}
+.overlay__title::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 0.7rem;
+  background: url('../assets/deco/rule-thin.webp') center / 100% 100% no-repeat;
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 880px) {
+  /* 雷达图在窄屏必须整块去掉,而不是缩小:
+   * svg 用 width:100% + viewBox 会等比撑高——右栏在竖排布局里整行展开时,
+   * 828px 宽的雷达会长到 856px 高,直接把叙事区挤成 22px。
+   * 改成「名称 + 数值」的紧凑横条,信息不丢。 */
+  .stage__side .radar,
+  .stage__side .side__title,
+  .stage__side .kv .meter {
+    display: none;
+  }
+  .stage__side .kv {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-xs);
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+  /* 横向条本身要压扁:它和叙事区抢的是同一列高度 */
+  .stage__side {
+    padding: 2px var(--sp-sm);
+  }
+  .side__foot {
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    white-space: nowrap;
+  }
+
+  .panel-scroll {
+    border-image-width: 30px 38px 30px 38px;
+    border-image-slice: 50 62 50 62;
+  }
+  .panel-plain {
+    border-image-width: 34px;
+    border-image-slice: 62 fill;
+  }
+  .card {
+    border-image-width: 34px;
+    border-image-slice: 58 fill;
+  }
+  .btn {
+    padding: var(--sp-xs) var(--sp-md);
+    border-image-width: 24px 28px 24px 28px;
+    border-image-slice: 38 44 38 44 fill;
+  }
+  .topbtn--back,
+  .backbtn {
+    width: 6rem;
+    height: 2.2rem;
+    font-size: var(--fs-cap);
+  }
+  .stage__bar {
+    padding: var(--sp-xs) var(--sp-sm);
+  }
+  .portrait {
+    width: 7rem;
+  }
+  .deco-plum-tr {
+    width: 12rem;
+  }
+  .deco-bamboo-l {
+    width: 9rem;
+  }
+  .overlay__box {
+    padding: 1.8rem 1.6rem 1.4rem;
+  }
+}
+
+/* ============================================================================
+ * 竖屏引导(替代硬塞对局)
+ *
+ * 竖屏下 .stage 被压成 16:9(390x844 → 390x219)。再怎么收边距,
+ * 219px 的棋盘也放不下「带九宫格边框的剧情卷轴 + 属性条 + 决策区 + 正文」——
+ * 实测边框收到 14px、决策区收到 28% 之后,叙事区仍只剩 22px。
+ *
+ * 所以竖屏不再硬渲染对局,直接给「请横屏」提示。这原属 P6 的预置项,
+ * 提前落地是因为美术一上来(边框变厚、雷达进右栏)就把竖屏彻底压垮了。
+ * 横屏 640px 起一切正常,不受影响。
+ * ==========================================================================*/
+@media (orientation: portrait) {
+  .stage__foot {
+    max-height: 30%;
+  }
+}
+
+.rotate-hint {
+  /* 默认不显示,只在竖屏出现。
+     写成默认 display:flex 会让横屏也被引导盖住 —— 整个对局直接看不见。 */
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  text-align: center;
+  padding: var(--sp-lg);
+  background: rgba(246, 239, 224, 0.97);
+}
+@media (orientation: portrait) {
+  .rotate-hint { display: flex; }
+}
+.rotate-hint__icon {
+  width: 3.4rem;
+  height: 5.4rem;
+  border: 2px solid var(--gold);
+  border-radius: var(--r-sm);
+  animation: rotate-nudge 2.6s ease-in-out infinite;
+}
+.rotate-hint__txt {
+  font-family: var(--font-kai);
+  font-size: var(--fs-title);
+  color: var(--ink-strong);
+  letter-spacing: 0.3em;
+  margin: 0;
+}
+.rotate-hint__sub {
+  font-size: var(--fs-note);
+  color: var(--ink-dim);
+  margin: 0;
+}
+@keyframes rotate-nudge {
+  0%, 45%  { transform: rotate(0deg); }
+  60%, 90% { transform: rotate(-90deg); }
+  100%     { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rotate-hint__icon {
+    animation: none;
+    transform: rotate(-90deg);
+  }
+}

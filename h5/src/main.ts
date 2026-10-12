@@ -1,19 +1,20 @@
 /**
- * H5 入口。
+ * H5 入口 / 页面装配。
  *
- * P2 起不再只是「壳子就位」:这里起一局真实对局(李斯 · 普通难度),
- * 走完「序章 → 关键事件 → 选项 → 属性增减 → 行动卡 → 章末 → 下一章」全链路。
+ * P3 起：起一局真实对局(李斯 · 普通难度),走完
+ * 「序章 → 关键事件 → 选项 → 属性增减 → 行动卡 → 章末 → 下一章」全链路。
  * 启动时的冒烟自检保留,用于证明 @engine / @data 两条链路在浏览器里仍然通。
  */
 import './styles/base.css';
 import './styles/stage.css';
 import './styles/game.css';
+import './styles/art.css';
 
 import engine from '@engine';
 import type { DiffKey } from '../types/scenario';
 import { getScenario, SCENARIOS } from './data/scenarios';
 import { initScale, logScale } from './shell/scale';
-import { buildShell, renderSide } from './shell/shell';
+import { buildShell, renderSide, setBg, setDeco, wireBack } from './shell/shell';
 import { Session } from './game/session';
 import { lbl, btn } from './ui/kit';
 
@@ -48,9 +49,8 @@ function smokeGame(): string {
     guard += 1;
     const ph = g.phase;
     if (ph === 'intro') g.beginEvents();
-    else if (ph === 'round') {
-      if (!g.playCard(0)) g.playCard(1);
-    } else if (ph === 'event') {
+    else if (ph === 'round') { if (!g.playCard(0)) g.playCard(1); }
+    else if (ph === 'event') {
       const opts = g.getOptions();
       for (let i = 0; i < opts.length; i += 1) {
         const o = opts[i];
@@ -58,8 +58,7 @@ function smokeGame(): string {
       }
     } else if (ph === 'choice') {
       const c = g.getChoiceCard();
-      if (c && c.options.length) g.chooseCardOption(0);
-      else g.cancelChoice();
+      if (c && c.options.length) g.chooseCardOption(0); else g.cancelChoice();
     } else if (ph === 'settle') g.proceed();
     else if (ph === 'correction') g.correctionContinue();
     else if (ph === 'summary') g.proceedSummary();
@@ -89,55 +88,53 @@ function bootstrap(): void {
 
   if (problems.length > 0) {
     console.error('[青史志] 自检未通过:', problems);
-  } else {
-    console.info('[青史志] 自检通过 · 冒烟', smoke);
-  }
-
-  if (problems.length > 0) {
-    shell.main.append(
-      lbl('自检未通过,已阻断开局', 'u-zhu'),
-      ...problems.map((p) => lbl(p, 'u-dim')),
-    );
+    shell.main.append(lbl('自检未通过,已阻断开局', 'u-zhu'), ...problems.map((p) => lbl(p, 'u-dim')));
     shell.band.textContent = '自检未通过';
-    shell.band.classList.add('u-zhu');
     return;
   }
+  console.info('[青史志] 自检通过 · 冒烟', smoke);
 
-  // ---------- 起一局真实对局 ----------
   const lisi = getScenario('lisi');
   if (!lisi) {
     shell.main.append(lbl('剧本数据缺失', 'u-zhu'));
     return;
   }
+
+  // ---------- 起一局真实对局 ----------
+  setBg(shell.stage, 'game');
+  setDeco(shell.deco, true);
   const diff: DiffKey = 'normal';
   const g = new engine.Game(lisi.data as never, diff);
 
   const session = new Session(
     g,
-    { main: shell.main, opts: shell.foot, chap: shell.bar.querySelector('.stage__chap') as HTMLElement,
-      band: shell.band, bar: shell.bar, overlay: shell.overlay },
+    {
+      main: shell.main,
+      opts: shell.foot,
+      chap: shell.chap,
+      band: shell.band,
+      bar: shell.bar,
+      overlay: shell.overlay,
+    },
     () => {
       shell.main.replaceChildren(lbl('对局结束。可刷新重开。', 'u-dim'));
-      shell.foot.replaceChildren(
-        btn('重 开 一 局', { variant: 'primary', onClick: () => location.reload() }),
-      );
+      shell.foot.replaceChildren(btn('重 开 一 局', { variant: 'primary', onClick: () => location.reload() }));
     },
   );
 
-  // 每次相位变化都重绘右栏属性
-  const patch = (): void => renderSide(shell.side, session.attrRows());
-  const origRenderTop = (session as unknown as { renderTop: () => void }).renderTop.bind(session);
-  (session as unknown as { renderTop: () => void }).renderTop = function patched(): void {
+  // 每次相位变化都重绘右栏(雷达 + 条形 + 页脚)
+  const origRenderTop = session.renderTop.bind(session);
+  session.renderTop = function patched(this: Session): void {
     origRenderTop();
-    patch();
+    renderSide(shell.side, session.sideContent());
   };
 
-  shell.band.textContent = '';
-  shell.band.classList.remove('u-gold');
-  session.start();
+  wireBack(shell, () => {
+    shell.main.replaceChildren(lbl('返回首页（选择页 P4 接入后可用）。', 'u-dim'));
+  });
 
-  // 供控制台调试
-  (window as unknown as Record<string, unknown>).__QS__ = { session, game: g };
+  session.start();
+  (window as unknown as Record<string, unknown>).__QS__ = { session, game: g, shell };
 }
 
 if (document.readyState === 'loading') {
