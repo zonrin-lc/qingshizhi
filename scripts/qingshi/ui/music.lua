@@ -34,6 +34,30 @@ local TRACKS = {
     durInst = 194.76,
     durVocal = 228.26,
   },
+  jingke = {
+    inst = "audio/bgm_jingke_inst.ogg",
+    vocal = "audio/bgm_jingke_vocal.ogg",
+    durInst = 211.46,
+    durVocal = 219.43,
+  },
+  hanxin = {
+    inst = "audio/bgm_hanxin_inst.ogg",
+    vocal = "audio/bgm_hanxin_vocal.ogg",
+    durInst = 208.44,
+    durVocal = 230.04,
+  },
+  xiangyu = {
+    inst = "audio/bgm_xiangyu_inst.ogg",
+    vocal = "audio/bgm_xiangyu_vocal.ogg",
+    durInst = 186.62,
+    durVocal = 208.03,
+  },
+  chensheng = {
+    inst = "audio/bgm_chensheng_inst.ogg",
+    vocal = "audio/bgm_chensheng_vocal.ogg",
+    durInst = 197.64,
+    durVocal = 228.02,
+  },
 }
 
 -- 设置(由 home.lua 设置页写入)

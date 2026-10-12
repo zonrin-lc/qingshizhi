@@ -27,6 +27,7 @@ function pick(prefix, suffix, n) {
 const chapters = {};
 const endings = {};
 const cards = {};
+const specials = {};
 let count = 0;
 
 for (const sid of SCENARIOS) {
@@ -78,6 +79,33 @@ for (const sid of SCENARIOS) {
     }
   }
   if (Object.keys(endOut).length) endings[sid] = endOut;
+
+  // ---- 随机/危机/修正事件(specials[剧本][事件id] = {segs, opts})----
+  const specOut = {};
+  const addSpecial = (prefix, id, segs, opts) => {
+    if (segs.length || opts.length) specOut[id] = { segs: segs, opts: opts };
+  };
+  for (const r of (d.RANDOM_EVENTS || [])) {
+    addSpecial("rand", r.id,
+      pick(sid + "_rand_", r.id + "_s", (r.segs || []).length),
+      pick(sid + "_rand_", r.id + "_o", (r.options || []).length));
+  }
+  const CE = d.CRISIS_EVENTS || {};
+  const cGroups = [];
+  if (Array.isArray(CE.plots)) cGroups.push(...CE.plots);
+  if (CE.death) cGroups.push(CE.death);
+  if (CE.qingsuan) cGroups.push(CE.qingsuan);
+  for (const c of cGroups) {
+    addSpecial("crisis", c.id,
+      pick(sid + "_crisis_", c.id + "_s", (c.segs || []).length),
+      pick(sid + "_crisis_", c.id + "_o", (c.options || []).length));
+  }
+  (d.CORRECTIONS || []).forEach((c, ci) => {
+    const id = "corr" + (ci + 1);
+    addSpecial("corr", id,
+      pick(sid + "_corr_" + (ci + 1) + "_", "s", (c.segs || []).length), []);
+  });
+  if (Object.keys(specOut).length) specials[sid] = specOut;
 }
 
 function luaStr(s) { return '"' + s + '"'; }
@@ -87,6 +115,7 @@ const L = [];
 L.push("-- 自动生成:配音清单(gen-manifest.js)。仅收录磁盘上存在的音频,勿手改。");
 L.push("-- chapters[剧本][章节] = { intro={路径...}, events={ [事件id]={segs={...},opts={...}} } }");
 L.push("-- cards[剧本][行动id] = { segs={...} } ; endings[剧本][结局key(可含__变体)] = 路径");
+L.push("-- specials[剧本][事件id] = { segs={...}, opts={...} }(随机/危机/修正事件)");
 L.push("return {");
 
 L.push("  chapters = {");
@@ -128,6 +157,20 @@ for (const sid of Object.keys(endings)) {
   for (const k of Object.keys(endings[sid])) {
     count += 1;
     L.push("      [" + luaStr(k) + "] = " + luaStr(endings[sid][k]) + ",");
+  }
+  L.push("    },");
+}
+L.push("  },");
+
+L.push("  specials = {");
+for (const sid of Object.keys(specials)) {
+  L.push("    " + sid + " = {");
+  for (const eid of Object.keys(specials[sid])) {
+    const e = specials[sid][eid];
+    const parts = [];
+    if (e.segs.length) { parts.push("segs = " + luaArr(e.segs)); count += e.segs.length; }
+    if (e.opts.length) { parts.push("opts = " + luaArr(e.opts)); count += e.opts.length; }
+    L.push("      [" + luaStr(eid) + "] = { " + parts.join(", ") + " },");
   }
   L.push("    },");
 }

@@ -170,6 +170,21 @@ function M.CardPaths(scenId, actionId)
   return card and card.segs or nil
 end
 
+-- 随机/危机/修正事件正文:specials[scen][evId].segs
+function M.SpecialSegPaths(scenId, evId)
+  local s = Manifest.specials[scenId]
+  local e = s and s[evId]
+  return e and e.segs or nil
+end
+
+-- 随机/危机事件选项结算:specials[scen][evId].opts[optIndex]
+function M.SpecialOptPath(scenId, evId, optIndex)
+  local s = Manifest.specials[scenId]
+  local e = s and s[evId]
+  local o = e and e.opts
+  return o and o[optIndex] or nil
+end
+
 -- 结局:endings[scen][key__variant] 或 [key]
 function M.EndingPath(scenId, key, variant)
   local e = Manifest.endings[scenId]

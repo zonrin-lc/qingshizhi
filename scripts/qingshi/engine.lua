@@ -1350,7 +1350,11 @@ function Game:chapterEnd()
       if J(c) and (band >= 2 or self:_stream('corr')() < c.chance) then
         local changes = self:applyEff(self:correctionEff(c))
         local forced = self:checkDeath()
-        self.correction = { title = c.title, segs = c.segs, changes = changes, forced = forced }
+        -- corrId:该修正条目在 CORRECTIONS 中的下标,供配音查表(specials 的 corr<N>)
+        local corrId = nil
+        for i = 1, #self.d.CORRECTIONS do if self.d.CORRECTIONS[i] == c then corrId = i break end end
+        self.correction = { title = c.title, segs = c.segs, changes = changes, forced = forced,
+          corrId = corrId and ('corr' .. tostring(corrId)) or nil }
         self._corrShown = c.title
         self.phase = 'correction'
         return { type = 'correction', correction = self.correction }
@@ -1794,7 +1798,9 @@ function Game:maybeRandom()
     end
     if #bpool > 0 then
       local bc = bpool[math.floor(self:_stream('event')() * #bpool) + 1]
-      local bev = { id = 'BACKLASH', title = bc.title, segs = bc.segs,
+      local bcorrId = nil
+      for i = 1, #self.d.CORRECTIONS do if self.d.CORRECTIONS[i] == bc then bcorrId = i break end end
+      local bev = { id = 'BACKLASH', title = bc.title, segs = bc.segs, corrId = bcorrId and ('corr' .. tostring(bcorrId)) or nil,
         options = { { t = '咬牙撑住', res = '你挺过了这一波反噬——代价已经付清，路还要继续走。', eff = self:correctionEff(bc), to = 'RETURN' } } }
       self.pendingEventId = self.eventId
       self.eventId = bev.id

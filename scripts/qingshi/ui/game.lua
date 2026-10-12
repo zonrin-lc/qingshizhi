@@ -213,6 +213,7 @@ function M.attach(Shell)
   end
 
   local function showCorrection(c)
+    Voice.Play(Voice.SpecialSegPaths(g().d.SCENARIO.id, c.corrId))
     S.showSettle('历史修正 ｜ ' .. c.title, table.concat(c.segs or {}, ''), c.changes, 0, nil, nil, function()
       S.handleRoute(g():correctionContinue())
     end)
@@ -318,7 +319,9 @@ function M.attach(Shell)
     for _, s in ipairs(segs or {}) do items[#items + 1] = segW(s) end
     S.scrollMainTop()
     S.renderSide(segs)
-    Voice.Play(Voice.SegPaths(g().d.SCENARIO.id, ch.id, ev.id))
+    -- 主线事件查 chapters;随机/危机/反噬事件查 specials(用 ev.id,反噬则用其 corrId)
+    local sid = g().d.SCENARIO.id
+    Voice.Play(Voice.SegPaths(sid, ch.id, ev.id) or Voice.SpecialSegPaths(sid, ev.corrId or ev.id))
     S.revealSegs(items, function() M.renderOptions() end)
   end
 
@@ -365,9 +368,11 @@ function M.attach(Shell)
     local r = gg:choose(i)
     if not r then S.thawOpts('这个选项眼下走不通（已试过或条件已变）。') return end
     env.lastSettleText = r.text
-    -- 选项结算朗读:取本事件下第 i 条结算音频(仅未触发结局时;触发结局会转 renderEnding 播结局旁白)
+    -- 选项结算朗读:主线查 chapters,随机/危机事件查 specials(仅未触发结局时)
     if not r.forcedEnding then
-      Voice.Play({ Voice.OptPath(gg.d.SCENARIO.id, gg:chapter().id, gg.eventId, i) })
+      local sid = gg.d.SCENARIO.id
+      local p = Voice.OptPath(sid, gg:chapter().id, gg.eventId, i) or Voice.SpecialOptPath(sid, gg.eventId, i)
+      Voice.Play({ p })
     end
     local title = r.risk and gg:riskTitle(r) or ''
     S.showSettle(title, r.text, r.changes, r.devDelta, r.achNew, r.bandUp and r.bandName or nil, function()
