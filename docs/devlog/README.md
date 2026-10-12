@@ -13,6 +13,7 @@
 | [devlog-day9.md](devlog-day9.md) | DAY 9 | 对局页重排崩出「裸全局名」第三道闸;规范≠原型图;十页效果图定稿 |
 | [devlog-day10.md](devlog-day10.md) | DAY 10 | 新增抉择卡玩法(60 张);揪出四个既有 bug;存档改原子写;26,213 行全量审查 |
 | [devlog-day11.md](devlog-day11.md) | DAY 11 | 立绘 13→72 张补齐;全量审校重做 19 张;对局页 v2 落地;配音与音乐上线 |
+| [devlog-day12.md](devlog-day12.md) | DAY 12 | 配音全量覆盖 1927 条(补上随机/危机/修正三类);五首主题曲各立切口 |
 | [devlog-material-overturns.md](devlog-material-overturns.md) | 附 | 投稿物料翻车记录(非日更) |
 
 ## 阅读线索
