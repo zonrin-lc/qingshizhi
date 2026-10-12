@@ -1,4 +1,4 @@
-/**
+﻿/**
  * H5 入口 / 页面装配。
  *
  * P3 起：起一局真实对局(李斯 · 普通难度),走完
@@ -114,6 +114,8 @@ function bootstrap(): void {
       chap: shell.chap,
       band: shell.band,
       bar: shell.bar,
+      stage: shell.stage,
+      deco: shell.deco,
       overlay: shell.overlay,
     },
     () => {

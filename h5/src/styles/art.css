@@ -51,9 +51,12 @@
   border-image-width: 78px;
   border-style: solid;
 }
+/* --tall 变体必须自己再写一次 border-style:
+   border-image 要 border-style 非 none 才会绘制,不能指望基础类带过来。 */
 .panel-dialog--tall {
   border-image: url('../assets/panel/dialog-tall.webp') 78 fill;
   border-image-width: 78px;
+  border-style: solid;
 }
 
 /* 选项卡:八角切角 + 两侧菱形饰 */
@@ -90,8 +93,13 @@
   border-image: url('../assets/btn/ok.webp') 38 44 38 44 fill;
   border-image-width: 38px 44px 38px 44px;
   border-style: solid;
-  color: var(--zhu-hi);
+  /* 底图 ok.webp 是深赭金,字必须用宣白,朱色压在上面几乎看不清 */
+  color: #f8f2e4;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
   font-weight: 700;
+}
+.btn--read {
+  border-image: url('../assets/btn/read.webp') 38 44 38 44 fill;
 }
 .btn--ghost {
   border-image: url('../assets/btn/ghost.webp') 38 44 38 44 fill;
@@ -101,7 +109,10 @@
 }
 
 /* ---------- 顶栏 ---------- */
+/* z-index 必须高于 .stage__deco(1),否则装饰枝叶会盖住返回/回溯按钮 */
 .stage__bar {
+  position: relative;
+  z-index: 2;
   background: transparent;
   border-bottom: 0;
   padding: var(--sp-sm) var(--sp-lg);
@@ -283,6 +294,18 @@
   background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
 }
 
+/* ---------- 叙事卷轴内的行 ---------- */
+/* .prose-body 占满整幅卷轴,里面的 kv 是 space-between,
+   不限宽的话标签贴到左边缘、数值跑到右边缘,中间空一千多像素。 */
+.prose-body > .kv,
+.prose-body > .devrow,
+.prose-body > .score {
+  max-width: 26rem;
+}
+.prose-body > .divider {
+  max-width: 26rem;
+}
+
 /* ---------- 属性面板 ---------- */
 .side__title {
   color: var(--ink-strong);
@@ -367,29 +390,121 @@
 }
 
 /* ---------- 浮层 ---------- */
+/* 浮层自带一张水墨底图(参考图里浮层不是压暗对局页,而是另起一张景),
+   所以不再叠半透明黑,而是直接铺底图。 */
 .overlay {
-  background: rgba(42, 37, 29, 0.34);
-  backdrop-filter: blur(1.5px);
+  /* 必须绝对定位盖住 .stage —— 否则它只是 stage flex 列里的一个普通子项,
+     会被排到卡片下面去(表现为浮层贴在屏幕底部)。 */
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--paper-app);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  overflow: auto;
+  padding: var(--sp-lg);
+  z-index: 10;
+}
+.overlay--settle {
+  background-image: url('../assets/bg/overlay.webp');
+}
+.overlay--confirm {
+  background-image: url('../assets/bg/overlay.webp');
+}
+.overlay[hidden] {
+  display: none;
 }
 .overlay__box {
+  /* 不要写 border:0 —— 它与 .panel-dialog* 同为单类选择器且出现在后面,
+     会把 border-image 需要的 border-style 一起抹掉,弹窗底板就不画了。 */
   background: transparent;
-  border: 0;
-  box-shadow: 0 1.2rem 3rem rgba(42, 37, 29, 0.3);
-  padding: 3.4rem 3.6rem 2.6rem;
+  box-shadow: 0 1.2rem 3rem rgba(42, 37, 29, 0.28);
+  padding: 2.6rem 3rem 2.2rem;
+  margin: auto;
+  text-align: center;
+}
+.overlay--settle .overlay__box {
+  width: min(34rem, 100%);
+}
+.overlay--confirm .overlay__box {
+  width: min(30rem, 100%);
 }
 .overlay__title {
   color: var(--ink-heavy);
   position: relative;
   padding-bottom: var(--sp-md);
+  margin: 0 0 var(--sp-md);
+  font-size: var(--fs-title);
+  letter-spacing: 0.12em;
 }
 .overlay__title::after {
   content: '';
   position: absolute;
-  left: 18%;
-  right: 18%;
+  left: 12%;
+  right: 12%;
   bottom: 0;
   height: 0.7rem;
-  background: url('../assets/deco/rule-thin.webp') center / 100% 100% no-repeat;
+  background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
+}
+.overlay__text {
+  text-align: left;
+  margin-bottom: var(--sp-md);
+  max-width: none;
+}
+.overlay__body {
+  text-align: center;
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-ui);
+  line-height: 1.9;
+  color: var(--ink);
+}
+
+/* 增减两列行:名称靠左、数值靠右 */
+.chglist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  margin: var(--sp-md) auto;
+  padding: 0;
+  max-width: 20rem;
+}
+.chgrow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--sp-md);
+  align-items: baseline;
+  font-size: var(--fs-ui);
+}
+.chgrow__k {
+  text-align: left;
+  color: var(--ink);
+  font-family: var(--font-kai);
+}
+.chgrow__v {
+  text-align: right;
+  font-family: var(--font-kai);
+  font-size: var(--fs-title);
+}
+.chgrow__note {
+  grid-column: 1 / -1;
+  font-size: var(--fs-cap);
+  text-align: left;
+}
+.chgrow__v.is-up { color: var(--good); }
+.chgrow__v.is-down { color: var(--zhu); }
+
+/* 确认框按钮行 */
+.overlay__row {
+  display: flex;
+  gap: var(--sp-md);
+  justify-content: center;
+  margin-top: var(--sp-md);
+}
+.overlay__row .btn {
+  min-width: 9rem;
 }
 
 /* ---------- 窄屏 ---------- */
@@ -492,6 +607,74 @@
   text-align: center;
   padding: var(--sp-lg);
   background: rgba(246, 239, 224, 0.97);
+}
+
+/* ============================================================================
+ * 章末结算 / 结局:窄幅悬挂卷轴
+ *
+ * 这两页在参考图里是独立版式——居中的一幅窄卷轴,而不是对局页的通栏布局。
+ * ==========================================================================*/
+.stage__main--narrow {
+  flex: 0 1 auto;
+  width: min(46rem, 100%);
+  margin: 0 auto;
+  display: block;
+  /* 卷轴底板四周有 62px 的九宫格边框,内容必须让开,
+     否则「功业/存续/史评/影响」这类标签会压在金边上。 */
+  padding: 4.25rem 4.75rem 3.5rem;
+}
+/* 结算页不显示属性卷轴 */
+.stage__cols--narrow .stage__side {
+  display: none;
+}
+
+/* 偏离归因行:参考图里每行之间有一道细分隔线 */
+.devrow {
+  padding: var(--sp-sm) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* 章末四项统计:横排 + 竖分隔(功业/存续/史评/影响) */
+.statrow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: var(--sp-md) auto 0;
+  max-width: 32rem;
+  border-top: 1px solid var(--line);
+  padding-top: var(--sp-sm);
+}
+.statrow__cell {
+  text-align: center;
+  border-left: 1px solid var(--line-soft);
+  padding: var(--sp-xs) 0;
+}
+.statrow__cell:first-child {
+  border-left: 0;
+}
+.statrow__k {
+  display: block;
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+}
+.statrow__v {
+  display: block;
+  font-family: var(--font-kai);
+  font-size: var(--fs-title);
+  color: var(--gold);
+}
+
+/* ---------- 装饰变体 ---------- */
+.stage__deco[data-variant='summary'] .deco-plum-tr {
+  background-image: url('../assets/decor/plum-tr2.webp');
+}
+.stage__deco[data-variant='summary'] .deco-bamboo-l {
+  background-image: url('../assets/decor/bamboo-l2.webp');
+}
+.stage__deco[data-variant='ending'] .deco-plum-tr {
+  background-image: url('../assets/decor/plum-tr3.webp');
+}
+.stage__deco[data-variant='ending'] .deco-bamboo-l {
+  background-image: url('../assets/decor/bamboo-l3.webp');
 }
 @media (orientation: portrait) {
   .rotate-hint { display: flex; }

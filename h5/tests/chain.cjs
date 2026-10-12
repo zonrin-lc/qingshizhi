@@ -14,14 +14,31 @@ const DRIVER = `(async () => {
   const qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
   const trace = [];
+  const badLayout = [];
   const push = o => trace.push(o);
+
+  // 版式不变量:.stage__main 是 display:flex(row),只允许直接挂
+  // .portrait 与 .prose-body 两个子元素。之前 章末/结局/抉择/章末事件
+  // 四个渲染函数把标题、装饰线、每个段落直接 append 到 main,
+  // 它们就成了兄弟 flex 项,正文被排成四列 —— 而当时的测试只查 DOM 存在,
+  // 完全没发现。这里逐相位盯住这条不变量。
+  const checkLayout = ph => {
+    const main = q('.stage__main');
+    if (!main) return;
+    const loose = [...main.children].filter(
+      c => !c.classList.contains('portrait') && !c.classList.contains('prose-body'));
+    if (loose.length) {
+      badLayout.push({ ph, n: loose.length, cls: loose.map(c => c.className || c.tagName).join('|') });
+    }
+  };
 
   for (let i = 0; i < 600; i++) {
     await sleep(3);
+    checkLayout(g.phase);
     const ov = q('.overlay');
     if (ov && !ov.hidden) {
       push({ at: i, evt: 'settle', title: (q('.overlay__title')||{}).textContent || '',
-             changes: qa('.chglist__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev });
+             changes: qa('.chgrow__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev });
       const b = q('.overlay .btn--primary');
       if (!b) { push({ evt: 'STUCK: settle 无继续按钮' }); break; }
       b.click(); continue;
@@ -82,7 +99,7 @@ const DRIVER = `(async () => {
     }
     if (ph === 'summary') {
       push({ at: i, evt: 'summary', idx: g.chapterIdx, dev: g.dev,
-             devRows: qa('.devrow').length, attrRows: qa('.stage__main .kv').length,
+             devRows: qa('.devrow').length, attrRows: qa('.stage__main .statrow__cell').length,
              hasNext: qa('.stage__foot .btn--primary').length > 0 });
       const b = q('.stage__foot .btn--primary'); if (b) b.click();
       continue;
@@ -97,7 +114,7 @@ const DRIVER = `(async () => {
     }
     push({ at: i, evt: 'OTHER', phase: ph }); break;
   }
-  return { trace, top: (q('.stage__chap')||{}).textContent,
+  return { trace, badLayout, top: (q('.stage__chap')||{}).textContent,
            band: (q('.stage__band')||{}).textContent,
            side: qa('.stage__side .kv').map(n => n.textContent.replace(/\\s+/g,' ').trim()) };
 })()`;
@@ -128,11 +145,13 @@ withPage(async ({ evaluate, consoleErrors }) => {
     ['章末提供进入下一章', summaries.some((t) => t.hasNext)],
     ['进入第二章', kinds.has('PASS')],
     ['无卡死', stuck.length === 0],
+    ['版式不变量(main 只挂 portrait/prose-body)', out.badLayout.length === 0],
     ['控制台无错误', errs.length === 0],
   ]);
   if (!ok) {
     console.log('\n失败明细:');
     if (stuck.length) console.log('  卡死 ' + JSON.stringify(stuck));
+    if (out.badLayout.length) console.log('  版式越界 ' + JSON.stringify(out.badLayout.slice(0, 4)));
     if (errs.length) errs.forEach((e) => console.log('  错误 ' + e));
   }
   return ok;

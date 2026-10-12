@@ -262,84 +262,11 @@
 }
 
 /* ---------- 结算浮层 ---------- */
-.overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--sp-md);
-  background: rgba(42, 37, 29, 0.42);
-  z-index: 10;
-}
-.overlay[hidden] {
-  display: none;
-}
-.overlay__box {
-  width: min(38rem, 100%);
-  max-height: 100%;
-  overflow-y: auto;
-  padding: var(--sp-lg);
-  border: 1px solid var(--gold);
-  border-radius: var(--r-lg);
-  background: var(--paper-card);
-  box-shadow: 0 1rem 2.5rem rgba(42, 37, 29, 0.28);
-  text-align: center;
-}
-.overlay__title {
-  margin: 0 0 var(--sp-sm);
-  font-size: var(--fs-title);
-  color: var(--zhu);
-}
-.overlay__text {
-  text-align: left;
-  margin-bottom: var(--sp-md);
-}
-.overlay__body {
-  text-align: left;
-  margin: 0 0 var(--sp-md);
-  font-size: var(--fs-note);
-  line-height: 1.8;
-  color: var(--ink);
-}
-
-.chglist {
-  list-style: none;
-  margin: 0 0 var(--sp-md);
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-xs);
-  align-items: center;
-}
+/* 增减行样式已移到 art.css(P3 与参考图对齐后改成两列行) */
 .chglist__item {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--sp-sm);
-  justify-content: center;
   align-items: baseline;
-}
-.chglist__v {
-  font-size: var(--fs-ui);
-}
-.chglist__note {
-  font-size: var(--fs-cap);
-}
-.is-up {
-  color: var(--good);
-}
-.is-down {
-  color: var(--zhu);
-}
-.is-up.chglist__v,
-.is-down.chglist__v {
-  color: inherit;
-}
-.chglist__v.is-up {
-  color: var(--good);
-}
-.chglist__v.is-down {
-  color: var(--zhu-hi);
 }
 
 /* ---------- 结局评分 ---------- */

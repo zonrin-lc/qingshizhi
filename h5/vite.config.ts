@@ -26,6 +26,14 @@ export default defineConfig({
   server: {
     // alias 指向 h5/ 之外,需显式放行 fs 读取
     fs: { allow: [repoRoot] },
+    // 端口被占就直接报错,不静默换端口(5173→5174 漂移会让人对着旧服务器调试)
+    strictPort: true,
+  },
+  optimizeDeps: {
+    // engine.js 是 UMD(零 ESM 导出)。生产构建由 commonjsOptions 包一层,
+    // 但 dev 模式对 alias 出的裸文件不做 CJS 转换,`import engine from '@engine'`
+    // 会因没有 default 导出而整页白屏。强制预打包,让 dev 与 build 行为一致。
+    include: ['@engine'],
   },
   build: {
     target: 'es2020',

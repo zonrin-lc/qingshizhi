@@ -26,6 +26,9 @@ export class Session {
   private readonly chapEl: HTMLElement;
   private readonly bandEl: HTMLElement;
   private readonly overlay: HTMLElement;
+  /** 背景/底板/装饰随页面切换 */
+  private readonly stage: HTMLElement;
+  private readonly deco: HTMLElement;
   /** 顶栏回溯按钮:常驻节点,只更新可用态与计数(对齐 Lua shell.lua 的 env_.backBox) */
   private readonly backBtn: HTMLElement;
   /** 上一次结算文案,回合页顶部回显(对齐 Lua 的 lastSettleText) */
@@ -36,7 +39,7 @@ export class Session {
 
   constructor(
     game: Game,
-    mounts: { main: HTMLElement; opts: HTMLElement; chap: HTMLElement; band: HTMLElement; bar: HTMLElement; overlay: HTMLElement },
+    mounts: { main: HTMLElement; opts: HTMLElement; chap: HTMLElement; band: HTMLElement; bar: HTMLElement; overlay: HTMLElement; stage: HTMLElement; deco: HTMLElement },
     onFinish?: () => void,
   ) {
     this.game = game;
@@ -45,9 +48,30 @@ export class Session {
     this.chapEl = mounts.chap;
     this.bandEl = mounts.band;
     this.overlay = mounts.overlay;
+    this.stage = mounts.stage;
+    this.deco = mounts.deco;
     this.onFinish = onFinish ?? null;
     this.backBtn = btn('回溯', { variant: 'ghost', cls: 'backbtn', onClick: () => this.doBacktrack() });
     mounts.bar.append(this.backBtn);
+  }
+
+  /**
+   * 换页面皮肤:背景图 + 卷轴底板 + 装饰枝叶。
+   *
+   * 对局各相位共用整幅剧情卷轴;章末结算与结局页改用「窄幅悬挂卷轴」,
+   * 居中独立成页(参考图里它们本来就是另一套版式,不是同一页换个内容)。
+   */
+  private skin(bg: 'game' | 'summary' | 'ending', deco: 'game' | 'summary' | 'ending'): void {
+    this.stage.setAttribute('data-bg', bg);
+    const wide = deco === 'game';
+    this.main.classList.toggle('stage__main--narrow', !wide);
+    this.main.classList.toggle('panel-scroll', wide);
+    this.main.classList.toggle('panel-scroll--summary', deco === 'summary');
+    this.main.classList.toggle('panel-scroll--ending', deco === 'ending');
+    // 装饰枝叶:不同页面用不同的梅枝/竹子素材
+    this.deco.dataset.variant = deco;
+    // 章末/结局是独立结算页,没有属性卷轴 —— 收掉窄卷轴才排得正
+    this.main.parentElement?.classList.toggle('stage__cols--narrow', !wide);
   }
 
   get data(): ScenarioData {
@@ -118,12 +142,13 @@ export class Session {
   /** 通用确认框(Lua Shell.confirm 的 DOM 版) */
   private showConfirm(title: string, lines: string[], okText: string, onOk: () => void): void {
     clear(this.overlay);
-    const box = el('div', 'overlay__box');
-    box.append(lbl(title, 'overlay__title u-kai u-strong'));
+    this.overlay.className = 'overlay overlay--confirm';
+    const box = el('div', 'overlay__box panel-dialog');
+    box.append(lbl(title, 'overlay__title u-kai u-heavy'));
     for (const line of lines) box.append(lbl(line, 'overlay__body'));
     const row = el('div', 'overlay__row');
+    // 参考图顺序:确认(主)在左,再想想(次)在右
     row.append(
-      btn('再想想', { variant: 'ghost', onClick: () => this.hideOverlay() }),
       btn(okText, {
         variant: 'primary',
         onClick: () => {
@@ -131,6 +156,7 @@ export class Session {
           onOk();
         },
       }),
+      btn('再 想 想', { variant: 'ghost', onClick: () => this.hideOverlay() }),
     );
     box.append(row);
     this.overlay.append(box);
@@ -203,32 +229,38 @@ export class Session {
 
   private showSettle(title: string, text: string | null, changes: ChangeView[], body?: string): void {
     clear(this.overlay);
-    const box = el('div', 'overlay__box');
+    this.overlay.className = 'overlay overlay--settle';
+    const box = el('div', 'overlay__box panel-dialog--tall');
     if (title) box.append(lbl(title, 'overlay__title u-kai u-strong'));
     if (text) box.append(this.prose(text, 'prose overlay__text'));
     if (body) box.append(lbl(body, 'overlay__body'));
 
     if (changes.length > 0) {
-      const list = el('ul', 'chglist');
+      // 参考图里是「名称靠左 / 数值靠右」的两列行,涨跌分色:
+      // 增益墨绿、损失赭红、偏离朱色。不能继续用居中的行内流。
+      const list = el('div', 'chglist');
       for (const c of changes) {
-        const li = el('li', 'chglist__item');
         const up = c.delta > 0;
         const name = c.label || this.data.ATTR_NAMES[c.k];
         // 硬核模式只报状态词,不出数值(与 Lua hideAttrs 同口径)
         const shown = this.game.diff.hideAttrs
-          ? `${name} ${up ? '升' : '降'} · ${this.game.attrWord(c.k)}`
-          : `${name}  ${up ? '+' : ''}${c.delta}`;
-        li.append(el('span', `chglist__v ${up ? 'is-up' : 'is-down'} u-kai`, shown));
-        if (c.note) li.append(el('span', 'chglist__note u-dim', c.note));
-        list.append(li);
+          ? this.game.attrWord(c.k)
+          : `${up ? '+' : ''}${c.delta}`;
+        const row = el('div', 'chgrow');
+        row.append(
+          el('span', 'chgrow__k', name),
+          el('span', `chgrow__v ${up ? 'is-up' : 'is-down'}`, shown),
+        );
+        if (c.note) row.append(el('span', 'chgrow__note u-dim', c.note));
+        list.append(row);
       }
       box.append(list);
     }
 
-    // 关闭浮层后必须接着推进相位,否则对局会停在浮层这一步
     box.append(
-      btn('继 续', {
+      btn('阅', {
         variant: 'primary',
+        cls: 'btn--read',
         onClick: () => {
           this.hideOverlay();
           this.settleClosed();
@@ -254,6 +286,7 @@ export class Session {
   // ---------- 章首 ----------
 
   renderIntro(fromBacktrack = false): void {
+    this.skin('game', 'game');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
@@ -293,6 +326,7 @@ export class Session {
   // ---------- 回合 ----------
 
   renderRound(): void {
+    this.skin('game', 'game');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
@@ -300,12 +334,12 @@ export class Session {
     const offer = g.getOffer();
 
     const ch = g.chapter();
-    if (ch) this.main.append(lbl(ch.title, 'u-dim chapter__sub'));
     // 回合页也要立绘:否则剧情卷轴整块空着,右侧属性卷轴又满,
     // 视觉重心全偏在一半屏幕上(参考图的回合页同样有立绘与回显文案)。
     this.main.append(this.portrait());
     const body = this.proseBody();
     this.main.append(body);
+    if (ch) body.append(lbl(ch.title, 'u-dim chapter__sub'));
     if (this.lastSettleText) {
       body.append(this.prose(this.lastSettleText, 'prose settle-recall u-dim'));
     }
@@ -375,6 +409,7 @@ export class Session {
   // ---------- 事件 ----------
 
   renderEvent(): void {
+    this.skin('game', 'game');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
@@ -384,7 +419,7 @@ export class Session {
       this.main.append(lbl('此节无处可述（章节数据不一致）。', 'u-zhu'));
       return;
     }
-    const inserted = g.currentRandom != null;
+const inserted = g.currentRandom != null;
     const ch = g.chapter();
     const kicker = inserted ? '际遇 · 随机事件' : this.chapterNo(ch?.title ?? '');
     this.main.append(this.portrait());
@@ -421,6 +456,7 @@ export class Session {
   // ---------- 抉择卡 ----------
 
   renderChoice(): void {
+    this.skin('game', 'game');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
@@ -429,10 +465,12 @@ export class Session {
       this.renderRound();
       return;
     }
-    this.main.append(lbl('抉择 · 事有两端', 'u-gold chapter__sub'));
-    this.main.append(lbl(v.title, 'chapter__title u-kai u-heavy'));
-    this.main.append(el('div', 'rule'));
-    for (const seg of v.segs ?? []) this.main.append(this.prose(seg));
+    const body = this.proseBody();
+    this.main.append(body);
+    body.append(lbl('抉择 · 事有两端', 'u-gold chapter__sub'));
+    body.append(lbl(v.title, 'chapter__title u-kai u-heavy'));
+    body.append(el('div', 'rule'));
+    for (const seg of v.segs ?? []) body.append(this.prose(seg));
 
     for (let i = 0; i < v.options.length; i += 1) {
       const o = v.options[i];
@@ -451,42 +489,52 @@ export class Session {
   // ---------- 章末结算 ----------
 
   renderSummary(summary: SummaryView): void {
+    this.skin('summary', 'summary');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
 
-    this.main.append(lbl('章 末 结 算', 'u-dim chapter__sub'));
-    this.main.append(lbl(`${this.shortTitle(summary.chapter)} 终`, 'chapter__title u-kai u-heavy'));
-    this.main.append(el('div', 'rule'));
-    this.main.append(lbl(`偏离归因 ｜ 当前偏离 ${summary.dev}（${summary.bandName}）`, 'u-warn u-strong'));
+    const body = this.proseBody();
+    this.main.append(body);
+
+
+    body.append(lbl('章 末 结 算', 'u-dim chapter__sub'));
+    body.append(lbl(`${this.shortTitle(summary.chapter)} 终`, 'chapter__title u-kai u-heavy'));
+    body.append(el('div', 'rule'));
+    body.append(lbl(`偏离归因 ｜ 当前偏离 ${summary.dev}（${summary.bandName}）`, 'u-warn u-strong'));
 
     if (summary.devLog.length === 0) {
-      this.main.append(lbl('本章你循史而行，史官的笔尚跟得上你。', 'u-dim'));
+      body.append(lbl('本章你循史而行，史官的笔尚跟得上你。', 'u-dim'));
     } else {
       for (const d of summary.devLog) {
         const row = el('div', 'devrow');
         row.append(lbl(`${d.ev} ｜ ${d.t}`, 'u-dim'), lbl(`偏离 +${d.dev}`, 'u-warn u-kai'));
-        this.main.append(row);
+        body.append(row);
       }
     }
-    for (const n of summary.notes) this.main.append(lbl(n, 'intro-note u-qing'));
-    if (summary.corrTitle) this.main.append(lbl(`历史修正 ｜ ${summary.corrTitle}`, 'intro-note u-qing'));
+    for (const n of summary.notes) body.append(lbl(n, 'intro-note u-qing'));
+    if (summary.corrTitle) body.append(lbl(`历史修正 ｜ ${summary.corrTitle}`, 'intro-note u-qing'));
 
-    this.main.append(divider('本 章 境 遇'));
-    let any = false;
-    for (const a of this.data.ATTRS) {
-      const d = summary.attrDelta[a.k];
-      if (!d) continue;
-      any = true;
-      const good = a.inverse ? d < 0 : d > 0;
-      const shown = this.game.diff.hideAttrs
-        ? `${a.n}（${d > 0 ? '升' : '降'}）`
-        : `${d > 0 ? '+' : ''}${d} → ${this.game.attrs[a.k] ?? 0}`;
-      const row = el('div', 'kv');
-      row.append(el('span', 'kv__k', a.n), el('span', `kv__v ${good ? 'is-up' : 'is-down'} u-kai`, shown));
-      this.main.append(row);
+    body.append(divider('本 章 境 遇'));
+    // 参考图底部是一排四格统计(横排 + 竖分隔),不是纵向 kv 列表。
+    const deltas = this.data.ATTRS.filter((a) => summary.attrDelta[a.k]);
+    if (deltas.length === 0) {
+      body.append(lbl('诸维如止水，无增无减。', 'u-dim'));
+    } else {
+      const strip = el('div', 'statrow');
+      for (const a of deltas) {
+        const d = summary.attrDelta[a.k] ?? 0;
+        const good = a.inverse ? d < 0 : d > 0;
+        const cell = el('div', 'statrow__cell');
+        cell.append(
+          lbl(a.n, 'statrow__k'),
+          el('span', `statrow__v ${good ? 'is-up' : 'is-down'}`,
+            this.game.diff.hideAttrs ? (d > 0 ? '升' : '降') : `${d > 0 ? '+' : ''}${d}`),
+        );
+        strip.append(cell);
+      }
+      body.append(strip);
     }
-    if (!any) this.main.append(lbl('诸维如止水，无增无减。', 'u-dim'));
 
     this.opts.append(
       btn(summary.nextTitle ? '进 入 下 一 章' : '继 续', {
@@ -499,18 +547,21 @@ export class Session {
   // ---------- 结局 ----------
 
   renderEnding(): void {
+    this.skin('ending', 'ending');
     this.renderTop();
     this.clearMain();
     this.clearOpts();
     const e = this.game.ending;
+    const body = this.proseBody();
+    this.main.append(body);
     if (!e) {
-      this.main.append(lbl('局终。', 'u-dim'));
+      body.append(lbl('局终。', 'u-dim'));
       return;
     }
 
-    this.main.append(lbl(`〔${e.seal} · ${e.diffName}〕`, 'u-zhu u-center chapter__sub'));
-    this.main.append(lbl(e.name, 'chapter__title u-kai u-heavy u-center'));
-    this.main.append(divider('评 分'));
+    body.append(lbl(`〔${e.seal} · ${e.diffName}〕`, 'u-zhu u-center chapter__sub'));
+    body.append(lbl(e.name, 'chapter__title u-kai u-heavy u-center'));
+    body.append(divider('评 分'));
     const names: Record<string, string> = { gongye: '功业', cuncun: '存续', shiping: '史评', yingxiang: '影响' };
     for (const k of ['gongye', 'cuncun', 'shiping', 'yingxiang'] as const) {
       const v = e.scores[k];
@@ -520,7 +571,7 @@ export class Session {
         meter(v, 'var(--gold)'),
         el('span', 'score__v u-kai', String(v)),
       );
-      this.main.append(row);
+      body.append(row);
     }
     const total = el('div', 'score score--total');
     total.append(
@@ -528,9 +579,9 @@ export class Session {
       el('span', 'score__v score__v--big u-kai u-strong', String(e.total)),
       seal(e.grade, 'seal--big'),
     );
-    this.main.append(total);
-    if (e.zhuan) this.main.append(lbl(e.zhuan, 'prose u-qing'));
-    if (e.epilogue) this.main.append(this.prose(e.epilogue, 'prose u-qing'));
+    body.append(total);
+    if (e.zhuan) body.append(lbl(e.zhuan, 'prose u-qing'));
+    if (e.epilogue) body.append(this.prose(e.epilogue, 'prose u-qing'));
 
     this.opts.append(btn('返 回 主 页', { variant: 'primary', onClick: () => this.onFinish?.() }));
   }
@@ -538,6 +589,7 @@ export class Session {
   // ---------- 章末事件 ----------
 
   private renderEndEvent(): void {
+    this.skin('game', 'game');
     const ev = this.game.currentEndEvent;
     this.renderTop();
     this.clearMain();
@@ -546,22 +598,24 @@ export class Session {
       this.route(this.game.proceedAfterEndEvent());
       return;
     }
-    this.main.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
-    this.main.append(el('div', 'rule'));
-    for (const seg of ev.segs ?? []) this.main.append(this.prose(seg));
+    const body = this.proseBody();
+    this.main.append(body);
+    body.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
+    body.append(el('div', 'rule'));
+    for (const seg of ev.segs ?? []) body.append(this.prose(seg));
 
     for (let i = 0; i < ev.options.length; i += 1) {
       const o = ev.options[i];
       if (!o) continue;
       const gate = this.reqCheck(o.req);
-      const body = el('div', 'card__body', o.t);
-      if (!gate.ok) body.append(el('div', 'card__lock u-zhu', `🔒 ${gate.reason ?? ''}`));
+      const cardBody = el('div', 'card__body', o.t);
+      if (!gate.ok) cardBody.append(el('div', 'card__lock u-zhu', `🔒 ${gate.reason ?? ''}`));
       const c = card({
         cls: `card--opt${gate.ok ? ' card--tappable' : ''}`,
         locked: !gate.ok,
         onClick: () => this.doEndEventChoose(i),
       });
-      c.append(body);
+      c.append(cardBody);
       this.opts.append(c);
     }
   }
