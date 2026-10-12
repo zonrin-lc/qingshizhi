@@ -89,3 +89,42 @@ convert -size ${W}x${H} xc:${BK} \
 
 echo "已生成:"
 ls -la ${OUT}/day12-*.png
+
+# ---------- 图3: 转向(封存 Lua → 重开 H5) ----------
+convert -size ${W}x${H} xc:${BK} \
+  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 '转向:封存 Lua 版,重开 H5 版' \
+  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 '不是推倒重来 —— 规则引擎一行不改,原样复用' \
+  -draw "stroke ${LINE} stroke-width 2 line 60,162 1220,162" \
+  \
+  -font ${FB} -pointsize 27 -fill ${TXT} -annotate +60+218 '封存的是什么' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +60+258 'scripts/(Lua)只读不改;prot/ 继续作为规则真源被 H5 复用' \
+  -font ${FR} -pointsize 21 -fill ${GRN} -annotate +60+294 '不是废弃,是封存 —— Lua 版本身是完整的' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +60+328 '引擎 / 五本剧本 / 60 张抉择卡 / UI 全套 / 存读档 / 音频,全部跑通' \
+  \
+  -font ${FB} -pointsize 25 -fill ${GOLD} -annotate +60+392 '为什么不重写规则' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +60+432 '规则真源一直是 JS(prot/engine.js),Lua 是逐位移植' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +60+464 '两者由 100 局对拍网守护(同种子 ⇒ 同轨迹)' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +60+500 '换载体:规则原样复用,数据原样 import,测试继续守护同一份代码' \
+  \
+  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,580" \
+  \
+  -font ${FB} -pointsize 27 -fill ${GOLD} -annotate +740+218 '换掉的理由' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+256 '布局  Yoga+NanoVG(坑多) → 浏览器 CSS' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+288 '调试  只能看日志 → DevTools 断点/检查' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+320 '验收  人肉点 → CDP 自动化(真 Chrome)' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+352 '类型  EmmyLua 注解 → TypeScript 强类型' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+384 '工具链 受限 → Vite 生态' \
+  \
+  -font ${FB} -pointsize 23 -fill ${GOLD} -annotate +740+446 '但坑不是白踩的' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+484 '封存说明留了「已验证的视觉规则」9 条' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +760+516 '立绘底部锚定 / 贴图比例 / 重建须 Destroy …' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +740+552 '同一个坑不该踩两次(是布局语义,不是引擎怪癖)' \
+  \
+  -draw "stroke ${LINE} stroke-width 2 line 60,600 1220,600" \
+  -font ${FB} -pointsize 28 -fill ${GOLD} -annotate +60+660 '最值钱的一条' \
+  -font ${FR} -pointsize 22 -fill ${TXT} -annotate +60+704 '封存不是失败,是止损;复用规则真源,是前面九天最值钱的一次架构决定' \
+  -font ${FR} -pointsize 22 -fill ${BRN} -annotate +60+744 '「把什么放在哪里」,比「把什么写得多好」更早决定命运' \
+  ${OUT}/day12-pivot.png
+
+echo "转向图已生成"
+ls -la ${OUT}/day12-*.png
