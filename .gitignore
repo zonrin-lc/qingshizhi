@@ -1,6 +1,7 @@
 # Build artifacts & runtime state
 .build/
 dist/
+node_modules/
 .cli/
 logs/
 *.log

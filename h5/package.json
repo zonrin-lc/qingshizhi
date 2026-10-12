@@ -1,0 +1,21 @@
+{
+  "name": "qingshi-h5",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "《青史志》H5 版 —— 规则引擎复用 prot/engine.js（单一真源，不拷贝）",
+  "scripts": {
+    "verify:data": "node scripts/verify-data.mjs",
+    "predev": "npm run verify:data",
+    "dev": "vite",
+    "prebuild": "npm run verify:data",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4"
+  }
+}

@@ -1,0 +1,223 @@
+/* ============================================================================
+ * 《青史志》H5 —— 设计令牌与布局壳
+ *
+ * 沿用 Lua 版的「精致古籍」骨相：宣纸底 + 五级墨色 + 朱批印章 + 赭金题签。
+ * 色值与 scripts/qingshi/ui/theme.lua 的 COLOR 表一一对应,便于日后逐值核对。
+ * ==========================================================================*/
+
+:root {
+  /* ---------- 纸层 ---------- */
+  --paper-app: #f2ead8;   /* 整页底(v4 米白) */
+  --paper: #f6efe0;       /* 内容区纸面 */
+  --paper-card: #faf5e9;  /* 卡片(浮起) */
+  --paper-card-sel: #fffcf2;
+
+  /* ---------- 墨色阶(五级浓淡) ---------- */
+  --ink-heavy: #1a1612;   /* 一级:标题,近黑 */
+  --ink-strong: #2a251d;  /* 二级:强调 */
+  --ink: #3e372c;         /* 三级:正文 */
+  --ink-soft: #605646;    /* 四级:次要 */
+  --ink-dim: #847864;     /* 五级:注脚 */
+
+  /* ---------- 印色 ---------- */
+  --zhu: #b0432f;         /* 朱 */
+  --zhu-hi: #9e3422;     /* 深朱(浅底可读) */
+  --gold: #8a6a34;        /* 赭金 */
+  --gold-hi: #c4a05a;     /* 亮金 */
+  --qing: #467069;        /* 青碧 */
+  --good: #567444;        /* 墨绿 */
+  --warn: #b06e2d;        /* 赭橙 */
+
+  /* ---------- 线/面 ---------- */
+  --line: #c6b492;
+  --line-soft: #d6c8ae;
+  --track: rgba(42, 37, 29, 0.09);
+
+  /* ---------- 字号阶(6 级) ----------
+     基准值按 1280×720 设计稿折算,再乘 --ui-scale 做 DPR/尺寸自适应。 */
+  --fs-h1: 2.6rem;
+  --fs-h2: 1.5rem;
+  --fs-title: 1.1rem;
+  --fs-body: 0.85rem;
+  --fs-ui: 0.75rem;
+  --fs-note: 0.65rem;
+  --fs-cap: 0.55rem;
+
+  /* ---------- 间距阶(5 级) ---------- */
+  --sp-xs: 0.25rem;
+  --sp-sm: 0.5rem;
+  --sp-md: 0.875rem;
+  --sp-lg: 1.375rem;
+  --sp-xl: 2.125rem;
+
+  /* ---------- 圆角阶 ---------- */
+  --r-sm: 0.25rem;
+  --r-md: 0.5rem;
+  --r-lg: 0.75rem;
+
+  /* ---------- 字体栈 ----------
+     楷体用于叙事/标题(古籍感),宋体作正文兜底,无衬线作 UI。
+     刻意不内嵌霞鹜文楷:该字体 1.39MB,首屏体积预算留给 P6 瘦身时再议。 */
+  --font-kai: 'LXGW WenKai', '霞鹜文楷', 'Kaiti SC', 'STKaiti', KaiTi, '楷体', serif;
+  --font-song: 'Songti SC', 'STSong', 'Source Han Serif SC', 'Noto Serif SC', SimSun, '宋体', serif;
+  --font-sans: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui,
+    -apple-system, 'Segoe UI', sans-serif;
+
+  /* ---------- 安全区(刘海/圆角/横屏手势条) ---------- */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+
+  /* ---------- DPR / 尺寸自适应缩放(由 src/shell/scale.ts 驱动) ---------- */
+  --ui-scale: 1;
+  /* 逻辑视口尺寸(px),由 scale.ts 写入,供 vmin 类单位之外的精确布局使用 */
+  --vw: 1280px;
+  --vh: 720px;
+}
+
+/* ---------- reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* 棋盘式布局不允许页面滚动 */
+  overflow: hidden;
+  background: var(--paper-app);
+  color: var(--ink);
+  font-family: var(--font-song);
+  /* 关掉移动端的点击高亮与选中,避免点卡片时出现蓝块 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* 字号随缩放走;所有 rem 均相对此值 */
+  font-size: calc(16px * var(--ui-scale));
+  line-height: 1.65;
+  /* 桌面端居中呈现,避免宽屏下元素被拉散 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================================================
+ * 横屏容器
+ *
+ * 目标:竖屏时把内容收进一个 16:9 的横屏框并居中,而不是让元素被压扁。
+ * P6 会补「请旋转设备」的引导页,这里只保证布局本身不被破坏。
+ * ==========================================================================*/
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* dvh:移动端地址栏收放时高度会变,vh 会导致抖动 */
+  min-height: 100dvh;
+  background: var(--paper-app);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  /* 内部再留出安全区,避免内容压在刘海/手势条上 */
+  padding: calc(var(--safe-t) + var(--sp-sm)) calc(var(--safe-r) + var(--sp-sm))
+    calc(var(--safe-b) + var(--sp-sm)) calc(var(--safe-l) + var(--sp-sm));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- 竖屏:收成 16:9 横屏框并居中 ---------- */
+@media (orientation: portrait) {
+  .stage {
+    width: min(100vw, calc(100dvh * 16 / 9));
+    height: min(100dvh, calc(100vw * 9 / 16));
+    box-shadow: 0 0 2rem rgba(42, 37, 29, 0.18);
+    border-radius: var(--r-md);
+  }
+}
+
+/* ---------- 宽屏(横屏平板/桌面):限制最大宽度,避免过宽行长 ---------- */
+@media (orientation: landscape) and (min-width: 1600px) {
+  .stage {
+    max-width: 1600px;
+    margin: 0 auto;
+    box-shadow: 0 0 2rem rgba(42, 37, 29, 0.12);
+  }
+}
+
+/* ============================================================================
+ * 排版工具类(供 P2/P3 复用,此处先立骨架)
+ * ==========================================================================*/
+.u-kai {
+  font-family: var(--font-kai);
+}
+.u-serif {
+  font-family: var(--font-song);
+}
+.u-sans {
+  font-family: var(--font-sans);
+}
+.u-heavy {
+  color: var(--ink-heavy);
+}
+.u-strong {
+  color: var(--ink-strong);
+}
+.u-dim {
+  color: var(--ink-dim);
+}
+.u-soft {
+  color: var(--ink-soft);
+}
+.u-zhu {
+  color: var(--zhu);
+}
+.u-gold {
+  color: var(--gold);
+}
+.u-center {
+  text-align: center;
+}
+.u-nowrap {
+  white-space: nowrap;
+}
+
+/* 叙事正文:楷体 + 放宽行距,贴近古籍阅读感 */
+.prose {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  line-height: 1.85;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
