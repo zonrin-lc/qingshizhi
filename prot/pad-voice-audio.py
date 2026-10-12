@@ -6,15 +6,12 @@
 """
 import argparse, math, os, struct, subprocess, sys, tempfile
 
-def leading_silence_ms(path, thresh_db=-45.0, win_ms=10):
-    """返回首个超过阈值的 10ms 窗口的起点(ms);全静音返回时长。"""
-    raw = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=noprint_wrappers=1:nokey=1", path],
-        capture_output=True, text=True).stdout.strip()
-    dur = float(raw) if raw else 0.0
+def leading_silence_ms(path, thresh_db=-45.0, win_ms=10, probe_s=0.3):
+    """返回首个超过阈值的 10ms 窗口的起点(ms);全静音返回 probe_s。只解码前 probe_s 秒。"""
+    dur = probe_s
     pcm = subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", path, "-f", "s16le", "-ac", "1", "-ar", "44100", "-"],
+        ["ffmpeg", "-v", "error", "-t", str(probe_s), "-i", path,
+         "-f", "s16le", "-ac", "1", "-ar", "44100", "-"],
         capture_output=True).stdout
     n = len(pcm) // 2
     if n == 0:
@@ -56,16 +53,20 @@ def main():
     args = ap.parse_args()
 
     files = sorted(f for f in os.listdir(args.dir) if f.endswith(".ogg"))
-    padded, skipped = 0, 0
-    for f in files:
+
+    def handle(f):
         p = os.path.join(args.dir, f)
         lead = leading_silence_ms(p)
         if lead >= args.threshold_ms:
-            skipped += 1
-            continue
+            return 0
         pad(p, args.pad)
-        padded += 1
-        print("  padded %-40s (lead %.0fms → +%.0fms)" % (f, lead, args.pad * 1000))
+        return 1
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        results = list(ex.map(handle, files))
+    padded = sum(results)
+    skipped = len(files) - padded
     print("[pad-voice] padded=%d skipped=%d total=%d" % (padded, skipped, len(files)))
 
 if __name__ == "__main__":
