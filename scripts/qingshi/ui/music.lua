@@ -49,8 +49,8 @@ local TRACKS = {
   xiangyu = {
     inst = "audio/bgm_xiangyu_inst.ogg",
     vocal = "audio/bgm_xiangyu_vocal.ogg",
-    durInst = 186.62,
-    durVocal = 208.03,
+    durInst = 208.39,
+    durVocal = 231.55,
   },
   chensheng = {
     inst = "audio/bgm_chensheng_inst.ogg",
