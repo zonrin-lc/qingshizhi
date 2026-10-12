@@ -17,8 +17,8 @@
       renwulihui_new/                  美术交付的立绘原件(13 张,2048×3072 起)
       edited_*.png                     二次加工过的图
 
-    assets/images/devlog/            ← 开发者日志配图(DAY1–8)
-    assets/file/                     ← 设计文档(GDD 全册 md / pdf / zip)
+    assets/images/devlog/            ← 开发者日志配图(DAY1–12)
+    assets/ui/logo/                  ← 标志与图标(横版/方版/标识 + 64–512 多尺寸)
 
 ## 关于立绘
 `image/renwulihui_new/` 是**美术交付原件**(2048×3072,单张 3–11MB)。
