@@ -447,6 +447,27 @@
   padding: var(--sp-lg) var(--sp-md);
 }
 
+/* ---------- 顶栏回溯按钮 ---------- */
+/* 常驻按钮;引擎 canBacktrack() 为假时压暗并置 aria-disabled(对齐 Lua shell.lua:113) */
+.backbtn {
+  flex: 0 0 auto;
+  font-family: var(--font-sans);
+  font-size: var(--fs-note);
+  letter-spacing: 0.1em;
+  padding: var(--sp-xs) var(--sp-sm);
+}
+.backbtn.is-locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---------- 确认框按钮行 ---------- */
+.overlay__row {
+  display: flex;
+  gap: var(--sp-sm);
+  justify-content: center;
+}
+
 /* ============================================================================
  * 窄屏降级
  *
@@ -511,5 +532,41 @@
   .overlay__text,
   .prose {
     max-width: none;
+  }
+}
+
+/* 竖屏:.stage 被压成 16:9(390x844 → 390x219),横向空间几乎没有,
+ * 纵向每一像素都要抢。这里把顶栏与决策区再收一档,给叙事区留出可读高度。
+ * 根治要靠 P6 的「请旋转设备」引导页,这里只是不让它彻底不可读。 */
+@media (orientation: portrait) {
+  .stage__bar {
+    padding: var(--sp-xs) var(--sp-sm);
+  }
+  .stage__chap,
+  .stage__band {
+    font-size: var(--fs-cap);
+  }
+  .backbtn {
+    font-size: var(--fs-cap);
+    padding: 2px var(--sp-xs);
+  }
+  .stage__foot {
+    max-height: 34%;
+  }
+  .chapter__title {
+    font-size: var(--fs-title);
+  }
+  .chapter__title,
+  .rule,
+  .prompt {
+    margin-bottom: var(--sp-xs);
+  }
+  .prose {
+    font-size: var(--fs-ui);
+    line-height: 1.6;
+    margin-bottom: var(--sp-xs);
+  }
+  .prompt {
+    padding: var(--sp-xs);
   }
 }

@@ -24,6 +24,8 @@ export class Session {
   private readonly chapEl: HTMLElement;
   private readonly bandEl: HTMLElement;
   private readonly overlay: HTMLElement;
+  /** 顶栏回溯按钮:常驻节点,只更新可用态与计数(对齐 Lua shell.lua 的 env_.backBox) */
+  private readonly backBtn: HTMLElement;
   /** 上一次结算文案,回合页顶部回显(对齐 Lua 的 lastSettleText) */
   private lastSettleText: string | null = null;
   /** 浮层「继续」关闭后要接着推进的相位路由 */
@@ -32,7 +34,7 @@ export class Session {
 
   constructor(
     game: Game,
-    mounts: { main: HTMLElement; opts: HTMLElement; chap: HTMLElement; band: HTMLElement; overlay: HTMLElement },
+    mounts: { main: HTMLElement; opts: HTMLElement; chap: HTMLElement; band: HTMLElement; bar: HTMLElement; overlay: HTMLElement },
     onFinish?: () => void,
   ) {
     this.game = game;
@@ -42,6 +44,8 @@ export class Session {
     this.bandEl = mounts.band;
     this.overlay = mounts.overlay;
     this.onFinish = onFinish ?? null;
+    this.backBtn = btn('回溯', { variant: 'ghost', cls: 'backbtn', onClick: () => this.doBacktrack() });
+    mounts.bar.append(this.backBtn);
   }
 
   get data(): ScenarioData {
@@ -66,6 +70,61 @@ export class Session {
       this.bandEl.className = 'stage__band';
       this.bandEl.style.color = band.color;
     }
+
+    // 回溯:常驻但不可用时压暗(对齐 Lua shell.lua:113-115)
+    const can = g.canBacktrack();
+    const quota = g.diff.backtrack;
+    const left = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
+    this.backBtn.textContent = left === null ? '回溯' : `回溯 ${left}`;
+    this.backBtn.classList.toggle('is-locked', !can);
+    if (can) this.backBtn.removeAttribute('aria-disabled');
+    else this.backBtn.setAttribute('aria-disabled', 'true');
+  }
+
+  /**
+   * 回溯:回到本章开头。对齐 Lua game.lua 的 renderIntro(true)——
+   * 除渲染章首外,还要明说「偏离度与已解锁成就不重置」,否则玩家会误以为能刷成就。
+   */
+  private doBacktrack(): void {
+    const g = this.game;
+    if (!g.canBacktrack()) return;
+    const quota = g.diff.backtrack;
+    const left = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
+    this.showConfirm(
+      '回溯 ｜ 回到本章开头',
+      [
+        left === null
+          ? '本章可无限次回溯,但每回溯一次,本章收益便削减一分。'
+          : `本章还剩 ${left} 次回溯机会。`,
+        '偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。',
+      ],
+      '回 溯',
+      () => {
+        if (g.backtrack()) this.renderIntro(true);
+      },
+    );
+  }
+
+  /** 通用确认框(Lua Shell.confirm 的 DOM 版) */
+  private showConfirm(title: string, lines: string[], okText: string, onOk: () => void): void {
+    clear(this.overlay);
+    const box = el('div', 'overlay__box');
+    box.append(lbl(title, 'overlay__title u-kai u-strong'));
+    for (const line of lines) box.append(lbl(line, 'overlay__body'));
+    const row = el('div', 'overlay__row');
+    row.append(
+      btn('再想想', { variant: 'ghost', onClick: () => this.hideOverlay() }),
+      btn(okText, {
+        variant: 'primary',
+        onClick: () => {
+          this.hideOverlay();
+          onOk();
+        },
+      }),
+    );
+    box.append(row);
+    this.overlay.append(box);
+    this.overlay.hidden = false;
   }
 
   // ---------- 叙事 ----------
@@ -157,7 +216,7 @@ export class Session {
 
   // ---------- 章首 ----------
 
-  renderIntro(): void {
+  renderIntro(fromBacktrack = false): void {
     this.renderTop();
     this.clearMain();
     this.clearOpts();
@@ -171,6 +230,10 @@ export class Session {
     this.main.append(el('div', 'rule'));
     for (const seg of ch.intro ?? []) this.main.append(this.prose(seg));
     for (const n of this.game.introNotes) this.main.append(lbl(n, 'intro-note u-qing'));
+    // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
+    if (fromBacktrack) {
+      this.main.append(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
+    }
 
     this.opts.append(btn('继 续', { variant: 'primary', onClick: () => this.route(this.game.beginEvents()) }));
   }

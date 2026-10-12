@@ -115,7 +115,7 @@ function bootstrap(): void {
   const session = new Session(
     g,
     { main: shell.main, opts: shell.foot, chap: shell.bar.querySelector('.stage__chap') as HTMLElement,
-      band: shell.band, overlay: shell.overlay },
+      band: shell.band, bar: shell.bar, overlay: shell.overlay },
     () => {
       shell.main.replaceChildren(lbl('对局结束。可刷新重开。', 'u-dim'));
       shell.foot.replaceChildren(
