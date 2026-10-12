@@ -1,0 +1,448 @@
+/* ============================================================================
+ * 对局界面(P2 最小可玩闭环)
+ *
+ * 结构对齐 Lua 版 game.lua 的分区:顶栏 / 叙事区 / 决策区 / 结算浮层 / 右栏属性。
+ * 视觉保持无美术的朴素形态,卷轴、立绘、雷达等在 P3 复刻。
+ * ==========================================================================*/
+
+/* ---------- 顶栏 ---------- */
+.stage__bar {
+  gap: var(--sp-md);
+}
+.stage__chap {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage__band {
+  flex: 0 0 auto;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- 叙事区 ---------- */
+.chapter__sub {
+  margin: 0 0 var(--sp-xs);
+  font-size: var(--fs-note);
+}
+.chapter__title {
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-h2);
+  line-height: 1.3;
+}
+.rule {
+  width: 3rem;
+  height: 2px;
+  background: var(--gold);
+  margin-bottom: var(--sp-md);
+}
+.prose {
+  margin: 0 0 var(--sp-md);
+  max-width: 42rem;
+}
+.settle-recall {
+  padding: var(--sp-sm);
+  border-left: 2px solid var(--line-soft);
+  margin-bottom: var(--sp-md);
+}
+.intro-note {
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-note);
+}
+.devrow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  font-size: var(--fs-note);
+  margin-bottom: var(--sp-xs);
+}
+.devrow p {
+  margin: 0;
+}
+.devrow p:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.devrow p:last-child {
+  flex: 0 0 auto;
+}
+.prompt {
+  max-width: 42rem;
+  padding: var(--sp-sm) var(--sp-md);
+  margin-bottom: var(--sp-md);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--paper-card);
+  color: var(--qing);
+  font-size: var(--fs-note);
+  line-height: 1.7;
+}
+
+/* ---------- 词条 ---------- */
+.gloss {
+  border: 0;
+  border-bottom: 1px dashed var(--gold);
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--gold);
+  cursor: pointer;
+}
+.gloss:hover {
+  color: var(--zhu);
+}
+
+/* ---------- 决策区 ---------- */
+.stage__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--sp-sm);
+  overflow-y: auto;
+}
+
+.card {
+  flex: 1 1 12rem;
+  max-width: 22rem;
+  min-width: 10rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--paper-card);
+  color: var(--ink);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card--tappable {
+  cursor: pointer;
+}
+.card--tappable:hover,
+.card--tappable:focus-visible {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 0.35rem 0.75rem rgba(42, 37, 29, 0.12);
+  outline: none;
+}
+.card.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.card--key {
+  border-color: var(--gold);
+  background: var(--paper-card-sel);
+}
+.card__body p {
+  margin: 0 0 var(--sp-xs);
+}
+.card__body p:last-child {
+  margin-bottom: 0;
+}
+.card__kicker {
+  font-size: var(--fs-cap);
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+.card__title {
+  font-size: var(--fs-ui);
+  line-height: 1.5;
+}
+.card__desc,
+.card__hint,
+.card__warn {
+  font-size: var(--fs-cap);
+  line-height: 1.6;
+}
+.card__tag {
+  font-size: var(--fs-cap);
+  color: var(--zhu);
+  letter-spacing: 0.1em;
+}
+.card__risk {
+  font-size: var(--fs-cap);
+}
+.card__lock {
+  font-size: var(--fs-cap);
+}
+.thaw {
+  flex: 1 1 100%;
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-note);
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.18em;
+  padding: var(--sp-sm) var(--sp-lg);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn--primary {
+  border: 0;
+  background: var(--zhu);
+  color: var(--paper-card);
+}
+.btn--primary:hover {
+  background: var(--zhu-hi);
+}
+.btn--ghost {
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  color: var(--ink);
+}
+.btn--ghost:hover {
+  border-color: var(--gold);
+}
+
+/* ---------- 分隔题签 ---------- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: var(--sp-md) 0;
+}
+.divider__rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line);
+}
+.divider__gem {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+.divider__txt {
+  margin: 0;
+  font-size: var(--fs-note);
+  color: var(--gold);
+  letter-spacing: 0.3em;
+}
+
+/* ---------- 右栏属性 ---------- */
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  font-size: var(--fs-note);
+  margin-bottom: var(--sp-xs);
+}
+.kv__k {
+  color: var(--ink-soft);
+}
+.kv__v {
+  font-family: var(--font-kai);
+}
+.meter {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+.meter__fill {
+  height: 100%;
+}
+
+/* ---------- 结算浮层 ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-md);
+  background: rgba(42, 37, 29, 0.42);
+  z-index: 10;
+}
+.overlay[hidden] {
+  display: none;
+}
+.overlay__box {
+  width: min(38rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--sp-lg);
+  border: 1px solid var(--gold);
+  border-radius: var(--r-lg);
+  background: var(--paper-card);
+  box-shadow: 0 1rem 2.5rem rgba(42, 37, 29, 0.28);
+  text-align: center;
+}
+.overlay__title {
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-title);
+  color: var(--zhu);
+}
+.overlay__text {
+  text-align: left;
+  margin-bottom: var(--sp-md);
+}
+.overlay__body {
+  text-align: left;
+  margin: 0 0 var(--sp-md);
+  font-size: var(--fs-note);
+  line-height: 1.8;
+  color: var(--ink);
+}
+
+.chglist {
+  list-style: none;
+  margin: 0 0 var(--sp-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  align-items: center;
+}
+.chglist__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+  justify-content: center;
+  align-items: baseline;
+}
+.chglist__v {
+  font-size: var(--fs-ui);
+}
+.chglist__note {
+  font-size: var(--fs-cap);
+}
+.is-up {
+  color: var(--good);
+}
+.is-down {
+  color: var(--zhu);
+}
+.is-up.chglist__v,
+.is-down.chglist__v {
+  color: inherit;
+}
+.chglist__v.is-up {
+  color: var(--good);
+}
+.chglist__v.is-down {
+  color: var(--zhu-hi);
+}
+
+/* ---------- 结局评分 ---------- */
+.score {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-xs);
+}
+.score .meter {
+  flex: 1 1 auto;
+}
+.score__k {
+  flex: 0 0 3rem;
+  font-size: var(--fs-note);
+}
+.score__v {
+  flex: 0 0 2.5rem;
+  text-align: right;
+  font-size: var(--fs-note);
+}
+.score__v--big {
+  font-size: var(--fs-title);
+  flex-basis: 3.5rem;
+}
+.score--total {
+  margin: var(--sp-md) 0;
+  justify-content: center;
+}
+.seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid var(--zhu);
+  border-radius: var(--r-sm);
+  color: var(--zhu);
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+}
+.seal--big {
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--fs-title);
+}
+
+/* ---------- 竖排/印章(备用) ---------- */
+.vtext {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+
+/* ---------- 工具类 ---------- */
+.u-warn {
+  color: var(--warn);
+}
+.u-qing {
+  color: var(--qing);
+}
+.u-zhu {
+  color: var(--zhu);
+}
+.u-gold {
+  color: var(--gold);
+}
+.u-strong {
+  color: var(--ink-strong);
+}
+.u-heavy {
+  color: var(--ink-heavy);
+}
+.u-soft {
+  color: var(--ink-soft);
+}
+.u-dim {
+  color: var(--ink-dim);
+}
+.txt {
+  margin: 0;
+}
+
+/* ---------- 右栏 ---------- */
+.stage__side {
+  flex: 0 0 13rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+  overflow-y: auto;
+}
+.side__title {
+  margin: 0 0 var(--sp-sm);
+  font-size: var(--fs-cap);
+  letter-spacing: 0.3em;
+  color: var(--gold);
+}
+
+/* ---------- 主/右 两栏 ---------- */
+.stage__cols {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.stage__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--sp-lg) var(--sp-md);
+}

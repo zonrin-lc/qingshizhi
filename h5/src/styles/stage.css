@@ -23,31 +23,8 @@
   letter-spacing: 0.14em;
 }
 
-.stage__body {
-  flex: 1 1 auto;
-  min-height: 0; /* 关键:允许在 flex 容器里收缩,否则底栏会被挤出屏幕 */
-  overflow: auto;
-  padding: var(--sp-lg) var(--sp-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stage__hint {
-  max-width: 34rem;
-  text-align: center;
-  font-size: var(--fs-body);
-}
-
-.stage__hint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.92em;
-  padding: 0.05em 0.35em;
-  border-radius: var(--r-sm);
-  background: var(--track);
-  color: var(--ink-strong);
-}
-
+/* 主体两栏结构(叙事区 + 右栏属性)定义在 game.css 的 .stage__cols 下,
+   之所以拆开:stage.css 只管骨架,game.css 管对局语义。 */
 .stage__foot {
   flex: 0 0 auto;
   min-height: 0;
