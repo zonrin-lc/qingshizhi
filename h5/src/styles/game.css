@@ -446,3 +446,70 @@
   overflow-y: auto;
   padding: var(--sp-lg) var(--sp-md);
 }
+
+/* ============================================================================
+ * 窄屏降级
+ *
+ * 两栏布局在小屏上会崩:右栏是 0 0 13rem(=208px)定宽,在 667px 视口已占 31%,
+ * 到竖屏 390px 更占到 53%,叙事区只剩 166px;且竖屏下 .stage 被压成 219px 高,
+ * 而决策区要 400px,直接把整个棋盘顶穿。
+ *
+ * 对策:880px 以下把右栏从「侧栏」改成「顶部横向属性条」,叙事区独占整宽;
+ * 决策区限高并内部滚动。P3 的雷达图上到这里也要跟着改成紧凑形态。
+ * ========================================================================== */
+@media (max-width: 880px) {
+  .stage__cols {
+    flex-direction: column;
+  }
+  .stage__side {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    padding: var(--sp-xs) var(--sp-sm);
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  /* 横向条里既没有空间也没有必要显示标题与进度条 */
+  .side__title,
+  .stage__side .meter {
+    display: none;
+  }
+  .stage__side .kv {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    gap: var(--sp-xs);
+    white-space: nowrap;
+  }
+  .stage__side .kv__v {
+    color: var(--ink-strong);
+  }
+
+  .stage__main {
+    padding: var(--sp-sm);
+  }
+  .prose {
+    font-size: calc(var(--fs-body) * 0.95);
+    line-height: 1.75;
+  }
+
+  /* 决策区限高:百分比相对 .stage 的确定高度,竖屏下才不会顶穿棋盘 */
+  .stage__foot {
+    max-height: 46%;
+    padding: var(--sp-xs) var(--sp-sm);
+  }
+  .card {
+    flex: 1 1 8rem;
+    min-width: 7.5rem;
+    padding: var(--sp-xs) var(--sp-sm);
+  }
+  .overlay__box {
+    padding: var(--sp-md);
+  }
+  .overlay__text,
+  .prose {
+    max-width: none;
+  }
+}
