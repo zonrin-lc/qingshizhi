@@ -23,7 +23,7 @@ export interface ScaleState {
   vh: number;
 }
 
-/** 缩放下限,防止异常 DPR 把 UI 缩没 */
+/** 缩放下限,防止异常/极小视口把 UI 缩没(对应 Lua 版 protect 的下限保护) */
 const MIN_SCALE = 0.5;
 /** 缩放上限,避免超宽屏上字号失控 */
 const MAX_SCALE = 2.0;
@@ -46,20 +46,30 @@ function readViewport(): { vw: number; vh: number } {
 /**
  * 计算自适应缩放。
  *
- * 策略:取「逻辑视口相对基准稿的放大比」与「DPR 密度」的较大者。
- * - 逻辑视口放大比负责让大屏上的内容相对更大
- * - DPR 负责在物理尺寸小但像素密的设备上保持可读性
+ * 主项是**视口贴合比**,而不是 DPR:
+ * CSS 布局本来就以 CSS px 为准,DPR 只影响一个 CSS px 画几个设备像素,
+ * 若把它当主项,高 DPI 屏上会与视口缩放**重复计数**(文字凭空胀一圈)。
+ *
+ * DPR 只作为温和的可读性微调:
+ *   dpr ≥ 2 高密度屏,略微上调(同样的物理尺寸字更实)
+ *   dpr <  1 异常环境(实测遇到过 0.36),略微下调
+ *
+ * 取较小边算贴合比:横屏下若用长边,窄边方向会先溢出。
+ *
+ * ⚠️ 这里**不能**写成 max(fit, density):density 在 dpr=1 时恒为 1,
+ * 会变成「缩放永不小于 1」的地板,视口缩小时完全不缩放
+ * (无头实测:视口 762×428 时 fit=0.594,却算出 scale=1.0000)。
  */
 export function computeScale(): ScaleState {
   const dpr = window.devicePixelRatio || 1;
   const { vw, vh } = readViewport();
 
-  // 视口放大比:用较短边,避免横屏下被长边拉爆
+  // 视口贴合比:相对基准稿放大了多少倍
   const fit = Math.min(vw / BASE_W, vh / BASE_H);
-  // DPR 折算:1x → 1.0,2x → 1.18,3x → 1.30(次线性,避免高 DPI 下字号过胀)
-  const density = 1 + Math.log2(Math.max(1, dpr)) * 0.18;
+  // DPR 微调,保持温和(±6%),避免与视口缩放重复计数
+  const density = dpr >= 2 ? 1.06 : dpr < 1 ? 0.94 : 1;
 
-  const scale = clamp(Math.max(fit, density), MIN_SCALE, MAX_SCALE);
+  const scale = clamp(fit * density, MIN_SCALE, MAX_SCALE);
   return { scale, dpr, vw, vh };
 }
 
