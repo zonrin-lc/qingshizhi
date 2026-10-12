@@ -7,15 +7,21 @@ const OUT = ".tmp/voice";
 const all = JSON.parse(fs.readFileSync(`${OUT}/all.json`, "utf8"));
 
 if (process.argv[2] === "apply") {
+  // 容错:同时匹配 vb<n>_i_... 与 vb<n>0_i_... 等前缀(TTS 按 output_name 命名)
   const n = process.argv[3];
   const count = parseInt(process.argv[4], 10);
   const keys = fs.readFileSync(`${OUT}/b${n}.keys`, "utf8").trim().split("\n");
+  const dir = "assets/audio/voice";
+  const allFiles = fs.readdirSync(dir);
+  const findSrc = (i) => allFiles.find((f) => f.startsWith(`vb${n}_${i}_`) || f.startsWith(`vb${n}0_${i}_`)
+    || new RegExp(`^vb${n}\\d*_${i}_`).test(f));
   let ok = 0;
   const miss = [];
   for (let i = 1; i <= count; i++) {
-    const src = `assets/audio/voice/vb${n}_${i}_cb9100237a0bee89.ogg`;
-    const dst = `assets/audio/voice/${keys[i - 1]}.ogg`;
-    if (!fs.existsSync(src)) { miss.push(i); continue; }
+    const fname = findSrc(i);
+    if (!fname) { miss.push(i); continue; }
+    const src = `${dir}/${fname}`;
+    const dst = `${dir}/${keys[i - 1]}.ogg`;
     fs.renameSync(src, dst);
     if (fs.existsSync(src + ".meta")) fs.renameSync(src + ".meta", dst + ".meta");
     ok++;
