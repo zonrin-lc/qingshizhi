@@ -10,7 +10,9 @@
     "dev": "vite",
     "prebuild": "npm run verify:data",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:browser": "node tests/run-all.cjs",
+    "pretest:browser": "npm run build"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
