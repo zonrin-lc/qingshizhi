@@ -31,20 +31,20 @@ local TRACKS = {
   lisi = {
     inst = "audio/bgm_lisi_inst.ogg",
     vocal = "audio/bgm_lisi_vocal.ogg",
-    durInst = 194.76,
-    durVocal = 228.26,
+    durInst = 203.59,
+    durVocal = 236.95,
   },
   jingke = {
     inst = "audio/bgm_jingke_inst.ogg",
     vocal = "audio/bgm_jingke_vocal.ogg",
-    durInst = 211.46,
-    durVocal = 219.43,
+    durInst = 208.03,
+    durVocal = 241.58,
   },
   hanxin = {
     inst = "audio/bgm_hanxin_inst.ogg",
     vocal = "audio/bgm_hanxin_vocal.ogg",
-    durInst = 208.44,
-    durVocal = 230.04,
+    durInst = 227.40,
+    durVocal = 228.84,
   },
   xiangyu = {
     inst = "audio/bgm_xiangyu_inst.ogg",
@@ -55,8 +55,8 @@ local TRACKS = {
   chensheng = {
     inst = "audio/bgm_chensheng_inst.ogg",
     vocal = "audio/bgm_chensheng_vocal.ogg",
-    durInst = 197.64,
-    durVocal = 228.02,
+    durInst = 207.98,
+    durVocal = 234.43,
   },
 }
 
