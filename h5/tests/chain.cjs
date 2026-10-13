@@ -35,6 +35,12 @@ const DRIVER = `(async () => {
 
   for (let i = 0; i < 600; i++) {
     await sleep(3);
+    // 叙事渐显:段落没全亮、选项也还没挂上(对齐 Lua 的"读完才给选")。
+    // 先点正文区跳过去,否则下面 paras/segs 的段数断言会读到半截。
+    if (window.__QS__.session.isRevealing) {
+      q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      continue;
+    }
     checkLayout(g.phase);
     const ov = q('.overlay');
     if (ov && !ov.hidden) {

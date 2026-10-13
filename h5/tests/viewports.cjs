@@ -11,7 +11,7 @@
  */
 'use strict';
 
-const { withPage, report } = require('./lib/harness.cjs');
+const { withPage, report, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 const VIEWPORTS = [
   ['桌面 1280x720', 1280, 720, 1],
@@ -29,6 +29,7 @@ const PROBE = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
+${STEP_SNIPPET}
   // 「是否竖屏」必须由视口方向判定,不能看引导层是否显示——
   // 否则引导层一旦在横屏误开,测试会以为「竖屏本就不渲染对局」而直接放过,
   // 变成假绿(这正是第一版踩的坑:1280x720 也被引导盖住却报 ok)。
@@ -36,12 +37,18 @@ const PROBE = `(async () => {
   const hint = q('.rotate-hint');
   const rotateHint = !!(hint && getComputedStyle(hint).display !== 'none');
   if (!isPortrait) {
-    for (let i = 0; i < 80 && g.phase !== 'round'; i++) {
+    for (let i = 0; i < 140 && g.phase !== 'round'; i++) {
       await sleep(10);
+      // 渐显期间选项还没挂上,先点正文跳过去(同 chain)
+      if (window.__QS__.session.isRevealing) {
+        q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        continue;
+      }
       const ov = q('.overlay');
       if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(4); continue; }
-      if (g.phase === 'intro') { q('.stage__foot .btn--primary').click(); await sleep(4); }
+      if (g.phase === 'intro') { q('.stage__foot .btn--primary')?.click(); await sleep(4); }
       else if (g.phase === 'event') { (qa('.stage__foot .card--tappable')[0]||{}).click?.(); await sleep(4); }
+      else { advanceOnce(); await sleep(4); }
     }
   }
   await sleep(60);

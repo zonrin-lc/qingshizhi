@@ -57,6 +57,10 @@ export class Session {
     mounts.bar.append(this.backBtn);
     // 有人说话时把 BGM 压下去,说完恢复。暂停更省事但听起来像断片。
     voice.onSpeakingChange = (speaking) => bgm.duck(speaking);
+
+    // 点正文区 = 跳过渐显,把剩下的段落一次全亮出来。
+    // 用 pointerdown 而不是 click:触屏上 click 会等到抬手,晚一拍。
+    mounts.main.addEventListener('pointerdown', () => this.skipReveal());
   }
 
   /** 当前剧本与章 id,配音切片路径靠它推导 */
@@ -222,10 +226,90 @@ export class Session {
   }
 
   private clearMain(): void {
+    // 换页前必须先把正在进行的渐显收掉,否则它的定时器会往新页里
+    // 继续塞上一章的段落
+    this.skipReveal();
     clear(this.main);
   }
   private clearOpts(): void {
     clear(this.opts);
+  }
+
+  // ---------- 叙事渐显 ----------
+
+  /**
+   * 段落之间的间隔(ms)。对齐 Lua shell.lua 的 SEG_INTERVAL = 0.65。
+   * 那边的注释说这值本该能在设置页调,设置页按决定暂不做,先留常量。
+   */
+  private static readonly SEG_INTERVAL = 650;
+
+  private revealing: { box: HTMLElement; items: HTMLElement[]; i: number; timer: number; done?: () => void } | null = null;
+
+  /**
+   * 立刻显示所有剩余段落并收尾。玩家点一下屏幕就该是这个反应,
+   * 否则一段段等 0.65 秒很折磨。对齐 Lua Shell.cancelReveal / TapReveal。
+   */
+  skipReveal(): void {
+    const rv = this.revealing;
+    if (!rv) return;
+    this.revealing = null;
+    clearInterval(rv.timer);
+    // i 的含义是「下一个要追加的下标」,所以先追加再前进。
+    // 顺序反了会每隔一段漏掉一条,而且循环末尾还会 append(undefined),
+    // 那个 undefined 会被当成文本节点直接插进正文里。
+    while (rv.i < rv.items.length) {
+      rv.box.append(rv.items[rv.i] as HTMLElement);
+      rv.i += 1;
+    }
+    rv.done?.();
+  }
+
+  /** 渐显进行中 */
+  get isRevealing(): boolean {
+    return this.revealing !== null;
+  }
+
+  /**
+   * 逐段浮现。段落先放第一段,其余按间隔追加,最后调 done。
+   * done 里才挂选项/继续按钮 —— 所以在渐显结束前点不到那些按钮,
+   * 这跟 Lua 版一致,也顺带防止玩家在没读完时就做了选择。
+   *
+   * box 是段落容器(prose-body),不是 main:main 只允许挂 castbox/prose-body,
+   * 往 main 里直接塞段落会破坏版式不变量(chain 测试盯着这条)。
+   */
+  private revealSegs(box: HTMLElement, items: HTMLElement[], done?: () => void): void {
+    this.skipReveal();
+    if (!items.length) { done?.(); return; }
+    // 系统开了「减少动态效果」就别演了,直接全给出来
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      for (const it of items) box.append(it);
+      done?.();
+      return;
+    }
+    // i = 下一个要追加的下标。items[0] 当场出,定时器接着补后面的。
+    const rv: NonNullable<Session['revealing']> = { box, items, i: 1, timer: 0, done };
+    this.revealing = rv;
+    box.append(items[0] as HTMLElement);
+    this.scrollMainBottom();
+    rv.timer = window.setInterval(() => {
+      if (this.revealing !== rv) return; // 已被取消/换页
+      if (rv.i >= rv.items.length) {
+        this.revealing = null;
+        clearInterval(rv.timer);
+        rv.done?.();
+        return;
+      }
+      box.append(rv.items[rv.i] as HTMLElement);
+      rv.i += 1;
+      this.scrollMainBottom();
+    }, Session.SEG_INTERVAL);
+  }
+
+  /** 渐显到新段落时把正文卷到可见处,否则长段落会追加到视口外看不见 */
+  private scrollMainBottom(): void {
+    const box = this.main;
+    if (box.scrollHeight <= box.clientHeight) return;
+    box.scrollTop = box.scrollHeight;
   }
 
   /**
@@ -331,17 +415,22 @@ export class Session {
     // 「第一章 ｜ 兰陵问道」取竖线后的主标题
     body.append(lbl(this.shortTitle(ch.title), 'chapter__title u-kai u-heavy'));
     body.append(el('div', 'rule'));
-    for (const seg of ch.intro ?? []) body.append(this.prose(seg));
-    for (const n of this.game.introNotes) body.append(lbl(n, 'intro-note u-qing'));
+
+    // 标题/副题/分割线立即出,只有正文段落走渐显 —— 对齐 Lua renderIntro:
+    // 那几行是 mainAdd 直接加的,只有 segs/notes 进 revealSegs 的 items。
+    const items: HTMLElement[] = [];
+    for (const seg of ch.intro ?? []) items.push(this.prose(seg));
+    for (const n of this.game.introNotes) items.push(lbl(n, 'intro-note u-qing'));
+    // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
+    if (fromBacktrack) {
+      items.push(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
+    }
     // 回溯也要配音:但重念一遍 intro 很吵,只在正常进入时念。
     // base 要带上结尾下划线 —— 切片名是 intro_1,不是 intro1
     if (!fromBacktrack) this.speakSeq('intro_', (ch.intro ?? []).length);
-    // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
-    if (fromBacktrack) {
-      body.append(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
-    }
-
-    this.opts.append(btn('继 续', { variant: 'primary', onClick: () => this.route(this.game.beginEvents()) }));
+    this.revealSegs(body, items, () => {
+      this.opts.append(btn('继 续', { variant: 'primary', onClick: () => this.route(this.game.beginEvents()) }));
+    });
   }
 
   /** 「第一章 ｜ 兰陵问道」→「兰陵问道」;无竖线则原样返回 */
@@ -461,12 +550,13 @@ const inserted = g.currentRandom != null;
     if (kicker) body.append(lbl(kicker, 'u-dim chapter__sub'));
     body.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
     body.append(el('div', 'rule'));
-    for (const seg of ev.segs ?? []) body.append(this.prose(seg));
     // 配音切片名:事件内用 <事件id>_s<N>;随机事件走 rand/<id>_s<N>
     // 随机事件试点没做配音,查不到就是静默,不影响游玩
     if (inserted) this.speakSeq(`rand/${g.eventId}`, (ev.segs ?? []).length, '_s');
     else this.speakSeq(ev.id, (ev.segs ?? []).length, '_s');
-    this.renderOptions();
+    // 选项等渐显结束再挂:没读完就做选择不是我们要的
+    const items = (ev.segs ?? []).map((seg) => this.prose(seg));
+    this.revealSegs(body, items, () => this.renderOptions());
   }
 
   renderOptions(): void {
@@ -507,20 +597,22 @@ const inserted = g.currentRandom != null;
     body.append(lbl('抉择 · 事有两端', 'u-gold chapter__sub'));
     body.append(lbl(v.title, 'chapter__title u-kai u-heavy'));
     body.append(el('div', 'rule'));
-    for (const seg of v.segs ?? []) body.append(this.prose(seg));
 
-    for (let i = 0; i < v.options.length; i += 1) {
-      const o = v.options[i];
-      if (!o) continue;
-      const c = card({ cls: 'card--opt card--tappable', onClick: () => this.doChooseCardOpt(i) });
-      c.append(el('div', 'card__body', o.t));
-      this.opts.append(c);
-    }
-    const skip = card({ cls: 'card--action', onClick: () => this.doCancelChoice() });
-    const skipBody = el('div', 'card__body');
-    skipBody.append(lbl('且搁置', 'card__title u-dim'));
-    skip.append(skipBody);
-    this.opts.append(skip);
+    const items = (v.segs ?? []).map((seg) => this.prose(seg));
+    this.revealSegs(body, items, () => {
+      for (let i = 0; i < v.options.length; i += 1) {
+        const o = v.options[i];
+        if (!o) continue;
+        const c = card({ cls: 'card--opt card--tappable', onClick: () => this.doChooseCardOpt(i) });
+        c.append(el('div', 'card__body', o.t));
+        this.opts.append(c);
+      }
+      const skip = card({ cls: 'card--action', onClick: () => this.doCancelChoice() });
+      const skipBody = el('div', 'card__body');
+      skipBody.append(lbl('且搁置', 'card__title u-dim'));
+      skip.append(skipBody);
+      this.opts.append(skip);
+    });
   }
 
   // ---------- 章末结算 ----------

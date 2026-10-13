@@ -12,7 +12,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { withPage, report, sleep } = require('./lib/harness.cjs');
+const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 const AUD = path.join(__dirname, '..', 'dist', 'assets');
 // Vite 会把 src/assets/** 全部摊平到 dist/assets/ 并加 hash,
@@ -78,27 +78,11 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
 
   // 不给 __QS__ 加「跳章」后门 —— 那样测的是后门而不是真实链路。
   // c0 只有 4 个事件,按真实流程点过去就行,顺带把 c0 无配音也验了。
-  const advance = async (wantCh, max = 220) => {
+  const advance = async (wantCh, max = 300) => {
     for (let i = 0; i < max; i += 1) {
       const ch = await evaluate('window.__QS__.game.chapter()?.id || ""');
       if (ch === wantCh) return true;
-      await evaluate(`(() => {
-        // 两个坑:
-        // 1. .overlay 是常驻挂载点,没浮层时也在 DOM 里 —— 只判存在会永远走这一支。
-        //    可见性看 hidden 属性;不能用 offsetParent,浮层是 fixed,恒为 null。
-        // 2. 别按 phase 分支。按「页面上有什么就点什么」的优先级试,
-        //    否则章末结算(summary)这种新相位一出现就得回来改一遍。
-        const ov = document.querySelector('.overlay');
-        if (ov && !ov.hidden) { ov.querySelector('.btn--primary')?.click(); return; }
-        const foot = document.querySelector('.stage__foot');
-        if (!foot) return;
-        const tap = foot.querySelector('.card--tappable');            // 事件/抉择的选项
-        if (tap) { tap.click(); return; }
-        const act = foot.querySelector('.card--action[role="button"]'); // 回合里的行动牌
-        if (act) { act.click(); return; }
-        const btn = foot.querySelector('.btn--primary');               // 序章继续 / 章末继续
-        if (btn) { btn.click(); return; }
-      })()`);
+      await evaluate(`(() => { ${STEP_SNIPPET} advanceOnce(); })()`);
       await sleep(70);
     }
     return false;

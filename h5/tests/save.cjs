@@ -11,38 +11,37 @@
  * 「刷新后还在」是存文件系统唯一有意义的判据,
  * 只在内存里存取再读回来,证明不了任何事。
  */
-const { withPage, report } = require('./lib/harness.cjs');
+const { withPage, report, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 /** 打到中途打两张牌,让属性变化,然后存 */
 const SAVE_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
-  const ov = () => { const o = q('.overlay'); return o && !o.hidden; };
-  const step = async () => { if (ov()) { q('.overlay .btn--primary')?.click(); await sleep(5); } };
+${STEP_SNIPPET}
+  const step = async () => { if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); } };
 
   // 开局属性要先存下来:「不是空存档」得跟开局比。
   // 写死 40/20/10 只在李斯第一章碰巧成立,换剧本/难度就假失败。
   const init = { ...g.attrs };
 
-
-  for (let i = 0; i < 120 && g.phase !== 'round'; i++) {
-    await sleep(5);
-    if (ov()) { q('.overlay .btn--primary')?.click(); continue; }
-    if (g.phase === 'intro') { q('.stage__foot .btn--primary')?.click(); continue; }
-    if (g.phase === 'event') { qa('.stage__foot .card--tappable')[0]?.click(); continue; }
+  for (let i = 0; i < 160 && g.phase !== 'round'; i++) {
+    await sleep(6);
+    advanceOnce();
   }
   let played = 0;
-  for (let n = 0; n < 40 && played < 2; n++) {
-    if (ov()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
+  for (let n = 0; n < 80 && played < 2; n++) {
+    if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
     if (g.phase === 'round') {
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
       if (c) { c.click(); played += 1; await sleep(30); await step(); await sleep(10); }
+      else { advanceOnce(); await sleep(8); }
     } else if (g.phase === 'event' || g.phase === 'choice') {
       // choice 相位也要点,否则循环空转、永远打不出第二张牌
       const c = qa('.stage__foot .card--tappable')[0];
       if (c) { c.click(); await sleep(12); await step(); await sleep(8); }
-    } else { await step(); await sleep(5); }
+      else { advanceOnce(); await sleep(8); }
+    } else { advanceOnce(); await sleep(8); }
   }
   const before = { phase: g.phase, caixue: g.attrs.caixue, caifu: g.attrs.caifu,
                    weiji: g.attrs.weiji, ch: g.chapterIdx, played };
@@ -88,18 +87,20 @@ const AUTO_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
-  const ov = () => { const o = q('.overlay'); return o && !o.hidden; };
+${STEP_SNIPPET}
 
   // 打两张牌让属性变化
   let played = 0;
-  for (let n = 0; n < 30 && played < 2; n++) {
-    if (ov()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
+  for (let n = 0; n < 60 && played < 2; n++) {
+    if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
     if (g.phase === 'round') {
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
       if (c) { c.click(); played += 1; await sleep(30); }
-    } else if (g.phase === 'event') { qa('.stage__foot .card--tappable')[0]?.click(); await sleep(10); }
-    else if (g.phase === 'intro') { q('.stage__foot .btn--primary')?.click(); await sleep(10); }
-    else await sleep(5);
+      else { advanceOnce(); await sleep(8); }
+    } else if (g.phase === 'event') {
+      const c = qa('.stage__foot .card--tappable')[0];
+      if (c) { c.click(); await sleep(10); } else { advanceOnce(); await sleep(8); }
+    } else { advanceOnce(); await sleep(8); }
   }
   const before = { caixue: g.attrs.caixue, played, ch: g.chapterIdx };
 

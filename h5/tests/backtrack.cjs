@@ -29,15 +29,30 @@ const PROBE = `(async () => {
     if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(6); } };
 
   snap('init');
-  q('.stage__foot .btn--primary').click(); await sleep(8);
-  for (let i = 0; i < 12 && g.phase !== 'round'; i++) await step();
+  for (let i = 0; i < 40; i++) {
+    if (window.__QS__.session.isRevealing) {
+      q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      await sleep(8);
+      continue;
+    }
+    q('.stage__foot .btn--primary')?.click();
+    await sleep(8);
+    if (g.phase !== 'intro') break;
+  }
+  for (let i = 0; i < 40 && g.phase !== 'round'; i++) await step();
   snap('进回合');
 
   // 打到属性真的动起来。会撞上事件/结算/抉择,一路步进,
   // 直到与章首快照出现差异——否则「回溯把属性滚回去」根本无从验证。
   const startAttrs = { ...g.attrs };
-  let moved = false;
-  for (let n = 0; n < 60 && !moved; n++) {
+  const WATCH = ['caifu','caixue','weiji','shengwang','quanshi','zhengji','junxin'];
+  const attrsChanged = () => WATCH.some(k => g.attrs[k] !== startAttrs[k]);
+  for (let n = 0; n < 200 && !attrsChanged(); n++) {
+    if (window.__QS__.session.isRevealing) {
+      q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      await sleep(8);
+      continue;
+    }
     const ov = q('.overlay');
     if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(6); continue; }
     const ph = g.phase;
@@ -49,11 +64,14 @@ const PROBE = `(async () => {
       const e = qa('.stage__foot .card--tappable')[0];
       if (e) { e.click(); await sleep(10); continue; }
     }
-    if (ph === 'intro') { const b = q('.stage__foot .btn--primary'); if (b) { b.click(); await sleep(8); continue; } }
-    moved = ['caifu','caixue','weiji','shengwang','quanshi','zhengji','junxin']
-      .some(k => g.attrs[k] !== startAttrs[k]);
+    if (ph === 'intro' || ph === 'summary') {
+      const b = q('.stage__foot .btn--primary'); if (b) { b.click(); await sleep(8); continue; }
+    }
   }
-  const attrsMoved = moved;
+  // 判定放在循环外、且由循环条件每轮把关:
+  // 若只写在循环体末尾,每条路径都是 continue,最后一次点击后循环
+  // 因计数耗尽退出,这个值永远不会被求值(而且会一路打到下一章去)。
+  const attrsMoved = attrsChanged();
   snap('打出变化后');
 
   // 强塞一个成就,用来验「回溯不重置成就」
@@ -61,13 +79,31 @@ const PROBE = `(async () => {
   const devBefore = g.dev;
   snap('解锁成就后');
 
+  if (!q('.backbtn')) {
+    return { log, confirmShown: false, confirmTitle: '', confirmBtns: [],
+             devBefore, btNote: '', secondConfirm: false, attrsMoved, startAttrs,
+             noBackbtn: true, phase: g.phase, ch: g.chapterIdx };
+  }
   q('.backbtn').click(); await sleep(8);
   const confirmShown = !q('.overlay').hidden;
   const confirmTitle = (q('.overlay__title')||{}).textContent || '';
   const confirmBtns = qa('.overlay .btn').map(b => b.textContent.trim());
   snap('确认框');
 
-  q('.overlay .btn--primary').click(); await sleep(10);
+  const okBtn = q('.overlay .btn--primary');
+  if (!okBtn) {
+    // 确认框没开 → 回溯没被受理。回报真实状态,别让测试崩在这
+    return { log, confirmShown, confirmTitle, confirmBtns, devBefore, btNote: '', secondConfirm: false,
+             attrsMoved, startAttrs, noConfirmBtn: true, can: g.canBacktrack(), phase: g.phase,
+             btnText: (q('.backbtn')||{}).textContent, btnLocked: q('.backbtn')?.classList.contains('is-locked') };
+  }
+  okBtn.click(); await sleep(10);
+  // 【回溯】提示在 revealSegs 的 items 末尾(Lua 那边也放最后),
+  // 所以得先点正文把渐显跳完,再去读,否则读到的还是半截
+  for (let i = 0; i < 30 && window.__QS__.session.isRevealing; i++) {
+    q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await sleep(10);
+  }
   snap('确认回溯后');
   const btNote = ((q('.stage__main')||{}).textContent || '').includes('【回溯】');
 

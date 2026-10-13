@@ -284,4 +284,40 @@ function report(title, checks) {
   return bad.length === 0;
 }
 
-module.exports = { withPage, report, sleep, findChrome, serve, cdp, freePort, DIST };
+/**
+ * 页内「推进游戏」片段,供各测试的步进循环拼进去。
+ *
+ * 关键一条是 SKIP_REVEAL:叙事渐显期间,选项/继续按钮还没挂上
+ * (对齐 Lua —— 没读完不给选)。所以脚本报「点不到按钮」时,
+ * 不是坏了,是正在渐显,得先点正文区把它跳过去。
+ * 这正是玩家的真实操作,不为了测试去开后门。
+ *
+ * 优先级:浮层 → 选项卡 → 行动牌 → 主按钮 → 点正文跳渐显。
+ * 不按 phase 分支 —— 章末结算这类新相位出现时就不用回头改一遍。
+ */
+const STEP_SNIPPET = `
+  const ovOpen = () => { const o = document.querySelector('.overlay'); return o && !o.hidden; };
+  const tapMain = () => {
+    const m = document.querySelector('.stage__main');
+    if (!m) return false;
+    m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    return true;
+  };
+  const isRevealing = () => !!(window.__QS__ && window.__QS__.session && window.__QS__.session.isRevealing);
+  const advanceOnce = () => {
+    if (ovOpen()) { document.querySelector('.overlay .btn--primary')?.click(); return 'overlay'; }
+    const foot = document.querySelector('.stage__foot');
+    if (foot) {
+      const tap = foot.querySelector('.card--tappable');
+      if (tap) { tap.click(); return 'option'; }
+      const act = foot.querySelector('.card--action[role="button"]');
+      if (act) { act.click(); return 'card'; }
+      const btn = foot.querySelector('.btn--primary');
+      if (btn) { btn.click(); return 'primary'; }
+    }
+    if (isRevealing() && tapMain()) return 'skip-reveal';
+    return 'idle';
+  };
+`;
+
+module.exports = { withPage, report, sleep, findChrome, serve, cdp, freePort, DIST, STEP_SNIPPET };
