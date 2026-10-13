@@ -1,0 +1,277 @@
+/* ============================================================================
+ * 选择页
+ *
+ * 版式对齐参考图:左朝代轮盘、右五张剧本卡、下方难度三选一、底部「档案 / 入 局」。
+ * ==========================================================================*/
+
+.select {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto auto;
+  gap: var(--sp-md) var(--sp-xl);
+  height: 100%;
+  padding: var(--sp-lg) var(--sp-xl) var(--sp-md);
+  align-items: center;
+}
+
+/* ---------- 品牌 ---------- */
+.select__brand {
+  grid-column: 1 / -1;
+  align-self: start;
+}
+.select__logo {
+  font-family: var(--font-kai);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ink-heavy);
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+}
+.select__tagline {
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+  letter-spacing: 0.3em;
+  margin-top: var(--sp-xs);
+}
+
+/* ---------- 朝代轮盘 ---------- */
+.select__wheel {
+  grid-column: 1;
+  grid-row: 2 / 4;
+  position: relative;
+  width: min(26rem, 42vh);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-xs);
+}
+/* 金色表盘环 + 刻度,中心留白 */
+.wheel__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: url('../assets/panel/wheel.webp') center / contain no-repeat;
+}
+.select__dynasty {
+  font-family: var(--font-kai);
+  font-size: 5.2rem;
+  font-weight: 700;
+  color: var(--ink-heavy);
+  line-height: 1;
+  z-index: 1;
+}
+.select__seal {
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--zhu);
+  border-radius: var(--r-sm);
+  color: var(--zhu);
+  font-family: var(--font-kai);
+  font-size: var(--fs-cap);
+}
+.select__span {
+  z-index: 1;
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+}
+
+/* ---------- 剧本卡 ---------- */
+.select__cards {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  gap: var(--sp-sm);
+  align-items: stretch;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+.scard {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  padding: var(--sp-xs);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.scard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(42, 37, 29, 0.16);
+}
+.scard.is-on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 0.5rem 1.2rem rgba(138, 106, 52, 0.28);
+}
+.scard__art {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--track);
+}
+.scard__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.scard__art--empty {
+  align-items: center;
+  border: 1px dashed var(--line);
+}
+.scard__ph {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+}
+.scard__name {
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  color: var(--ink-strong);
+  text-align: center;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+}
+.scard.is-on .scard__name {
+  color: var(--zhu);
+}
+.scard__ch {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+/* ---------- 难度 ---------- */
+.select__diff {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-xs);
+}
+.select__difflabel {
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+  letter-spacing: 0.3em;
+}
+.select__diffrow {
+  display: flex;
+  gap: var(--sp-md);
+}
+.dbtn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+  background: url('../assets/btn/diff-off.webp') center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+  padding: var(--sp-xs) var(--sp-xl);
+  min-width: 7rem;
+  transition: filter 0.15s ease;
+}
+.dbtn.is-on {
+  background-image: url('../assets/btn/diff-on.webp');
+  color: var(--ink-heavy);
+  font-weight: 700;
+}
+
+/* ---------- 档案 / 入局 ---------- */
+.select__actions {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-md);
+  margin-top: var(--sp-xs);
+}
+.savebtn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.3em;
+  color: var(--ink-soft);
+  background: url('../assets/btn/ghost.webp') center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+  padding: var(--sp-xs) var(--sp-lg);
+  min-width: 6rem;
+  transition: filter 0.15s ease;
+}
+.savebtn:hover {
+  filter: brightness(1.06);
+}
+/* 继续上局:退出时自动留下的档,朱漆描边强调 */
+.resumebtn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.3em;
+  color: var(--zhu);
+  background: url('../assets/btn/diff-on.webp') center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+  padding: var(--sp-xs) var(--sp-lg);
+  min-width: 7rem;
+  font-weight: 700;
+  transition: filter 0.15s ease;
+}
+.resumebtn:hover {
+  filter: brightness(1.06);
+}
+.enterbtn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-title);
+  letter-spacing: 0.5em;
+  color: #f8f2e4;
+  background: url('../assets/btn/enter.webp') center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+  padding: var(--sp-sm) 3.5rem;
+  transition: filter 0.15s ease;
+}
+.enterbtn:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 880px) {
+  .select {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto auto;
+    gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    overflow-y: auto;
+  }
+  .select__brand,
+  .select__wheel,
+  .select__cards,
+  .select__diff,
+  .select__actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .select__logo { font-size: 1.6rem; }
+  .select__wheel { width: min(14rem, 30vh); justify-self: center; }
+  .select__dynasty { font-size: 3rem; }
+  .select__cards { height: auto; }
+  .scard__art { height: 7rem; }
+  .dbtn { min-width: 4.5rem; padding: var(--sp-xs) var(--sp-sm); letter-spacing: 0.1em; }
+  .enterbtn { padding: var(--sp-xs) 2rem; letter-spacing: 0.3em; }
+  .savebtn { min-width: 4rem; padding: var(--sp-xs) var(--sp-sm); }
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "key": "lisi",
+    "id": "lisi",
+    "name": "李斯 · 仓鼠之局",
+    "sub": "如果你来走这一生",
+    "noSave": false,
+    "chapters": 7
+  },
+  {
+    "key": "jingke",
+    "id": "jingke",
+    "name": "荆轲 · 图穷之局",
+    "sub": "风萧萧兮易水寒",
+    "noSave": false,
+    "chapters": 6
+  },
+  {
+    "key": "hanxin",
+    "id": "hanxin",
+    "name": "韩信 · 兵仙之局",
+    "sub": "成也萧何，败也萧何",
+    "noSave": false,
+    "chapters": 7
+  },
+  {
+    "key": "xiangyu",
+    "id": "xiangyu",
+    "name": "项羽 · 霸王之局",
+    "sub": "力拔山兮气盖世",
+    "noSave": false,
+    "chapters": 7
+  },
+  {
+    "key": "chensheng",
+    "id": "chensheng",
+    "name": "陈胜 · 首义之局",
+    "sub": "王侯将相宁有种乎",
+    "noSave": false,
+    "chapters": 7
+  }
+]

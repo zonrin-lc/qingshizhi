@@ -264,6 +264,65 @@
   font-size: var(--fs-cap);
 }
 
+/* 出场立绘排(cast row) ---------------------------------------------
+ * 立绘不是一张主角大图,而是「同场 NPC 的圆形小像」一排,点开词条。
+ * 规则来自 ⟦词条⟧ 标记(见 ui/cast.ts),不是另造的数据字段。
+ * ------------------------------------------------------------------ */
+.castbox {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-xs);
+  width: 9rem;
+  max-width: 30%;
+}
+.castRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-xs);
+}
+.castChip {
+  position: relative;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--paper);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.castChip:hover {
+  transform: scale(1.08);
+  border-color: var(--zhu);
+}
+.castChip__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 原立绘是全身,圆像里只要头肩:向下偏一点取景 */
+  object-position: center 12%;
+  display: block;
+}
+.castChip__name {
+  position: absolute;
+  inset: auto 0 0 0;
+  font-size: var(--fs-cap);
+  color: var(--paper-card);
+  background: rgba(42, 37, 29, 0.62);
+  text-align: center;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+.portrait__name {
+  font-size: var(--fs-ui);
+  letter-spacing: 0.4em;
+  color: var(--ink-strong);
+}
+
 .prose-body {
   flex: 1 1 auto;
   min-width: 0;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * P2 主链路:序章 → 关键事件 → 选项 → 属性增减 → 行动卡 → 章末 → 下一章。
  *
  * 这是「P2 是否成立」的总闸:对应计划里「先用 Chrome 手动跑一遍第一章」的要求。
@@ -18,15 +18,16 @@ const DRIVER = `(async () => {
   const push = o => trace.push(o);
 
   // 版式不变量:.stage__main 是 display:flex(row),只允许直接挂
-  // .portrait 与 .prose-body 两个子元素。之前 章末/结局/抉择/章末事件
+  // .castbox(出场立绘排)与 .prose-body 两个子元素。之前 章末/结局/抉择/章末事件
   // 四个渲染函数把标题、装饰线、每个段落直接 append 到 main,
   // 它们就成了兄弟 flex 项,正文被排成四列 —— 而当时的测试只查 DOM 存在,
   // 完全没发现。这里逐相位盯住这条不变量。
+  // (类名从 portrait 改成 castbox 时,这条断言是唯一报错的地方——它确实在盯。)
   const checkLayout = ph => {
     const main = q('.stage__main');
     if (!main) return;
     const loose = [...main.children].filter(
-      c => !c.classList.contains('portrait') && !c.classList.contains('prose-body'));
+      c => !c.classList.contains('castbox') && !c.classList.contains('prose-body'));
     if (loose.length) {
       badLayout.push({ ph, n: loose.length, cls: loose.map(c => c.className || c.tagName).join('|') });
     }
@@ -48,7 +49,7 @@ const DRIVER = `(async () => {
       const ch = g.chapter();
       push({ at: i, evt: 'intro', idx: g.chapterIdx, title: ch.title,
              paras: qa('.stage__main .prose').length, notes: qa('.intro-note').length,
-             gloss: qa('.gloss').length });
+             gloss: qa('.gloss').length, cast: qa('.castChip').length });
       if (g.chapterIdx >= 1) { push({ evt: 'PASS' }); break; }
       // 顺手验一次 ⟦词条⟧ 点击链路
       const first = q('.gloss');
@@ -88,7 +89,7 @@ const DRIVER = `(async () => {
       push({ at: i, evt: 'event', id: g.eventId, title: (g.findEvent(g.eventId)||{}).title,
              opts: opts.length, locked: opts.filter(o => o.locked).length,
              risky: opts.filter(o => o.risky).length, segs: qa('.stage__main .prose').length,
-             canClick: open.length, picked: pick, pickedDev: bestDev });
+             canClick: open.length, picked: pick, pickedDev: bestDev, cast: qa('.castChip').length });
       open[pick].click(); continue;
     }
     if (ph === 'choice') {
@@ -145,7 +146,10 @@ withPage(async ({ evaluate, consoleErrors }) => {
     ['章末提供进入下一章', summaries.some((t) => t.hasNext)],
     ['进入第二章', kinds.has('PASS')],
     ['无卡死', stuck.length === 0],
-    ['版式不变量(main 只挂 portrait/prose-body)', out.badLayout.length === 0],
+    ['版式不变量(main 只挂 castbox/prose-body)', out.badLayout.length === 0],
+    // 立绘排按 ⟦NPC⟧ 标记生成,李斯一整局有 8 个带立绘的 NPC;
+    // 整章都一张不出,说明 ⟦词条⟧ 解析或 CHAR_IMG 映射断了。
+    ['出场立绘排随 ⟦NPC⟧ 标记出现', out.trace.some((t) => (t.cast || 0) > 0)],
     ['控制台无错误', errs.length === 0],
   ]);
   if (!ok) {

@@ -11,7 +11,7 @@ import type { AttrKey, CardResult, ChangeView, Game, Route, ScenarioData, Summar
 import { parseRuns } from './gloss';
 import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
 import { renderRadar } from '../ui/radar';
-import lisiPortrait from '../assets/portrait/lisi.webp';
+import { castOf, renderCast } from '../ui/cast';
 
 /** 右栏要显示的属性(Lua 版「身外」那一组) */
 const SHOWN_ATTRS: AttrKey[] = ['caifu', 'shengwang', 'quanshi', 'zhengji', 'junxin', 'weiji'];
@@ -202,21 +202,21 @@ export class Session {
    * 立绘。P3 只交付了李斯一张,其余剧本/章节走空态框——
    * 与用户确认过的取舍:不拿李斯顶替其他剧本,免得误导。
    */
-  private portrait(): HTMLElement {
-    const box = el('div', 'portrait');
-    const isLisi = this.data.SCENARIO.id === 'lisi';
-    if (isLisi) {
-      const img = el('img', 'portrait__img');
-      img.src = lisiPortrait;
-      img.alt = '李斯';
-      img.loading = 'eager';
-      box.append(img);
-    } else {
-      box.classList.add('portrait--empty');
-      box.append(lbl('立绘待补', ''));
+  /**
+   * 出场立绘排 + 主角像。
+   *
+   * 主角(剧本名里第一个字)用大图;同场出场的 NPC 由 ⟦词条⟧ 标记推出,
+   * 出一排圆像。两者都点得开词条浮层。
+   */
+  private castBox(segs: readonly string[]): HTMLElement {
+    const box = el('div', 'castbox');
+    const lead = this.data.SCENARIO.name.split(/[·・]/)[0]?.trim() ?? this.data.SCENARIO.name;
+    const names = castOf(segs).filter((n) => n !== lead);
+    if (names.length > 0) {
+      const row = renderCast(names, (n) => this.showGloss(n));
+      if (row) box.append(row);
     }
-    // 参考图里立绘下只写人物名(「— 李斯 —」),不写剧本名
-    box.append(lbl(this.data.SCENARIO.name.split(/[·・]/)[0] ?? this.data.SCENARIO.name, 'portrait__name'));
+    box.append(lbl(lead, 'portrait__name'));
     return box;
   }
 
@@ -294,7 +294,7 @@ export class Session {
     if (!ch) return;
     this.lastSettleText = null;
 
-    this.main.append(this.portrait());
+    this.main.append(this.castBox(ch.intro ?? []));
     const body = this.proseBody();
     this.main.append(body);
     if (ch.sub) body.append(lbl(ch.sub, 'u-dim chapter__sub'));
@@ -336,7 +336,7 @@ export class Session {
     const ch = g.chapter();
     // 回合页也要立绘:否则剧情卷轴整块空着,右侧属性卷轴又满,
     // 视觉重心全偏在一半屏幕上(参考图的回合页同样有立绘与回显文案)。
-    this.main.append(this.portrait());
+    this.main.append(this.castBox([]));
     const body = this.proseBody();
     this.main.append(body);
     if (ch) body.append(lbl(ch.title, 'u-dim chapter__sub'));
@@ -422,7 +422,7 @@ export class Session {
 const inserted = g.currentRandom != null;
     const ch = g.chapter();
     const kicker = inserted ? '际遇 · 随机事件' : this.chapterNo(ch?.title ?? '');
-    this.main.append(this.portrait());
+    this.main.append(this.castBox(ev.segs ?? []));
     const body = this.proseBody();
     this.main.append(body);
     if (kicker) body.append(lbl(kicker, 'u-dim chapter__sub'));

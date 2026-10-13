@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 跑全部浏览器验收。
  *
  * 与 prot/ 的 Node 测试互补:prot 验规则(引擎/数据/契约),
@@ -16,8 +16,11 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const DIR = __dirname;
-const ALL = ['chain.cjs', 'viewports.cjs', 'backtrack.cjs'];
-const only = process.argv.slice(2).filter((a) => ALL.some((f) => f.includes(a)));
+// 浏览器里跑的
+const ALL = ['chain.cjs', 'viewports.cjs', 'backtrack.cjs', 'save.cjs', 'audio.cjs'];
+// 纯 Node 断言(不碰浏览器、不需要 dist),单独跑但一样计入总览
+const PURE = ['scenarios.cjs'];
+const only = process.argv.slice(2).filter((a) => [...ALL, ...PURE].some((f) => f.includes(a)));
 const tests = only.length ? ALL.filter((f) => only.some((o) => f.includes(o))) : ALL;
 
 if (!fs.existsSync(path.join(DIR, '..', 'dist', 'index.html'))) {
@@ -33,6 +36,16 @@ for (const t of tests) {
     cwd: path.join(DIR, '..'),
   });
   results.push([t, status === 0]);
+}
+
+// scenarios.cjs / audio.cjs 的纯 Node 部分不碰浏览器,但一样计入总览 ——
+// 剧本轻量表漂移、音轨缺失都属于同一类回归,不能漏。
+if (!only.length) {
+  for (const t of PURE) {
+    console.log(`\n${'='.repeat(72)}\n>>> ${t} (纯 Node)\n${'='.repeat(72)}`);
+    const r = spawnSync(process.execPath, [path.join(DIR, t)], { stdio: 'inherit', cwd: path.join(DIR, '..') });
+    results.push([t, r.status === 0]);
+  }
 }
 
 console.log(`\n${'='.repeat(72)}\n>>> 总览\n${'='.repeat(72)}`);

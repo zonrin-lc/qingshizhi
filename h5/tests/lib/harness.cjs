@@ -57,7 +57,14 @@ const MIME = {
   '.map': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
   '.woff2': 'font/woff2',
+  // BGM:必须给对 MIME,否则 Chromium 拿到 application/octet-stream 会拒绝解码,
+  // 表现为「文件下到了但没声音」,很容易被误判成音量或 autoplay 问题
+  '.webm': 'audio/webm',
+  '.m4a': 'audio/mp4',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
 };
 
 /** 静态服务 dist/。注意:防目录穿越,别把仓库根暴露出去。 */
@@ -157,9 +164,32 @@ async function withPage(fn, opts = {}) {
     client = cdp(await waitCdp(cdpPort));
     const { targetId } = await client.send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await client.send('Target.attachToTarget', { targetId, flatten: true });
-    await client.send('Runtime.enable', {}, sessionId);
-    await client.send('Log.enable', {}, sessionId);
-    await client.send('Page.enable', {}, sessionId);
+      await client.send('Runtime.enable', {}, sessionId);
+      await client.send('Log.enable', {}, sessionId);
+      await client.send('Page.enable', {}, sessionId);
+      await client.send('Network.enable', {}, sessionId);
+
+      // 网络流水:用来断言「只下了一个音频文件」「没有 404」这类
+      // 光看 DOM 看不见的事实。cdp() 把事件缓在 client.events 里,这里现算。
+      let netMark = 0;
+      const netLog = () => {
+        const rows = new Map();
+        for (const e of client.events.slice(netMark)) {
+          const r = e.params?.request;
+          const u = e.params?.request?.url || e.params?.response?.url;
+          if (!u) continue;
+          let row = rows.get(u);
+          if (!row) rows.set(u, (row = { url: u, status: 0, mime: '' }));
+          if (r) row.method = r.method;
+          if (e.params.response) {
+            row.status = e.params.response.status;
+            row.mime = e.params.response.mimeType;
+          }
+          if (e.method === 'Network.loadingFailed') row.status = -1;
+        }
+        return [...rows.values()];
+      };
+      const netReset = () => { netMark = client.events.length; };
 
     const url = `http://127.0.0.1:${httpPort}/`;
     const load = async (w = 1280, h = 720, dsf = 1) => {
@@ -197,7 +227,42 @@ async function withPage(fn, opts = {}) {
             .map((e) => e.params.exceptionDetails.text),
         );
 
-    return await fn({ evaluate, cdp: client, url, consoleErrors, load, sessionId });
+    /**
+     * 从选择页入局。
+     *
+     * P3 起应用入口是「选择页」而不是直接对局(选剧本 + 选难度),
+     * 所以对局相关的测试都得先点一次「入 局」,否则 window.__QS__.game 根本不存在。
+     * 这一步同时验证了选择页 → 对局页的跳转本身。
+     */
+    const enterGame = async () => {
+      await sleep(250);
+      const r = await client.send(
+        'Runtime.evaluate',
+        {
+          expression: `(() => {
+            const b = document.querySelector('.enterbtn');
+            if (!b) return { ok: false, why: 'no .enterbtn (不在选择页?)' };
+            b.click();
+            return { ok: true };
+          })()`,
+          returnByValue: true,
+        },
+        sessionId,
+      );
+      await sleep(opts.settleMs || 900);
+      const chk = await client.send(
+        'Runtime.evaluate',
+        { expression: `!!window.__QS__ && !!window.__QS__.game && !!document.querySelector('.stage__main')`, returnByValue: true },
+        sessionId,
+      );
+      if (!r.result.value.ok) throw new Error(`入局失败: ${r.result.value.why}`);
+      if (!chk.result.value) throw new Error('点了入局但 __QS__.game 没出现');
+    };
+
+    // 默认直接入局;需要测选择页本身时传 { enter: false }
+    if (opts.enter !== false) await enterGame();
+
+    return await fn({ evaluate, cdp: client, url, consoleErrors, load, sessionId, enterGame, netLog, netReset });
   } finally {
     if (client) client.close();
     chrome.kill();

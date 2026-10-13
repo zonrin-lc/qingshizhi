@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 多视口布局体检。
  *
  * 为什么要单独一套:P1 验的是单栏壳,P2 加了两栏(定宽右栏 + 限高决策区 + 浮层),
@@ -66,13 +66,16 @@ const PROBE = `(async () => {
   };
 })()`;
 
-withPage(async ({ evaluate, load, consoleErrors }) => {
+withPage(async ({ evaluate, load, enterGame, consoleErrors }) => {
   console.log('视口'.padEnd(26) + 'stage'.padEnd(12) + 'main'.padEnd(11) + 'side'.padEnd(8) + 'foot'.padEnd(8) + '卡片 横溢出 形态');
   console.log('-'.repeat(100));
 
   const rows = [];
   for (const [name, w, h, dsf] of VIEWPORTS) {
     await load(w, h, dsf);
+    // load() 会重新导航,应用回到选择页 —— 每个视口都要重新入局,
+    // 否则 probe 拿到的 window.__QS__.game 是 undefined。
+    await enterGame();
     const o = await evaluate(PROBE);
     const stacked = o.sideW / o.stageW > 0.9;
     const mainShare = o.stageW ? +(o.mainW / o.stageW).toFixed(3) : 0;

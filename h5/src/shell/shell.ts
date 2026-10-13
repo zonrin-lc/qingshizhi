@@ -23,6 +23,7 @@ export interface Shell {
   main: HTMLElement;
   foot: HTMLElement;
   bar: HTMLElement;
+  cols: HTMLElement;
   chap: HTMLElement;
   band: HTMLElement;
   side: HTMLElement;
@@ -79,7 +80,7 @@ export function buildShell(mount: HTMLElement): Shell {
   );
   stage.append(hint);
 
-  return { root: viewport, stage, deco, main, foot, bar, chap, band, side, overlay, hint };
+  return { root: viewport, stage, deco, main, foot, bar, cols, chap, band, side, overlay, hint };
 }
 
 /** 切背景(不同页面用不同底图) */

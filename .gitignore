@@ -36,7 +36,7 @@ lua-tools/
 schemas/
 skills/
 templates/
-tools/
+/tools/
 urhox-libs/
 AGENTS.md
 CLAUDE.md
@@ -74,6 +74,10 @@ examples/
 schemas/
 skills/
 templates/
-tools/
+# 引擎自带的工具目录(urhox 那套)。必须写成 /tools/ —— 不带前导斜杠的
+# 「tools/」匹配任意层级,会连 h5/tools/ 一起吃掉,导致资产生成脚本
+# (build-assets.py / build-audio.py)从来没进过仓库:克隆下来能看到已入库的
+# webp 与 bgm,却没有重新生成它们的办法。
+/tools/
 urhox-libs/
 # <<< TapTap Maker AI dev kit (local only) <<<

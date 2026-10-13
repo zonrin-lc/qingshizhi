@@ -247,6 +247,8 @@ export interface Game {
   flags: Record<string, true | number>;
   /** 当前是否为际遇注入的事件 */
   currentRandom: GameEvent | null;
+  /** 章首快照;exportSave 导出的就是它(存档语义 = 回到本章开头) */
+  snapshot: Record<string, unknown> | null;
   /** 章末事件的进行中状态(endEvent 相位) */
   currentEndEvent: EndEventView | null;
   ending: EndingView | null;

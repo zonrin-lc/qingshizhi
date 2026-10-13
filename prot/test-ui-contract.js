@@ -16,6 +16,9 @@ function mulberry32(a) {
 }
 
 let pass = 0, fail = 0;
+/* 显式停用的契约段数：不算通过也不算失败,但会在结果行里报出来,
+ * 免得「停用」和「悄悄删掉了」在输出上长得一样(见第 8 段成就图标契约)。 */
+let skipped = 0;
 
 /* 1. 掷骰标题契约（全剧本 × 双难度）：普通含点数/成功率；硬核无数字、无百分号、只显档位词 */
 {
@@ -165,19 +168,27 @@ let pass = 0, fail = 0;
   console.log('✔ 存档健壮性契约：非法 backtracksThisChapter/attrs/dev 拒收，合法档正常导入');
 }
 
-/* 8. 成就图标契约（全剧本）：ACHIEVEMENTS 每个 id 必须有 assets/ach/ach_<id>.png（防"数据有、图没有"）。
- * 豁免清单：美术批次未交付项（已在美术资产清单 v0.2 登记、UI 有 onerror/无名目兜底），交付后从豁免中移除。 */
+/* 8. 成就图标契约 —— 已整体停用（2026-10-13，用户决定：成就功能无限期不做）。
+ *
+ * 原契约：ACHIEVEMENTS 每个 id 必须有 assets/ach/ach_<id>.png（防"数据有、图没有"）。
+ * 现状：H5 版的美术管线不接成就图标，`assets/ach/` 整类未入库
+ *       （git log --all -- assets/ach 命中 0 条，从未提交过）。
+ *       引擎侧的 ACHIEVEMENTS 数据与解锁逻辑保持原样、未做任何改动——
+ *       停用的只是「图标必须入库」这一条资产校验，以及 H5 不渲染任何成就 UI。
+ *
+ * 为什么是整段停用而不是逐项豁免：
+ *   原来的 EXEMPT 是为「美术批次未交付的个别项」设计的逐项清单。
+ *   而这里是整类资产缺席（60 张一张都没有），把 60 个 id 全塞进豁免表
+ *   会让这条契约永久变绿，把「成就功能未接入」这个真实状态掩盖掉，
+ *   也违背原注释里"交付后从豁免中移除"的自我约束。
+ *   改成显式停用 + 说明，是让它在测试输出里一直可见，而不是被藏起来。
+ *
+ * 恢复条件：决定做成就功能时，把图标接进 h5/tools/build-assets.py 并落到
+ *           assets/ach/，再把下面这段换回逐项豁免的校验即可。
+ */
 {
-  const EXEMPT = { xiangyu: ['gai'] };
-  const fs = require('fs');
-  Object.keys(FILES).forEach(k => {
-    const D = require(FILES[k]);
-    const ex = EXEMPT[k] || [];
-    const missing = Object.keys(D.ACHIEVEMENTS).filter(a => ex.indexOf(a) < 0 && !fs.existsSync('assets/ach/ach_' + a + '.png'));
-    if (missing.length === 0) pass++;
-    else { fail++; console.log('✘ [' + k + '] 成就图标缺失（非豁免）：' + missing.join('、')); }
-  });
-  console.log('✔ 成就图标契约：5 剧本 ACHIEVEMENTS 图标齐（豁免：xiangyu/gai 待美术批次）');
+  skipped++;
+  console.log('⊘ 成就图标契约：已停用（成就功能无限期不做；60 张图标未入库，H5 不渲染成就 UI）');
 }
 
 /* 9. 成就保留契约（全剧本 · v1.6.8 P1-2）：importSave 不得截断跨会话累计成就。
@@ -825,5 +836,5 @@ let pass = 0, fail = 0;
   console.log('✔ 评分口径契约：权重 30/30/20/20、功业=权势×0.45+政绩×0.15+标记、存续提权生效（E2−E8=27）、评级分数线未变');
 }
 
-console.log(`\n结果：${pass} 通过，${fail} 失败`);
+console.log(`\n结果：${pass} 通过，${fail} 失败` + (skipped ? `，${skipped} 段停用` : ''));
 process.exit(fail > 0 ? 1 : 0);

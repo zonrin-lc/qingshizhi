@@ -70,23 +70,40 @@ function cdp(wsUrl) {
     await c.send('Page.navigate', { url: URL }, sessionId);
     await sleep(3500);
 
+    // P3 起入口是「选择页」,__QS__ 要入局之后才有。
+    // 所以这里分两步验:先确认选择页渲染,再点「入 局」确认能进对局页。
     const probe = await c.send('Runtime.evaluate', {
       expression: `(() => ({
-        hasQS: !!window.__QS__,
-        stage: !!document.querySelector('.stage'),
-        main: !!document.querySelector('.stage__main'),
+        hasSelect: !!document.querySelector('.select'),
+        cards: document.querySelectorAll('.scard').length,
+        hasEnter: !!document.querySelector('.enterbtn'),
         bg: document.querySelector('.stage')?.getAttribute('data-bg'),
         appHtmlLen: (document.getElementById('app')||{}).innerHTML?.length || 0,
       }))()`, returnByValue: true }, sessionId);
+    const sel = probe.result.value;
+
+    await c.send('Runtime.evaluate',
+      { expression: `document.querySelector('.enterbtn')?.click()`, returnByValue: true }, sessionId);
+    await sleep(1200);
+    const probe2 = await c.send('Runtime.evaluate', {
+      expression: `(() => ({
+        hasQS: !!window.__QS__,
+        game: !!window.__QS__?.game,
+        main: (document.querySelector('.stage__main')||{}).innerHTML?.length || 0,
+        bg: document.querySelector('.stage')?.getAttribute('data-bg'),
+      }))()`, returnByValue: true }, sessionId);
+    const gm = probe2.result.value;
 
     const errs = c.events
       .filter((e) => e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
       .map((e) => e.params.entry.text);
 
-    console.log('dev 页面状态:', JSON.stringify(probe.result.value));
+    console.log('选择页:', JSON.stringify(sel));
+    console.log('入局后:', JSON.stringify(gm));
     console.log('控制台错误:', errs.length ? errs : '无');
-    const ok = probe.result.value.hasQS && probe.result.value.stage && errs.length === 0;
-    console.log(ok ? '\n[PASS] dev 模式可��' : '\n[FAIL] dev 模式异常');
+    const ok = sel.hasSelect && sel.cards === 5 && sel.hasEnter && sel.bg === 'select'
+      && gm.hasQS && gm.game && gm.main > 0 && gm.bg === 'game' && errs.length === 0;
+    console.log(ok ? '\n[PASS] dev 模式可用(选择页 → 对局页)' : '\n[FAIL] dev 模式异常');
     c.close();
     process.exit(ok ? 0 : 1);
   } catch (e) {

@@ -81,6 +81,14 @@
 }
 
 /* ---------- reset ---------- */
+/* hidden 属性必须能压过组件自己的 display。
+   .stage__cols / .stage__bar 等都设了 display:flex,它们的优先级高于
+   [hidden] 的 UA 默认样式,于是 el.hidden = true 形同虚设——
+   选择页就会把对局页的空卷轴露在背后。这里统一兜底。 */
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {
