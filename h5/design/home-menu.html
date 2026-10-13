@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>《青史志》主菜单 · UI 效果图</title>
+<style>
+/* ============================================================================
+ * 《青史志》主菜单(P1)UI 效果图
+ *
+ * 说明:这是设计稿,不是游戏运行页。素材全部取自 assets/image/选择页,
+ * 设计令牌与 h5/src/styles/base.css 保持一致,便于日后直接搬进 H5。
+ *
+ * 结构:
+ *   .stage                     1280x720 设计画布(背景=选择页水墨图)
+ *     .veil                    纸面柔光,压住画心中段以保证文字可读
+ *     .corner                  四角回纹/枝叶点缀
+ *     header .bar              版本号 + 存档标记
+ *     .brand                   朱印 + 大标题 + 金线 + 副题
+ *     .cta                     朱漆主按钮「入局」
+ *     .nav                     四张竖卡:前尘 / 词条 / 成就 / 设置
+ *     footer .foot             收集进度 + 美术方向句
+ * ==========================================================================*/
+
+@font-face {
+  font-family: 'QingshiKai';
+  src: url('../../assets/fonts/qingshi-kai.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  /* 纸层 */
+  --paper-app: #f2ead8;
+  --paper: #f6efe0;
+  --paper-card: #faf5e9;
+  /* 墨色阶 */
+  --ink-heavy: #1a1612;
+  --ink-strong: #2a251d;
+  --ink: #3e372c;
+  --ink-soft: #605646;
+  --ink-dim: #847864;
+  /* 印色 */
+  --zhu: #b0432f;
+  --zhu-hi: #9e3422;
+  --gold: #8a6a34;
+  --gold-hi: #c4a05a;
+  --qing: #467069;
+  /* 线面 */
+  --line: #c6b492;
+  --line-soft: #d6c8ae;
+
+  /* 字体:霞鹜文楷子集优先,系统楷体兜底 */
+  --font-kai: 'QingshiKai', KaiTi, '楷体', 'Kaiti SC', STKaiti, serif;
+
+  /* 素材路径(相对本文件) */
+  --img-bg:     url('../../assets/image/选择页/background_v2-选择页.png');
+  --img-title:  url('../../assets/image/选择页/标题青史志文字印章.png');
+  --img-cta:    url('../../assets/image/选择页/入局主按钮-1791442414328.png');
+  --img-card:   url('../../assets/image/选择页/卡片边框.png');
+  --img-sub:    url('../../assets/image/选择页/小标题装饰.png');
+  --img-wheel:  url('../../assets/image/选择页/朝代选择轮盘底板.png');
+}
+
+* , *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #20201c;
+  font-family: var(--font-kai);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 画布居中:桌面端按 1:1 展示 1280x720,窄屏等比缩放 */
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background-color: var(--paper);
+  background-image: var(--img-bg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .55);
+  /* 窄屏整体缩放,保证构图不散;--scale 由页脚脚本按视口算出 */
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+}
+
+/* 纸面柔光:画心中段原本是远山留白,文字直接压上去会与山形打架,
+   用一层极淡的暖白径向渐变把中心提亮,不改变整体色调。 */
+.veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 62% at 50% 48%, rgba(250, 245, 233, .82) 0%,
+                    rgba(250, 245, 233, .42) 46%, rgba(250, 245, 233, 0) 78%);
+}
+
+/* 四角压边:轻微暗角,把视线收进画心 */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 120% at 50% 50%,
+              rgba(0, 0, 0, 0) 55%, rgba(58, 47, 34, .13) 100%);
+}
+
+/* 右下角轮盘:只取一段弧做装饰,压得很淡,不抢主体 */
+.wheel {
+  position: absolute;
+  right: -170px;
+  bottom: -210px;
+  width: 560px;
+  height: 560px;
+  background: var(--img-wheel) center / contain no-repeat;
+  opacity: .10;
+  pointer-events: none;
+}
+
+/* 左上角竹枝:直接用背景图。
+   不要用 mask —— file:// 下 mask-image 会被 CORS 拦掉(background 不受此限),
+   本地直接打开效果图时竹枝就会消失。 */
+.bamboo {
+  position: absolute;
+  left: -30px;
+  top: -34px;
+  width: 200px;
+  height: 310px;
+  opacity: .34;
+  pointer-events: none;
+  background: url('../src/assets/decor/bamboo-l.webp') left top / contain no-repeat;
+}
+
+/* ---------- 顶栏 ---------- */
+.bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  /* z-index 建立层叠上下文:否则下面 ::before 的 z-index:-1 会掉到
+     .stage 背景图之后,垫底渐变完全看不见 */
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: .16em;
+}
+.bar__left { display: flex; align-items: center; gap: 10px; }
+.bar__right { display: flex; align-items: center; gap: 18px; }
+.bar__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--qing);
+  box-shadow: 0 0 0 3px rgba(70, 112, 105, .16);
+}
+.bar__ver { letter-spacing: .1em; }
+/* 顶栏两端原本直接压在远山上,给一小块纸色渐隐垫底,保证小字可读 */
+.bar::before,
+.foot::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+.bar::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(246, 239, 224, .92), rgba(246, 239, 224, 0));
+}
+
+/* ---------- 品牌区 ---------- */
+.brand {
+  position: absolute;
+  top: 92px;
+  left: 0; right: 0;
+  text-align: center;
+}
+.brand__seal {
+  position: absolute;
+  /* 与标题首字左侧对齐、垂直居中:标题块高 125,印章高 62,故 top = (125-62)/2 */
+  top: 31px;
+  left: 50%;
+  /* 再向左让开 12px,避免印章压住「青」字的起笔 */
+  transform: translateX(-235px) rotate(-3deg);
+  width: 62px; height: 62px;
+  border-radius: 6px;
+  background: var(--zhu);
+  color: #f8f2e4;
+  font-size: 34px;
+  line-height: 62px;
+  letter-spacing: 0;
+  box-shadow: 0 3px 10px rgba(140, 40, 24, .32),
+              inset 0 0 0 2px rgba(248, 242, 228, .34);
+  opacity: .94;
+}
+/* 标题:直接用素材里的毛笔字(344x125),比字体渲染更有墨迹质感。
+   素材是黑字透明底,用 multiply 压在纸面上就是墨色,与背景自然融合。 */
+.brand__title {
+  display: block;
+  width: 344px;
+  height: 125px;
+  margin: 0 auto;
+  background: var(--img-title) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  /* 文字内容保留给读屏,但不能再画出来——否则会与背景图里的毛笔字重影 */
+  font-size: 0;
+  color: transparent;
+  overflow: hidden;
+}
+/* 副题:横排小字,两端各一道金线 */
+.brand__sub {
+  margin: 20px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 16px;
+  color: var(--ink-soft);
+  letter-spacing: .34em;
+  text-indent: .34em;
+}
+.brand__sub::before,
+.brand__sub::after {
+  content: '';
+  /* 装饰素材是 95x143 的竖版,这里只取中段一小条做横线,故不按 contain 缩放,
+     而是固定高度 + 裁切,避免竖向拉伸成色块 */
+  width: 92px; height: 10px;
+  background: var(--img-sub) center / 220% 100% no-repeat;
+  opacity: .75;
+}
+.brand__sub::after { transform: scaleX(-1); }
+
+/* ---------- 主按钮 ---------- */
+.cta {
+  position: absolute;
+  top: 316px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 452px;
+  height: 112px;
+  border: 0;
+  padding: 0;
+  background: var(--img-cta) center / 100% 100% no-repeat;
+  color: #f8f2e4;
+  font-family: var(--font-kai);
+  font-size: 40px;
+  letter-spacing: .44em;
+  text-indent: .44em;
+  cursor: pointer;
+  filter: drop-shadow(0 10px 22px rgba(120, 40, 24, .30));
+  transition: transform .18s ease, filter .18s ease;
+}
+.cta:hover  { transform: translateX(-50%) translateY(-2px); filter: drop-shadow(0 14px 26px rgba(120, 40, 24, .40)) brightness(1.06); }
+.cta:active { transform: translateX(-50%) translateY(1px); filter: drop-shadow(0 6px 14px rgba(120, 40, 24, .34)) brightness(.97); }
+.cta__hint {
+  position: absolute;
+  top: 440px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: .22em;
+}
+
+/* ---------- 次级入口:四张竖卡 ---------- */
+.nav {
+  position: absolute;
+  top: 496px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 22px;
+}
+/* 卡片边框是 478x959 的细金线切角矩形,九宫格拉伸后仍是细线,不会变形 */
+.navcard {
+  position: relative;
+  width: 118px;
+  height: 148px;
+  border: 0;
+  padding: 0;
+  background: linear-gradient(rgba(250, 245, 233, .92), rgba(250, 245, 233, .92));
+  /* 卡片边框素材中心是透明的,必须自己铺纸底;
+     background-clip:padding-box 让纸底只填在金线之内,四角切边保持镂空。 */
+  background-clip: padding-box;
+  border-image: var(--img-card) 48 fill;
+  border-image-width: 22px;
+  border-style: solid;
+  color: var(--ink-strong);
+  font-family: var(--font-kai);
+  cursor: pointer;
+  transition: transform .16s ease, filter .16s ease;
+}
+.navcard__glyph {
+  display: block;
+  font-size: 30px;
+  letter-spacing: .08em;
+  color: var(--ink-heavy);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.navcard__cap {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: var(--ink-dim);
+}
+.navcard__body {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.navcard:hover {
+  transform: translateY(-4px);
+  filter: drop-shadow(0 10px 18px rgba(80, 62, 40, .22));
+}
+/* 未解锁态:灰置 + 明确的「未启」角标,不使用问号(避免剧透暗示) */
+.navcard--dim .navcard__glyph { color: var(--ink-dim); }
+.navcard--dim { filter: saturate(.5) opacity(.82); }
+.navcard__lock {
+  position: absolute;
+  top: -8px; right: -8px;
+  padding: 2px 7px;
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: #f8f2e4;
+  background: var(--ink-dim);
+  border-radius: 3px;
+}
+
+/* ---------- 页脚 ---------- */
+.foot {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 54px;
+  /* 同 .bar:给伪元素垫底一个可挂靠的层叠上下文 */
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: .16em;
+}
+.foot__stat { display: flex; align-items: center; gap: 18px; }
+.foot__stat b { color: var(--zhu-hi); font-weight: 400; letter-spacing: .08em; }
+.foot__sep { color: var(--line); }
+.foot__motto { color: var(--ink-soft); letter-spacing: .2em; }
+.foot::before {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(246, 239, 224, .94), rgba(246, 239, 224, 0));
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="veil"></div>
+  <div class="bamboo"></div>
+  <div class="wheel"></div>
+  <div class="vignette"></div>
+
+  <!-- 顶栏:存档态与版本 -->
+  <header class="bar">
+    <div class="bar__left">
+      <span class="bar__dot"></span>
+      <span>存档:空 · 尚无在局</span>
+    </div>
+    <div class="bar__right">
+      <span class="bar__ver">v1.0.1</span>
+    </div>
+  </header>
+
+  <!-- 品牌区:朱印 + 书法标题 + 副题 -->
+  <section class="brand">
+    <div class="brand__seal">史</div>
+    <h1 class="brand__title">青史志</h1>
+    <div class="brand__sub">重生历史人物 · 与历史对弈</div>
+  </section>
+
+  <!-- 主入口 -->
+  <button class="cta" type="button">入局</button>
+  <div class="cta__hint">五局青史 · 顺之者安,逆之者险</div>
+
+  <!-- 次级入口 -->
+  <nav class="nav">
+    <button class="navcard" type="button">
+      <span class="navcard__body">
+        <span class="navcard__glyph">前尘</span>
+        <span class="navcard__cap">历史结局</span>
+      </span>
+    </button>
+    <button class="navcard" type="button">
+      <span class="navcard__body">
+        <span class="navcard__glyph">词条</span>
+        <span class="navcard__cap">38 / 160</span>
+      </span>
+    </button>
+    <button class="navcard" type="button">
+      <span class="navcard__body">
+        <span class="navcard__glyph">成就</span>
+        <span class="navcard__cap">5 / 62</span>
+      </span>
+    </button>
+    <button class="navcard navcard--dim" type="button">
+      <span class="navcard__lock">未启</span>
+      <span class="navcard__body">
+        <span class="navcard__glyph">设置</span>
+        <span class="navcard__cap">朗读 · 音画</span>
+      </span>
+    </button>
+  </nav>
+
+  <!-- 页脚:收集进度 + 美术方向 -->
+  <footer class="foot">
+    <div class="foot__stat">
+      <span>结局 <b>12</b> / 74</span>
+      <span class="foot__sep">|</span>
+      <span>印章 <b>4</b> / 5</span>
+    </div>
+    <div class="foot__motto">玄墨为局,朱青为子</div>
+  </footer>
+</div>
+
+<script>
+// 设计画布 1280x720 等比适配视口:桌面 1:1,小窗/竖屏整体缩放。
+// 只有这一处需要 JS —— 缩放比依赖视口尺寸,纯 CSS 算不出来。
+(function () {
+  var stage = document.querySelector('.stage');
+  function fit() {
+    var s = Math.min(window.innerWidth / 1320, window.innerHeight / 780, 1);
+    stage.style.setProperty('--scale', String(s));
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+
+</body>
+</html>
