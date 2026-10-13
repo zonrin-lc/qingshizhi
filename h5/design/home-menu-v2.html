@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>《青史志》主菜单 · UI 效果图 v2(全新视觉)</title>
+<style>
+/* ============================================================================
+ * 《青史志》主菜单(P1)· 视觉方案 v2
+ *
+ * 与 v1 的根本区别:不使用任何既有美术素材,不沿用宣纸/水墨/书法/印章语言。
+ * 全部视觉由 CSS 生成,只依赖两套开源中文字体。
+ *
+ * 视觉语言:暗色玻璃拟态 + 分层时间线
+ *   底色      深墨蓝黑,右上与左下各一团冷/暖辉光
+ *   材质      半透明玻璃面板 + 1px 渐变描边 + 顶部内高光
+ *   点缀      技术感点阵网格
+ *   主色      玉青(冷) / 琥珀(暖);朱红仅用于「未启」等警示态
+ *   核心隐喻  右侧五张扇形堆叠的卡 = 五条并行时间线(对应五剧本)
+ * ==========================================================================*/
+
+@font-face { font-family: 'QS Display'; src: url('fonts/serif-900.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Serif';   src: url('fonts/serif-500.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Sans';    src: url('fonts/sans-400.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Sans'; font-weight: 700; src: url('fonts/sans-700.woff2') format('woff2'); font-display: block; }
+
+:root {
+  /* 底色阶 */
+  --bg-0: #0a0d12;
+  --bg-1: #121826;
+  --bg-2: #1a2130;
+  /* 玻璃 */
+  --glass:    rgba(255, 255, 255, .045);
+  --glass-2:  rgba(255, 255, 255, .075);
+  --line:     rgba(255, 255, 255, .10);
+  --line-hi:  rgba(255, 255, 255, .22);
+  /* 文字阶 */
+  --t0: #edf1f7;
+  --t1: #a8b4c6;
+  --t2: #6d7a8d;
+  --t3: #4b5566;
+  /* 强调色 */
+  --jade:   #46b3a0;
+  --amber:  #e0aa4e;
+  --crimson:#cf5a44;
+
+  --font-d: 'QS Display', serif;
+  --font-s: 'QS Serif', serif;
+  --font-u: 'QS Sans', system-ui, sans-serif;
+}
+
+* , *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #05070a;
+  font-family: var(--font-u);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+/* ---------- 画布 ---------- */
+.stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 46px 62px 34px;
+  display: flex;
+  flex-direction: column;
+  color: var(--t0);
+  background:
+    radial-gradient(72% 88% at 88% 4%,  rgba(70, 179, 160, .17), transparent 62%),
+    radial-gradient(66% 80% at 6% 100%, rgba(224, 170, 78, .13), transparent 60%),
+    linear-gradient(168deg, var(--bg-1) 0%, var(--bg-0) 58%, #080a0f 100%);
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, .7);
+}
+
+/* 点阵网格:给暗底一点技术质感,避免大块死黑 */
+.grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(80% 80% at 50% 45%, #000 20%, transparent 88%);
+          mask-image: radial-gradient(80% 80% at 50% 45%, #000 20%, transparent 88%);
+  opacity: .55;
+}
+/* 左上斜向光带 */
+.beam {
+  position: absolute;
+  left: -14%; top: -46%;
+  width: 62%; height: 150%;
+  pointer-events: none;
+  background: linear-gradient(102deg, rgba(255, 255, 255, .055), transparent 58%);
+  transform: rotate(14deg);
+  filter: blur(2px);
+}
+
+/* ---------- 顶栏 ---------- */
+.top {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wordmark { display: flex; align-items: baseline; gap: 12px; }
+.wordmark__zh { font-family: var(--font-s); font-size: 17px; letter-spacing: .3em; color: var(--t1); }
+.wordmark__en { font-size: 10px; letter-spacing: .42em; color: var(--t3); }
+.chips { display: flex; align-items: center; gap: 10px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--t1);
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+.chip--live { color: #cfe9e3; border-color: rgba(70, 179, 160, .38); }
+.chip__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--jade);
+  box-shadow: 0 0 0 3px rgba(70, 179, 160, .18);
+}
+
+/* ---------- 主体两栏 ---------- */
+.body {
+  position: relative;
+  z-index: 3;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 470px;
+  gap: 40px;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+/* ---------- 左栏 ---------- */
+.left { padding-top: 4px; }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: .34em;
+  color: var(--jade);
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: '';
+  width: 26px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--jade));
+}
+
+.title {
+  margin: 16px 0 0;
+  font-family: var(--font-d);
+  font-size: 108px;
+  line-height: 1;
+  letter-spacing: .04em;
+  /* 象牙白 → 琥珀的纵向渐变字面,靠背景裁切实现 */
+  background: linear-gradient(178deg, #ffffff 4%, #f2e4c6 38%, #cfa963 92%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 30px rgba(224, 170, 78, .18));
+}
+.title__latin {
+  margin-top: 12px;
+  font-size: 10px;
+  letter-spacing: .58em;
+  color: var(--t3);
+}
+
+.tagline {
+  margin-top: 22px;
+  font-family: var(--font-s);
+  font-size: 19px;
+  letter-spacing: .1em;
+  color: var(--t1);
+}
+.tagline b { color: var(--amber); font-weight: 400; }
+
+/* 操作区 */
+.actions { display: flex; align-items: center; gap: 14px; margin-top: 34px; }
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 34px;
+  border: 0;
+  border-radius: 14px;
+  font-family: var(--font-u);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .2s ease, filter .2s ease;
+}
+/* 主按钮:琥珀渐变实底 + 外发光 */
+.btn--primary {
+  color: #241703;
+  background: linear-gradient(180deg, #f0c069, #d2953a 62%, #bd7f2c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),
+    inset 0 -1px 0 rgba(120, 74, 12, .5),
+    0 12px 30px rgba(224, 170, 78, .30),
+    0 0 0 1px rgba(240, 200, 130, .5);
+}
+.btn--primary:hover { transform: translateY(-2px); box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .6),
+    0 18px 40px rgba(224, 170, 78, .42),
+    0 0 0 1px rgba(240, 200, 130, .7); }
+.btn--primary:active { transform: translateY(0); filter: brightness(.96); }
+
+/* 次级按钮:玻璃描边 */
+.btn--ghost {
+  color: var(--t1);
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  font-weight: 400;
+  letter-spacing: .18em;
+}
+.btn--ghost:hover { color: var(--t0); border-color: var(--line-hi); background: var(--glass-2); }
+
+.btn__k {
+  font-size: 10px;
+  letter-spacing: .1em;
+  opacity: .62;
+  font-weight: 400;
+}
+
+/* 主按钮上的流光:沿顶边缓慢扫过 */
+.btn--primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, .5) 50%, transparent 68%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  animation: sheen 4.6s ease-in-out infinite;
+}
+@keyframes sheen {
+  0%, 62%  { background-position: 130% 0; }
+  88%, 100% { background-position: -30% 0; }
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: var(--t2);
+}
+.meta__sep { width: 3px; height: 3px; border-radius: 50%; background: var(--t3); }
+
+/* ---------- 右栏:五条并行时间线 ---------- */
+.deck {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+.deck__label {
+  font-size: 10px;
+  letter-spacing: .4em;
+  color: var(--t3);
+}
+.fan {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  /* 卡与弧线靠 translateX 外扩,最外张接近 ±250px,
+     容器太窄会把第五张卡挤出画布 */
+  overflow: visible;
+}
+/* 每张卡是一层时间线;底部为旋转轴,呈扇形张开 */
+.slab {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 112px;
+  height: 274px;
+  margin-left: -56px;
+  padding: 15px 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 15px;
+  /* 玻璃层压:上缘高光,底部略厚,模拟一块磨砂玻璃板 */
+  background: linear-gradient(180deg, rgba(255, 255, 255, .125), rgba(255, 255, 255, .038) 52%, rgba(255, 255, 255, .075));
+  border: 1px solid rgba(255, 255, 255, .12);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 20px 44px rgba(0, 0, 0, .52);
+  transform-origin: 50% 132%;
+  transition: transform .28s cubic-bezier(.22, .8, .3, 1), border-color .2s, box-shadow .28s, opacity .2s;
+}
+/* 卡顶色标:每条时间线一个色相,为后续「剧本选择页」预留色彩身份 */
+.slab::before {
+  content: '';
+  width: 30px;
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  background: var(--hue, var(--t2));
+  box-shadow: 0 0 12px -2px var(--hue, transparent);
+}
+.slab__idx {
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: var(--t3);
+}
+.slab__name {
+  margin-top: auto;
+  margin-bottom: auto;
+  writing-mode: vertical-rl;
+  font-family: var(--font-d);
+  font-size: 30px;
+  letter-spacing: .22em;
+  color: var(--t0);
+}
+.slab__sc {
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  letter-spacing: .18em;
+  color: var(--t2);
+}
+.slab__bar {
+  width: 44px;
+  height: 3px;
+  margin-top: 12px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .10);
+  overflow: hidden;
+}
+.slab__bar i { display: block; height: 100%; border-radius: 2px; }
+
+/* 扇形五档:横向错开 + 小角度旋转。
+   只靠旋转会让相邻卡在名字处重叠(名字正好在卡面中部);
+   这里用 translateX 拉开步距(82px < 卡宽 112px,仍有 30px 叠压但不压到竖排名字),
+   旋转只负责"扇形"的手感。
+   底部对齐后,translateY 越大越"矮",形成中间高、两侧低的拱形。 */
+/* 用 nth-of-type(按元素类型计数)而不是 nth-child:
+   .fan 里第一个子元素是 .arc,用 nth-child 会让五张卡整体错位一位,
+   最后一张拿不到偏移规则、直接叠在中间那张后面。 */
+.slab:nth-of-type(1) { transform: translateX(-164px) rotate(-8deg) translateY(14px); }
+.slab:nth-of-type(2) { transform: translateX(-82px)  rotate(-4deg) translateY(4px); }
+.slab:nth-of-type(3) { transform: rotate(0deg); z-index: 2; }
+.slab:nth-of-type(4) { transform: translateX(82px)   rotate(4deg)  translateY(4px); }
+.slab:nth-of-type(5) { transform: translateX(164px)  rotate(8deg)  translateY(14px); }
+
+/* 时间线拱弧:五张卡的顶端连成一条弧,弧上刻刻度 */
+.arc {
+  position: absolute;
+  left: 50%;
+  bottom: 214px;
+  width: 520px;
+  height: 120px;
+  margin-left: -260px;
+  pointer-events: none;
+}
+.arc__line {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .16) 22%, rgba(255, 255, 255, .16) 78%, transparent);
+}
+.arc__tick {
+  position: absolute;
+  top: calc(50% - 5px);
+  width: 1px;
+  height: 10px;
+  background: rgba(255, 255, 255, .22);
+}
+.arc__tick--on { background: var(--amber); height: 16px; top: calc(50% - 8px); }
+
+/* 悬停:被指的那张抬起并压到最上层,其余微暗 */
+.fan .slab:hover {
+  z-index: 9;
+  border-color: var(--line-hi);
+  transform: rotate(0deg) translateY(-16px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    0 28px 58px rgba(0, 0, 0, .6),
+    0 0 0 1px rgba(70, 179, 160, .35);
+}
+.fan:hover .slab:not(:hover) { opacity: .62; }
+.fan .slab:hover .slab__name { color: #fff; }
+
+/* 中间那张(当前推荐局)用暖色条标识 */
+.slab--hot .slab__bar i { background: linear-gradient(90deg, var(--amber), #f2d79a); }
+.slab--hot .slab__idx { color: var(--amber); }
+
+/* ---------- 底栏 ---------- */
+.bottom {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+}
+.stats { display: flex; align-items: center; gap: 26px; }
+.stat { display: flex; align-items: baseline; gap: 8px; }
+.stat__k { font-size: 10px; letter-spacing: .24em; color: var(--t3); }
+.stat__v { font-family: var(--font-s); font-size: 17px; color: var(--t1); letter-spacing: .04em; }
+.stat__v b { color: var(--amber); font-weight: 400; }
+.bottom__right { display: flex; align-items: center; gap: 16px; font-size: 11px; letter-spacing: .16em; color: var(--t3); }
+.dotline { display: flex; align-items: center; gap: 6px; }
+.dotline i {
+  width: 14px; height: 3px; border-radius: 2px;
+  background: rgba(255, 255, 255, .16);
+}
+.dotline i.on { background: var(--amber); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn--primary::after { animation: none; }
+  .slab { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="grid"></div>
+  <div class="beam"></div>
+
+  <!-- 顶栏:词标 + 状态胶囊 -->
+  <header class="top">
+    <div class="wordmark">
+      <span class="wordmark__zh">青史志</span>
+      <span class="wordmark__en">QINGSHIZHI</span>
+    </div>
+    <div class="chips">
+      <span class="chip chip--live"><i class="chip__dot"></i>存档:空</span>
+      <span class="chip">v1.0.1</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- 左栏:标识 + 操作 -->
+    <section class="left">
+      <div class="eyebrow">历史偏移模拟器</div>
+      <h1 class="title">青史志</h1>
+      <div class="title__latin">HISTORY&nbsp;&nbsp;DEVIATION&nbsp;&nbsp;SIMULATOR</div>
+
+      <p class="tagline">顺之者安,<b>逆之者险</b></p>
+
+      <div class="actions">
+        <button class="btn btn--primary" type="button">入 局<span class="btn__k">ENTER</span></button>
+        <button class="btn btn--ghost" type="button">继续上局</button>
+      </div>
+
+      <div class="meta">
+        <span>五局青史</span><i class="meta__sep"></i>
+        <span>74 种结局</span><i class="meta__sep"></i>
+        <span>单局 15–22 次抉择</span>
+      </div>
+    </section>
+
+    <!-- 右栏:五条并行时间线 -->
+    <section class="deck">
+      <div class="deck__label">五 局 并 行</div>
+      <div class="fan">
+        <div class="arc">
+          <div class="arc__line"></div>
+          <i class="arc__tick" style="left:16%"></i>
+          <i class="arc__tick" style="left:33%"></i>
+          <i class="arc__tick arc__tick--on" style="left:50%"></i>
+          <i class="arc__tick" style="left:67%"></i>
+          <i class="arc__tick" style="left:84%"></i>
+        </div>
+
+        <article class="slab" style="--hue:#46b3a0">
+          <span class="slab__idx">壹</span>
+          <span class="slab__name">李斯</span>
+          <span class="slab__sc">仓鼠之局</span>
+          <span class="slab__bar"><i style="width:64%"></i></span>
+        </article>
+        <article class="slab" style="--hue:#7f9bd1">
+          <span class="slab__idx">贰</span>
+          <span class="slab__name">荆轲</span>
+          <span class="slab__sc">易水寒</span>
+          <span class="slab__bar"><i style="width:38%"></i></span>
+        </article>
+        <article class="slab slab--hot" style="--hue:#e0aa4e">
+          <span class="slab__idx">叁</span>
+          <span class="slab__name">韩信</span>
+          <span class="slab__sc">兵仙之局</span>
+          <span class="slab__bar"><i style="width:72%"></i></span>
+        </article>
+        <article class="slab" style="--hue:#b06fb0">
+          <span class="slab__idx">肆</span>
+          <span class="slab__name">项羽</span>
+          <span class="slab__sc">霸王之局</span>
+          <span class="slab__bar"><i style="width:21%"></i></span>
+        </article>
+        <article class="slab" style="--hue:#cf5a44">
+          <span class="slab__idx">伍</span>
+          <span class="slab__name">陈胜</span>
+          <span class="slab__sc">首义之局</span>
+          <span class="slab__bar"><i style="width:9%"></i></span>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底栏:收集进度 -->
+  <footer class="bottom">
+    <div class="stats">
+      <div class="stat"><span class="stat__k">结局</span><span class="stat__v"><b>12</b> / 74</span></div>
+      <div class="stat"><span class="stat__k">词条</span><span class="stat__v"><b>38</b> / 160</span></div>
+      <div class="stat"><span class="stat__k">成就</span><span class="stat__v"><b>5</b> / 62</span></div>
+    </div>
+    <div class="bottom__right">
+      <span>印章收集</span>
+      <span class="dotline"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+// 设计画布 1280x720 等比适配视口;只有缩放比需要 JS。
+(function () {
+  var stage = document.querySelector('.stage');
+  function fit() {
+    var s = Math.min(window.innerWidth / 1320, window.innerHeight / 780, 1);
+    stage.style.setProperty('--scale', String(s));
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+
+</body>
+</html>
