@@ -19,6 +19,7 @@ import { initScale, logScale } from './shell/scale';
 import { buildShell, renderSide, setBg, setDeco, wireBack } from './shell/shell';
 import { Session } from './game/session';
 import { bgm } from './game/audio';
+import { voice } from './game/voice';
 import { renderSelectPage } from './ui/select';
 import { renderSavePage } from './ui/savepage';
 import { getAuto, listSlots, load as loadSlot, loadPayload, save as writeSlot, saveAuto } from './game/saves';
@@ -162,6 +163,8 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     // 选择页不放音乐:它是一进站就要加载的页面,idle 曲子 1.38 MB,
     // 拿菜单的体验换首屏带宽不划算。菜单也正好该安静——玩家在挑剧本。
     bgm.stop();
+    // 配音同理:退出对局必须掐断,不然语音会跟着人一路念到选择页
+    voice.stop();
     setBg(shell.stage, 'select');
     setDeco(shell.deco, false);
     renderSelectPage(

@@ -21,6 +21,11 @@ const SAVE_FLOW = `(async () => {
   const ov = () => { const o = q('.overlay'); return o && !o.hidden; };
   const step = async () => { if (ov()) { q('.overlay .btn--primary')?.click(); await sleep(5); } };
 
+  // 开局属性要先存下来:「不是空存档」得跟开局比。
+  // 写死 40/20/10 只在李斯第一章碰巧成立,换剧本/难度就假失败。
+  const init = { ...g.attrs };
+
+
   for (let i = 0; i < 120 && g.phase !== 'round'; i++) {
     await sleep(5);
     if (ov()) { q('.overlay .btn--primary')?.click(); continue; }
@@ -41,6 +46,9 @@ const SAVE_FLOW = `(async () => {
   }
   const before = { phase: g.phase, caixue: g.attrs.caixue, caifu: g.attrs.caifu,
                    weiji: g.attrs.weiji, ch: g.chapterIdx, played };
+  before.init = init;
+  // 扁平化:CDP 的 returnByValue 只带得住浅层,attrs 展开一层最稳
+  before.changedKeys = Object.keys(init).filter(k => init[k] !== g.attrs[k]);
   const r = window.__QS__.saveGame(0);
   // ⚠ 只回扁平标量:CDP 的 returnByValue 会对返回值做深序列化,
   // saveGame 的返回里带着整份 snapshot(嵌套很深),序列化回来是个空对象。
@@ -136,7 +144,8 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
 
   const ok = report('存档链路', [
     ['打到了中途(有实际牌可打)', b.played >= 2],
-    ['存档前属性确实动过(不是空存档)', b.caixue !== 40 || b.caifu !== 20 || b.weiji !== 10],
+    ['存档前属性确实动过(不是空存档)', (b.changedKeys || []).length > 0,
+      `打了 ${b.played} 张牌但没有属性变化`],
     ['存入成功', !!sr && sr.ok === true],
     ['存档写进了 localStorage', loadRes.rawExists === true],
     ['刷新后槽位非空', loadRes.filled >= 1],

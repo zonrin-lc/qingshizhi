@@ -71,6 +71,8 @@ export interface GameEvent {
 }
 
 export interface Chapter {
+  /** 章号,如 c0/c1。配音切片路径靠它推导,数据里五本剧本全都有 */
+  id: string;
   title: string;
   sub?: string;
   intro?: string[];

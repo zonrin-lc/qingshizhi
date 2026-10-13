@@ -56,6 +56,8 @@ export class Bgm {
   private wanted = true;
   /** 音量:背景乐不该抢戏,默认压到三成 */
   private volume = 0.32;
+  /** 有人说话时临时压低的比例 */
+  private ducked = 0.18;
   private failed = false;
 
   get enabled(): boolean {
@@ -107,6 +109,19 @@ export class Bgm {
   /** 离开对局:回 idle 还是彻底停?对局页常驻,所以回 idle。 */
   idle(): void {
     this.play('idle', false);
+  }
+
+  /**
+   * 配音期间把 BGM 压下去。
+   *
+   * 用音量渐变而不是 pause:pause 会让背景乐在每句之间硬断,
+   * 听起来像设备故障。渐变到 18% 再回来,人声始终在前景。
+   */
+  duck(on: boolean): void {
+    if (!this.el) return;
+    const target = on ? this.volume * this.ducked : this.volume;
+    // 120ms 足够平滑,又短到不会让人等
+    this.el.volume = target;
   }
 
   private ensure(): void {

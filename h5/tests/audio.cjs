@@ -32,28 +32,36 @@ const WANT = [
   'chensheng-inst', 'chensheng-vocal',
 ];
 
+// 只看 BGM。dist/assets 里还有配音切片(intro_1-*.webm 之类),
+// 那部分由 tests/voice.cjs 负责 —— 这套测试别把它们算进来。
+const isBgm = (f) =>
+  /^(idle|(lisi|jingke|hanxin|xiangyu|chensheng)-(inst|vocal))-[A-Za-z0-9_-]{8}\.(webm|m4a)$/.test(f);
+const distAudio = fs.existsSync(AUD) ? fs.readdirSync(AUD).filter((f) => isBgm(f)) : [];
+// 只去 hash,别把 lisi-/idle- 前缀也剥掉 —— 下面按 'lisi-inst' 这种逻辑名查
+const base = (f) => f.replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, '');
+const size = (name, ext) => {
+  const f = distAudio.find((x) => base(x) === name && x.endsWith(ext));
+  return f ? fs.statSync(path.join(AUD, f)).size : 0;
+};
+
 const checks = [];
 const check = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
 
 // ---------- 构建产物(纯 Node) ----------
-const files = fs.existsSync(AUD) ? fs.readdirSync(AUD).filter((f) => /\.(webm|m4a)$/.test(f)) : [];
-const size = (name, ext) => {
-  const f = files.find((x) => logical(x) === name && x.endsWith(ext));
-  return f ? fs.statSync(path.join(AUD, f)).size : 0;
-};
+// files/distAudio/base/size 已在上面按 BGM 过滤后定义。
 
-check('产物齐全(11 首)', files.length === WANT.length * 2, `实到 ${files.length} 个`);
+check('产物齐全(11 首)', distAudio.length === WANT.length * 2, `实到 ${distAudio.length} 个`);
 for (const w of WANT) check(`  ${w} 有 webm`, size(w, '.webm') > 0);
 check('每首都有 m4a 兜底', WANT.every((w) => size(w, '.m4a') > 0));
-check('无 0 字节产物', files.every((f) => fs.statSync(path.join(AUD, f)).size >= 1024));
+check('无 0 字节产物', distAudio.every((f) => fs.statSync(path.join(AUD, f)).size >= 1024));
 // 注意:不要断言「inst 一定小于 vocal」。实测 hanxin 的纯音乐版(1496 KB)
 // 反而比语音版(1469 KB)大——混音密度是内容属性,不是缺陷。
 // 预算按实测最差值定:aac 在持续音上会超出 -b:a 目标,64k 实测能到 ~77 kb/s。
 // vocal 版是点播才下的,给它 2 MiB;inst 版另有更紧的预算(见下)。
 check(
   '产物都在预算内(≤2 MiB)',
-  files.every((f) => fs.statSync(path.join(AUD, f)).size <= 2 * 1024 * 1024),
-  `最大 ${Math.round(Math.max(...files.map((f) => fs.statSync(path.join(AUD, f)).size)) / 1024)} KB`,
+  distAudio.every((f) => fs.statSync(path.join(AUD, f)).size <= 2 * 1024 * 1024),
+  `最大 ${Math.round(Math.max(...distAudio.map((f) => fs.statSync(path.join(AUD, f)).size)) / 1024)} KB`,
 );
 const instKb = size('lisi-inst', '.webm') / 1024;
 check('入局下载量在预算内(≤1.5 MB)', instKb <= 1536, `lisi-inst ${instKb.toFixed(0)} KB`);

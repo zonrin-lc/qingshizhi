@@ -12,6 +12,8 @@ import { parseRuns } from './gloss';
 import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
 import { renderRadar } from '../ui/radar';
 import { castOf, renderCast } from '../ui/cast';
+import { voice } from './voice';
+import { bgm } from './audio';
 
 /** 右栏要显示的属性(Lua 版「身外」那一组) */
 const SHOWN_ATTRS: AttrKey[] = ['caifu', 'shengwang', 'quanshi', 'zhengji', 'junxin', 'weiji'];
@@ -53,6 +55,34 @@ export class Session {
     this.onFinish = onFinish ?? null;
     this.backBtn = btn('回溯', { variant: 'ghost', cls: 'backbtn', onClick: () => this.doBacktrack() });
     mounts.bar.append(this.backBtn);
+    // 有人说话时把 BGM 压下去,说完恢复。暂停更省事但听起来像断片。
+    voice.onSpeakingChange = (speaking) => bgm.duck(speaking);
+  }
+
+  /** 当前剧本与章 id,配音切片路径靠它推导 */
+  private voiceCtx(): { s: string; c: string } | null {
+    const s = this.game.d.SCENARIO.id;
+    const ch = this.game.chapter();
+    return s && ch ? { s, c: ch.id } : null;
+  }
+
+  /**
+   * 顺序播一段配音。切片名 <base><suffix><N>,N 从 1 起。
+   * 找不到切片就什么都不做 —— 试点只做了李斯 c1,其余章节无声是预期行为。
+   */
+  private speakSeq(base: string, count: number, suffix = ''): void {
+    const ctx = this.voiceCtx();
+    if (!ctx || !voice.enabled) return;
+    const names: string[] = [];
+    for (let i = 1; i <= count; i += 1) names.push(`${base}${suffix}${i}`);
+    if (!names.length) return;
+    voice.enqueue(ctx.s, ctx.c, names[0] as string, names.slice(1));
+  }
+
+  private speakOne(clip: string): void {
+    const ctx = this.voiceCtx();
+    if (!ctx || !voice.enabled) return;
+    voice.enqueue(ctx.s, ctx.c, clip);
   }
 
   /**
@@ -303,6 +333,9 @@ export class Session {
     body.append(el('div', 'rule'));
     for (const seg of ch.intro ?? []) body.append(this.prose(seg));
     for (const n of this.game.introNotes) body.append(lbl(n, 'intro-note u-qing'));
+    // 回溯也要配音:但重念一遍 intro 很吵,只在正常进入时念。
+    // base 要带上结尾下划线 —— 切片名是 intro_1,不是 intro1
+    if (!fromBacktrack) this.speakSeq('intro_', (ch.intro ?? []).length);
     // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
     if (fromBacktrack) {
       body.append(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
@@ -429,6 +462,10 @@ const inserted = g.currentRandom != null;
     body.append(lbl(ev.title, 'chapter__title u-kai u-heavy'));
     body.append(el('div', 'rule'));
     for (const seg of ev.segs ?? []) body.append(this.prose(seg));
+    // 配音切片名:事件内用 <事件id>_s<N>;随机事件走 rand/<id>_s<N>
+    // 随机事件试点没做配音,查不到就是静默,不影响游玩
+    if (inserted) this.speakSeq(`rand/${g.eventId}`, (ev.segs ?? []).length, '_s');
+    else this.speakSeq(ev.id, (ev.segs ?? []).length, '_s');
     this.renderOptions();
   }
 
@@ -670,6 +707,8 @@ const inserted = g.currentRandom != null;
       this.thaw('这个选项眼下走不通（已试过或条件已变）。');
       return;
     }
+    // 选项结果配音:选了第 i 个(0 起)就播 <事件id>_o<i+1>
+    if (this.game.eventId) this.speakOne(`${this.game.eventId}_o${i + 1}`);
     const title = r.bandUp && r.bandName ? `史书提示：偏离度已入「${r.bandName}」` : '';
     this.showSettle(title, r.text, r.changes, r.achNew ?? undefined);
     this.pendingAfterSettle = () => {
@@ -724,6 +763,9 @@ const inserted = g.currentRandom != null;
   // ---------- 路由 ----------
 
   private route(n: Route | null | undefined): void {
+    // 换相位就掐断上一段配音:否则第一章的旁白会跟着你念到第二章去。
+    // 各个 render 会在自己渲染完后重新入队,所以这里停是安全的。
+    voice.stop();
     if (!n || n.type === 'none') {
       if (this.game.ending) this.renderEnding();
       else this.renderRound();
