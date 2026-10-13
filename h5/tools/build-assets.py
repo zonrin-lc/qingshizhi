@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 《青史志》H5 美术资产管线。
@@ -38,6 +38,9 @@ SRC = Path(r"D:\MUSI\SHIJU\qingshizhi-暂存\ui")
 # 第二个源根:原型工程 assets/。角色立绘、成就图标、属性图标都在这里,
 # 不在 ui/ 下——ui/ 只有页面版式素材。
 SRC2 = Path(r"D:\MUSI\SHIJU\qingshi-prototype\assets")
+# 第三个源根:本仓库 assets/(封存 Lua 版的美术)。H5 主菜单/选择页按 Lua 版
+# 复刻,标题书法、罗盘、卡框、匾额、难度胶囊、水墨漩涡等素材都从这里转。
+SRC3 = Path(__file__).resolve().parents[2] / "assets"
 OUT = Path(__file__).resolve().parents[1] / "src" / "assets"
 
 # ---------------------------------------------------------------- 资产清单
@@ -114,6 +117,27 @@ ASSETS = [
     ("settings", r"设置\梅花枝装饰.png",                   "decor/plum-set.webp",     520,  None, 82),
     ("settings", r"设置\水墨竹石装饰.png",                 "decor/bamboo-set.webp",   None,  680,  82),
     ("settings", r"设置\b1af65d6-7474-402f-8a85-b85f24b0c35f.png", "bg/settings.webp", 1920, None, 72),
+
+    # ============ Lua 版主菜单/选择页(repo: 前缀 → 本仓库 assets/) ============
+    # H5 的这两个页面按封存 Lua 版(home.lua)复刻,用 Lua 版那套素材,
+    # 与上面「选择页」组的设计稿素材是两套不同视觉,不要混用。
+    ("lua", r"repo:ui\bg-ink.jpg",              "lua/menu-bg.webp",          1920, None, 74),
+    ("lua", r"repo:ui\title-calligraphy.png",   "lua/title-calligraphy.webp", None, 900, 92),
+    ("lua", r"repo:ui\bg-select.jpg",           "lua/bg-select.webp",        1920, None, 74),
+    ("lua", r"repo:ui\parts\wheel_ring.png",    "lua/wheel-ring.webp",       880,  None, 86),
+    ("lua", r"repo:arch\qin.jpg",               "lua/arch-qin.webp",         420,  None, 80),
+    ("lua", r"repo:arch\han.jpg",               "lua/arch-han.webp",         420,  None, 80),
+    ("lua", r"repo:arch\tang.jpg",              "lua/arch-tang.webp",        420,  None, 80),
+    ("lua", r"repo:arch\song.jpg",              "lua/arch-song.webp",        420,  None, 80),
+    ("lua", r"repo:arch\ming.jpg",              "lua/arch-ming.webp",        420,  None, 80),
+    ("lua", r"repo:ui\parts\card_frame.png",    "lua/card-frame.webp",       None, None, 90),
+    ("lua", r"repo:ui\parts\scen_plate.png",    "lua/scen-plate.webp",       None, None, 92),
+    ("lua", r"repo:ui\parts\diff_on.png",       "lua/diff-on.webp",          560,  None, 88),
+    ("lua", r"repo:ui\parts\diff_off.png",      "lua/diff-off.webp",         560,  None, 88),
+    ("lua", r"repo:ui\parts\btn_vortex.png",    "lua/vortex.webp",           620,  None, 88),
+    ("lua", r"repo:ui\parts\back_btn.png",      "lua/back-btn.webp",         200,  None, 88),
+    ("lua", r"repo:ui\parts\title.png",         "lua/title-h.webp",          400,  None, 90),
+    ("lua", r"repo:ui\parts\deco.png",          "lua/deco.webp",             None, None, 92),
 ]
 
 # ============ 角色立绘全集(来自原型 assets/char) ============
@@ -188,8 +212,13 @@ def main() -> int:
     done = 0
 
     for group, rel, out, mw, mh, q in rows:
-        # proto/ 前缀走第二个源根(原型 assets/),其余走 ui/
-        src = (SRC2 / rel[len("proto/"):]) if rel.startswith("proto/") else (SRC / rel)
+        # proto/ 前缀走第二个源根(原型 assets/),repo: 前缀走本仓库 assets/,其余走 ui/
+        if rel.startswith("proto/"):
+            src = SRC2 / rel[len("proto/"):]
+        elif rel.startswith("repo:"):
+            src = SRC3 / rel[len("repo:"):]
+        else:
+            src = SRC / rel
         if not src.is_file():
             missing.append(rel)
             continue

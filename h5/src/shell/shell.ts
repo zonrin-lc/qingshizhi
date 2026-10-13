@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 布局壳:横屏容器 + 对局两栏(叙事 | 属性)。
  *
  * 结构(P3 已补美术层,装饰与内容分层):
@@ -14,7 +14,7 @@
  */
 import { clear, el, lbl } from '../ui/kit';
 
-export type PageBg = 'game' | 'select' | 'save' | 'settings' | 'summary' | 'ending' | '';
+export type PageBg = 'game' | 'menu' | 'select' | 'save' | 'settings' | 'summary' | 'ending' | '';
 
 export interface Shell {
   root: HTMLElement;

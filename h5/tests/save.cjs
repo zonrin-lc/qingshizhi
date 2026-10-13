@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /**
  * 存档链路:存 → 刷新 → 读 → 状态还原。
  *
@@ -60,7 +60,9 @@ const LOAD_FLOW = `(async () => {
   const raw = localStorage.getItem('qingshi.saves.v1');
   let filled = 0;
   try { const o = JSON.parse(raw || '{}'); filled = Object.values(o).filter(Boolean).length; } catch { /* 解析失败即为空 */ }
-  document.querySelector('.enterbtn')?.click();
+  const start = document.querySelector('.menu__item--start');
+  if (start) { start.click(); await sleep(150); }
+  document.querySelector('.selenter')?.click();
   await sleep(600);
   const g = window.__QS__.game;
   const started = { caixue: g.attrs.caixue, caifu: g.attrs.caifu };
@@ -82,7 +84,7 @@ const UI_FLOW = `(async () => {
            hint: (q('.saves__hint') || {}).textContent || '' };
 })()`;
 
-/** 退出自动存档:打牌 → 退出 → 选择页出现「继续上局」→ 点它回到章首 */
+/** 退出自动存档:打牌 → 退出 → 主菜单出现「继 续 旅 程」→ 点它回到章首 */
 const AUTO_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
@@ -105,14 +107,14 @@ ${STEP_SNIPPET}
   const before = { caixue: g.attrs.caixue, played, ch: g.chapterIdx };
 
   // 退出(等价于点顶栏「返回」)
-  window.__QS__.goSelect();
+  window.__QS__.goMenu();
   await sleep(220);
 
   const auto = JSON.parse(localStorage.getItem('qingshi.saves.v1') || '{}').auto || null;
-  const resumeShown = !!q('.resumebtn');
+  const resumeShown = !!q('.menu__item--continue') && !q('.menu__item--continue').disabled;
 
   // 点「继续上局」
-  q('.resumebtn')?.click();
+  q('.menu__item--continue')?.click();
   await sleep(400);
   const g2 = window.__QS__.game;
   return {
@@ -165,7 +167,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['退出前打到了中途', ab.played >= 1],
     ['退出后自动存档已写入', autoRes.autoExists === true],
     ['自动档记下了章节', typeof autoRes.autoChapter === 'string' && autoRes.autoChapter.length > 0],
-    ['选择页出现「继续上局」', autoRes.resumeShown === true],
+    ['主菜单出现「继 续 旅 程」', autoRes.resumeShown === true],
     ['点继续上局回到章首(intro)', autoRes.backPhase === 'intro'],
     ['点继续上局回到存时的章节', autoRes.backCh === ab.ch],
     ['继续上局还原到章首(不是续玩)', autoRes.backCaixue !== ab.caixue || ab.caixue === 40],

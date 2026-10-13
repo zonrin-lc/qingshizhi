@@ -1,9 +1,22 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
+
+/**
+ * 版本号取 prot/package.json 的 version,不另立一份。
+ *
+ * prot/test-ui-contract.js 第 5 段已经在盯
+ * prot/ui-core.js 的 APP_VERSION 必须等于 prot/package.json version。
+ * H5 再抄一份就会成为第三个可能漂移的地方 —— 那个契约上次就已经漂过了。
+ * 构建时读一次注入,运行时没有第二次真相。
+ */
+const appVersion: string = JSON.parse(
+  readFileSync(resolve(repoRoot, 'prot/package.json'), 'utf8'),
+).version;
 
 /**
  * 引擎复用:alias 精确指向 prot/ 下的规则真源,不做拷贝。
@@ -17,6 +30,9 @@ const repoRoot = resolve(here, '..');
  * 无需 @rollup/plugin-commonjs——加了反而会触发 preferBuiltinFeature 警告。
  */
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   resolve: {
     alias: {
       '@engine': resolve(repoRoot, 'prot/engine.js'),

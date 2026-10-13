@@ -68,7 +68,8 @@ export class Voice {
   private wanted = true;
   /** 当前在放的是不是「有人说话」——用来决定 BGM 要不要让位。 */
   private speaking = false;
-  private volume = 1;
+  /** 音量由设置项驱动(轻 0.5 / 标准 0.8 / 响 1.0) */
+  private volume = 0.8;
   /** 当前这句的收尾回调;stop() 主动调它,好让 pump 的循环能退出。 */
   private settleCurrent: (() => void) | null = null;
 
@@ -86,6 +87,12 @@ export class Voice {
 
   get enabled(): boolean {
     return this.wanted;
+  }
+
+  /** 设置项改音量 */
+  setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.el) this.el.volume = this.volume;
   }
 
   /**

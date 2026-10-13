@@ -238,10 +238,15 @@ export class Session {
   // ---------- 叙事渐显 ----------
 
   /**
-   * 段落之间的间隔(ms)。对齐 Lua shell.lua 的 SEG_INTERVAL = 0.65。
-   * 那边的注释说这值本该能在设置页调,设置页按决定暂不做,先留常量。
+   * 段落之间的间隔(ms)。对齐 Lua shell.lua 的 SEG_INTERVAL = 0.65,
+   * 默认值由设置项 segDelay 提供(设置页可调 慢/标准/快)。
    */
-  private static readonly SEG_INTERVAL = 650;
+  private static segInterval = 650;
+
+  /** 接设置项的叙事速度。启动时与设置页改动时都会调。 */
+  static setSegDelay(ms: number): void {
+    if (Number.isFinite(ms) && ms > 0) Session.segInterval = ms;
+  }
 
   private revealing: { box: HTMLElement; items: HTMLElement[]; i: number; timer: number; done?: () => void } | null = null;
 
@@ -302,7 +307,7 @@ export class Session {
       box.append(rv.items[rv.i] as HTMLElement);
       rv.i += 1;
       this.scrollMainBottom();
-    }, Session.SEG_INTERVAL);
+    }, Session.segInterval);
   }
 
   /** 渐显到新段落时把正文卷到可见处,否则长段落会追加到视口外看不见 */

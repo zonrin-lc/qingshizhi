@@ -113,8 +113,8 @@ body {
 }
 
 body {
-  /* 字号随缩放走;所有 rem 均相对此值 */
-  font-size: calc(16px * var(--ui-scale));
+  /* 字号随缩放走;所有 rem 均相对此值。--user-scale 来自设置页「界面缩放」 */
+  font-size: calc(16px * var(--ui-scale) * var(--user-scale, 1));
   line-height: 1.65;
   /* 桌面端居中呈现,避免宽屏下元素被拉散 */
   display: flex;
@@ -216,10 +216,10 @@ body {
   white-space: nowrap;
 }
 
-/* 叙事正文:楷体 + 放宽行距,贴近古籍阅读感 */
+/* 叙事正文:楷体 + 放宽行距,贴近古籍阅读感。--text-scale 来自设置页「正文字号」 */
 .prose {
   font-family: var(--font-kai);
-  font-size: var(--fs-body);
+  font-size: calc(var(--fs-body) * var(--text-scale, 1));
   line-height: 1.85;
   color: var(--ink);
 }

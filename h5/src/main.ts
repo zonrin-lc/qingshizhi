@@ -1,16 +1,19 @@
-﻿/**
+/**
  * H5 入口 / 页面装配。
  *
- * 动线(P3 起):选择页(选剧本 + 选难度)→ 对局页 → 结局页。
- * 选择页与对局页共用同一个 .stage 容器,靠 skin/背景切换,
- * 不做路由框架——只有两个页面,引 router 不划算。
+ * 动线(对齐封存 Lua 版 home.lua):
+ *   主菜单(开始/继续/存档/设置/退出)→ 选择页(朝代罗盘 + 剧本卡 + 难度 + 入局)
+ *   → 对局页 → 结局页 → 回主菜单。
+ * 各页面都是 .stage 下的兄弟节点,靠背景与显隐切换,不引路由框架。
  */
 import './styles/base.css';
 import './styles/stage.css';
 import './styles/game.css';
 import './styles/art.css';
+import './styles/menu.css';
 import './styles/select.css';
 import './styles/save.css';
+import './styles/settings.css';
 
 import engine from '@engine';
 import type { DiffKey, Game } from '../types/scenario';
@@ -20,7 +23,10 @@ import { buildShell, renderSide, setBg, setDeco, wireBack } from './shell/shell'
 import { Session } from './game/session';
 import { bgm } from './game/audio';
 import { voice } from './game/voice';
-import { renderSelectPage } from './ui/select';
+import { renderMenu, type MenuPage } from './ui/menu';
+import { renderSelectPage, type SelectPage } from './ui/select';
+import { renderSettingsPage, syncFromStorage } from './ui/settings';
+import { applyVisual, broadcastSettings, loadSettings, onSegDelay } from './game/settings';
 import { renderSavePage } from './ui/savepage';
 import { getAuto, listSlots, load as loadSlot, loadPayload, save as writeSlot, saveAuto } from './game/saves';
 import { lbl } from './ui/kit';
@@ -97,7 +103,7 @@ function bootstrap(): void {
   void start(shell);
 }
 
-/** 自检 → 选择页。自检要拉五份数据分片,所以是异步的。 */
+/** 自检 → 主菜单。自检要拉五份数据分片,所以是异步的。 */
 async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   const problems = [...checkEngineSurface(), ...(await checkData())];
   let smoke = '未执行';
@@ -114,10 +120,12 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   }
   console.info('[青史志] 自检通过 · 冒烟', smoke);
 
-  // ---------- 选择页 ----------
   let session: Session | null = null;
   /** 当前对局的剧本 key,存档页高亮用 */
   let curKey = '';
+  /** 菜单/选择页句柄:两者都有 rAF 循环(星火/罗盘/漩涡),离开时必须停 */
+  let menuPage: MenuPage | null = null;
+  let selectPage: SelectPage | null = null;
 
   const hideGame = (): void => {
     shell.bar.hidden = true;
@@ -125,16 +133,28 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     shell.foot.hidden = true;
     shell.overlay.hidden = true;
   };
-  /** 收掉选择页 —— 进对局或进存档页都要调,否则两个页面会叠在一起 */
-  const hideSelect = (): void => {
-    shell.stage.querySelector('.select')?.remove();
+  /** 收掉所有「整页」层 —— 进对局或换页都要调,否则页面会叠在一起 */
+  const hidePages = (): void => {
+    menuPage?.destroy();
+    menuPage = null;
+    selectPage?.destroy();
+    selectPage = null;
     shell.stage.querySelector('.saves')?.remove();
+    shell.stage.querySelector('.settings')?.remove();
   };
   const showGame = (): void => {
     shell.bar.hidden = false;
     shell.cols.hidden = false;
     shell.foot.hidden = false;
-    hideSelect();
+    hidePages();
+  };
+
+  /** 退出对局时自动存档:所有离开路径都汇聚到 goMenu/goSelect,挂一处就够 */
+  const autosaveIfPlaying = (): void => {
+    if (session && session.game.phase !== 'ending') {
+      saveAuto(session.game, curKey, session.game.d.SCENARIO.name);
+    }
+    session = null;
   };
 
   /** 提示条:存档结果等需要告知玩家的短消息 */
@@ -149,53 +169,81 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     window.setTimeout(() => { if (t) t.hidden = true; }, 2600);
   };
 
-  const goSelect = (): void => {
-    // 退出对局 → 自动存档。放在这里而不是单独一个「离开」按钮,
-    // 是因为所有离开路径(点返回、结局页回主页、读档页返回)都汇聚到这一个函数,
-    // 挂一处就够,不会漏。
-    // 引擎说不可存时(硬核 / 无章首快照)安静跳过,不打断退出。
-    if (session && session.game.phase !== 'ending') {
-      saveAuto(session.game, curKey, session.game.d.SCENARIO.name);
+  /** 继续旅程:只有一个自动档直接进;有手动档则去存档页挑 */
+  const continueJourney = (): void => {
+    const a = getAuto();
+    if (a && getScenario(a.scenKey)) {
+      void (async () => {
+        const g = await buildFrom(a);
+        if (!g) { toast('自动存档已失效,无法继续'); return; }
+        mountGame(a.scenKey, a.diffKey, g, true);
+        toast(`已继续「${a.chapterTitle}」章首`);
+      })();
+      return;
     }
-    session = null;
+    goSaves();
+  };
+
+  const hasSaves = (): boolean => Boolean(getAuto()) || listSlots().some(Boolean);
+
+  // ---------- 主菜单 ----------
+  const goMenu = (): void => {
+    autosaveIfPlaying();
     hideGame();
-    hideSelect();
-    // 选择页不放音乐:它是一进站就要加载的页面,idle 曲子 1.38 MB,
-    // 拿菜单的体验换首屏带宽不划算。菜单也正好该安静——玩家在挑剧本。
+    hidePages();
+    // 菜单与选择页不放音乐:idle 曲子 1.38 MB,拿首屏带宽换不划算;
+    // 菜单也正好该安静 —— 玩家在端详这卷书。
     bgm.stop();
-    // 配音同理:退出对局必须掐断,不然语音会跟着人一路念到选择页
+    voice.stop();
+    setBg(shell.stage, 'menu');
+    setDeco(shell.deco, false);
+    menuPage = renderMenu(shell.stage, {
+      onStart: () => goSelect(),
+      onContinue: () => continueJourney(),
+      onSaves: () => goSaves(),
+      onSettings: () => goSettings(),
+      hasSaves,
+    });
+  };
+
+  // ---------- 选择页 ----------
+  const goSelect = (): void => {
+    autosaveIfPlaying();
+    hideGame();
+    hidePages();
+    bgm.stop();
     voice.stop();
     setBg(shell.stage, 'select');
     setDeco(shell.deco, false);
-    renderSelectPage(
+    selectPage = renderSelectPage(
       shell.stage,
       ({ scenario, diff }) => goGame(scenario.key, diff),
-      () => goSaves(),
-      // 「继续上局」:有自动档时才出现
-      getAuto()
-        ? () => {
-            const a = getAuto();
-            if (!a || !getScenario(a.scenKey)) return;
-            void (async () => {
-              const g = await buildFrom(a);
-              if (!g) { toast('自动存档已失效,无法继续'); return; }
-              mountGame(a.scenKey, a.diffKey, g, true);
-              toast(`已继续「${a.chapterTitle}」章首`);
-            })();
-          }
-        : undefined,
+      () => goMenu(),
     );
+  };
+
+  // ---------- 设置页 ----------
+  const goSettings = (): void => {
+    hideGame();
+    hidePages();
+    setBg(shell.stage, 'settings');
+    setDeco(shell.deco, false);
+    renderSettingsPage(shell.stage, () => {
+      // 返回前按存档里的设置校准一次,确保音频与界面显示一致
+      syncFromStorage();
+      goMenu();
+    });
   };
 
   /** 存档页 */
   const goSaves = (): void => {
     hideGame();
-    hideSelect();
+    hidePages();
     setBg(shell.stage, 'save');
     setDeco(shell.deco, false);
     renderSavePage(shell.stage, {
       currentKey: curKey,
-      onBack: () => (session ? goGame(curKey, 'normal') : goSelect()),
+      onBack: () => (session ? goGame(curKey, 'normal') : goMenu()),
       onSave: (slot) => {
         if (!session) { toast('没有进行中的对局,无法存入'); return; }
         const r = writeSlot(session.game, curKey, session.game.d.SCENARIO.name, slot);
@@ -254,7 +302,7 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
         main: shell.main, opts: shell.foot, chap: shell.chap, band: shell.band,
         bar: shell.bar, overlay: shell.overlay, stage: shell.stage, deco: shell.deco,
       },
-      () => goSelect(),
+      () => goMenu(),
     );
     const origTop = session.renderTop.bind(session);
     session.renderTop = function patched(this: Session): void {
@@ -269,7 +317,7 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
       session.start();
     }
     (window as unknown as Record<string, unknown>).__QS__ = {
-      session, game: g, shell, goSelect, goSaves,
+      session, game: g, shell, goMenu, goSelect, goSaves,
       // 存档相关,供 tests/save.cjs 驱动真实流程(而不是另开一条测试专用通道)
       saveGame: (slot: number) => writeSlot(g, key, g.d.SCENARIO.name, slot),
       loadSlot: (slot: number) => loadSlot(slot, g),
@@ -277,7 +325,14 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     };
   };
 
-  goSelect();
+  // 设置项在启动时先落地一次:界面缩放/正文字号(视觉)、音乐/朗读(音频)、叙事速度。
+  // 叙事速度是静态订阅,所以订阅要注册在 broadcast 之前。
+  applyVisual(loadSettings());
+  onSegDelay((ms) => Session.setSegDelay(ms));
+  syncFromStorage();
+  broadcastSettings(loadSettings());
+
+  goMenu();
 }
 
 if (document.readyState === 'loading') {

@@ -111,13 +111,21 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
     `支持webm=${supportsWebm},实际下 ${extOf(reqs[0].url)}`);
 
   const el = await evaluate(`(() => {
+    const as = [...document.querySelectorAll('audio')];
     const a = document.querySelector('audio');
     if (!a) return { ok: false, why: '没有 audio 元素' };
-    return { ok: true, src: a.getAttribute('src') || '', loop: a.loop, vol: a.volume, paused: a.paused };
+    const bg = as.find(x => x.loop);
+    return { ok: true, src: a.getAttribute('src') || '', loop: a.loop, vol: a.volume,
+             paused: a.paused, hasBgm: !!bg, bgmVol: bg ? bg.volume : null };
   })()`);
   add('audio 元素已挂载且带 src', el.ok && !!el.src, el.why || 'src 为空');
   add('设为循环播放', el.loop === true);
-  add('音量压低(背景乐不抢戏)', el.vol > 0 && el.vol <= 0.4, `音量 ${el.vol}`);
+  // 音量不该写死一个数:它是设置项驱动的(标准档 0.6,见 game/settings.ts)。
+  // 早先这里断言 <= 0.4,那是在验我自己拍脑袋定的 0.32;设置项进来之后
+  // 正确的断言是「落在设置档位范围内」,而不是某个魔数。
+  add('BGM 音量取自设置档位(0.3/0.6/0.9 之一)',
+    el.hasBgm && [0.3, 0.6, 0.9].some((v) => Math.abs(el.bgmVol - v) < 0.01),
+    `音量 ${el.bgmVol}`);
 
   // 回选择页 → 应停声,不切 idle
   netReset();

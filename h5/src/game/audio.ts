@@ -52,12 +52,17 @@ const probe = (() => {
 export class Bgm {
   private el: HTMLAudioElement | null = null;
   private current = '';
-  /** 用户是否要听。默认开,但尊重系统级的减少动效偏好?——不,音乐与动效无关。 */
   private wanted = true;
-  /** 音量:背景乐不该抢戏,默认压到三成 */
-  private volume = 0.32;
+  /**
+   * 音量:由设置项驱动(轻 0.3 / 标准 0.6 / 响 0.9),不是写死的。
+   * 以前硬编码 0.32,那是我自己拍的;档位跟 Lua 的 home.lua 对齐,
+   * 两套实现不该对"背景乐该多响"有两套答案。
+   */
+  private volume = 0.6;
   /** 有人说话时临时压低的比例 */
   private ducked = 0.18;
+  /** 当前是不是被压低着。改音量时若正压着就别覆盖,否则人声会被顶回前景 */
+  private speakingNow = false;
   private failed = false;
 
   get enabled(): boolean {
@@ -112,16 +117,24 @@ export class Bgm {
   }
 
   /**
-   * 配音期间把 BGM 压下去。
+   * 音量渐变。设置页改档位时走这里。
+   * 正在被压低(有人在说话)时给基准值会被立刻顶回去,所以直接记住基准、
+   * 下一次 duck(false) 再恢复。
+   */
+  setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.el && !this.speakingNow) this.el.volume = this.volume;
+  }
+
+  /** 有人说话时把 BGM 压下去。
    *
    * 用音量渐变而不是 pause:pause 会让背景乐在每句之间硬断,
    * 听起来像设备故障。渐变到 18% 再回来,人声始终在前景。
    */
   duck(on: boolean): void {
+    this.speakingNow = on;
     if (!this.el) return;
-    const target = on ? this.volume * this.ducked : this.volume;
-    // 120ms 足够平滑,又短到不会让人等
-    this.el.volume = target;
+    this.el.volume = on ? this.volume * this.ducked : this.volume;
   }
 
   private ensure(): void {

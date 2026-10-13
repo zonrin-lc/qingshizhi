@@ -17,7 +17,9 @@
   background-size: cover;
 }
 .stage[data-bg='game']     { background-image: url('../assets/bg/game.webp'); }
-.stage[data-bg='select']   { background-image: url('../assets/bg/select.webp'); }
+/* 主菜单/选择页:封存 Lua 版的那套素材(ui/bg-ink.jpg、ui/bg-select.jpg) */
+.stage[data-bg='menu']     { background-image: url('../assets/lua/menu-bg.webp'); }
+.stage[data-bg='select']   { background-image: url('../assets/lua/bg-select.webp'); }
 .stage[data-bg='save']     { background-image: url('../assets/bg/save.webp'); }
 .stage[data-bg='settings'] { background-image: url('../assets/bg/settings.webp'); }
 .stage[data-bg='summary']  { background-image: url('../assets/bg/summary.webp'); }

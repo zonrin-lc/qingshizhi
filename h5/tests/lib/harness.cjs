@@ -228,24 +228,29 @@ async function withPage(fn, opts = {}) {
         );
 
     /**
-     * 从选择页入局。
+     * 从主菜单入局。
      *
-     * P3 起应用入口是「选择页」而不是直接对局(选剧本 + 选难度),
-     * 所以对局相关的测试都得先点一次「入 局」,否则 window.__QS__.game 根本不存在。
-     * 这一步同时验证了选择页 → 对局页的跳转本身。
+     * 入口动线是「主菜单 → 选择页 → 对局页」(对齐封存 Lua 版 home.lua),
+     * 所以对局相关的测试要先点「开 始 游 戏」再点漩涡「入局」,
+     * 否则 window.__QS__.game 根本不存在。
+     * 这一步同时验证了主菜单 → 选择页 → 对局页的跳转本身。
      */
     const enterGame = async () => {
       await sleep(250);
       const r = await client.send(
         'Runtime.evaluate',
         {
-          expression: `(() => {
-            const b = document.querySelector('.enterbtn');
-            if (!b) return { ok: false, why: 'no .enterbtn (不在选择页?)' };
+          expression: `(async () => {
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            const start = document.querySelector('.menu__item--start');
+            if (start) { start.click(); await sleep(150); }
+            const b = document.querySelector('.selenter');
+            if (!b) return { ok: false, why: 'no .selenter (不在选择页?)' };
             b.click();
             return { ok: true };
           })()`,
           returnByValue: true,
+          awaitPromise: true,
         },
         sessionId,
       );
