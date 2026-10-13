@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>《青史志》主菜单 · UI 效果图 v3</title>
+<style>
+/* ============================================================================
+ * 《青史志》主菜单(P1)· UI 效果图 v3
+ *
+ * v1 用了项目既有水墨素材、v2 走了暗色概念风,均不符合要求。本版重做:
+ *   1. 浅色底,不使用黑色背景
+ *   2. 按「游戏界面」组织:左侧主菜单按钮列 + 右侧信息面板 + 顶栏 + 底栏
+ *      而不是海报式的「大标题 + 宣传语 + 单个按钮」
+ *   3. 不使用任何既有美术素材,视觉全部由 CSS 生成
+ * ==========================================================================*/
+
+@font-face { font-family: 'QS Display'; src: url('fonts/serif-900.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Serif';   src: url('fonts/serif-500.woff2') format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Sans';    src: url('fonts/sans-400.woff2')  format('woff2'); font-display: block; }
+@font-face { font-family: 'QS Sans'; font-weight: 700; src: url('fonts/sans-700.woff2') format('woff2'); font-display: block; }
+
+:root {
+  /* 浅色底:冷调纸灰,不用黑 */
+  --bg-a: #fbfcfe;
+  --bg-b: #eef3fa;
+  --bg-c: #e4ebf5;
+
+  /* 面板 */
+  --card:      #ffffff;
+  --card-soft: #f6f8fc;
+  --line:      #e3e9f2;
+  --line-2:    #eef2f8;
+
+  /* 文字 */
+  --ink:   #23303f;
+  --ink-2: #5d6b7e;
+  --ink-3: #93a0b1;
+
+  /* 强调 */
+  --blue:   #2f6fed;
+  --blue-d: #2459c9;
+  --teal:   #12a594;
+  --amber:  #e08a2e;
+  --rose:   #d9536b;
+
+  --shadow-sm: 0 1px 2px rgba(30, 55, 90, .05), 0 2px 8px rgba(30, 55, 90, .05);
+  --shadow-md: 0 2px 6px rgba(30, 55, 90, .06), 0 12px 28px rgba(30, 55, 90, .09);
+  --shadow-lg: 0 8px 20px rgba(30, 55, 90, .08), 0 26px 60px rgba(30, 55, 90, .13);
+
+  --font-d: 'QS Display', serif;
+  --font-s: 'QS Serif', serif;
+  --font-u: 'QS Sans', system-ui, -apple-system, sans-serif;
+}
+
+* , *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* 画布之外也是浅色,整体没有黑底 */
+  background: #dde4ee;
+  font-family: var(--font-u);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+/* ---------- 画布 ---------- */
+.stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 22px 26px 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(158deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%);
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+  box-shadow: 0 30px 80px rgba(30, 55, 90, .22);
+}
+/* 两团柔色光斑:替代黑底氛围,保持浅色 */
+.blob { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
+.blob--a { width: 620px; height: 620px; left: -180px; top: -260px; background: rgba(96, 160, 240, .22); }
+.blob--b { width: 560px; height: 560px; right: -160px; bottom: -240px; background: rgba(64, 200, 180, .18); }
+.blob--c { width: 420px; height: 420px; right: 320px; top: -180px; background: rgba(160, 150, 240, .14); }
+/* 极淡网格,给浅底一点结构 */
+.mesh {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image:
+    linear-gradient(rgba(47, 111, 237, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 111, 237, .05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(90% 80% at 30% 20%, #000, transparent 78%);
+          mask-image: radial-gradient(90% 80% at 30% 20%, #000, transparent 78%);
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  position: relative;
+  z-index: 4;
+  height: 56px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand__mark {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-s);
+  font-size: 18px;
+  color: #fff;
+  background: linear-gradient(150deg, #4d8bf5, var(--blue-d));
+  box-shadow: 0 4px 10px rgba(47, 111, 237, .32);
+}
+.brand__name { font-family: var(--font-s); font-size: 17px; letter-spacing: .16em; }
+.brand__sub { font-size: 10px; letter-spacing: .3em; color: var(--ink-3); }
+
+.topbar__right { display: flex; align-items: center; gap: 10px; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 13px;
+  font-size: 11.5px;
+  letter-spacing: .08em;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, .78);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+.pill--save { color: var(--teal); border-color: rgba(18, 165, 148, .3); background: rgba(18, 165, 148, .08); }
+.pill__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ---------- 主体 ---------- */
+.body {
+  position: relative;
+  z-index: 4;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 344px minmax(0, 1fr);
+  gap: 24px;
+  padding: 10px 0 20px;
+  min-height: 0;
+}
+
+/* ============ 左:主菜单按钮列 ============ */
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 22px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+}
+.menu__head { padding: 0 6px 18px; border-bottom: 1px solid var(--line-2); }
+.menu__eyebrow { font-size: 10.5px; letter-spacing: .34em; color: var(--blue); }
+.menu__title {
+  margin: 10px 0 0;
+  font-family: var(--font-d);
+  font-size: 46px;
+  line-height: 1.05;
+  letter-spacing: .1em;
+  color: var(--ink);
+}
+.menu__desc { margin: 9px 0 0; font-size: 12px; line-height: 1.7; color: var(--ink-2); letter-spacing: .04em; }
+
+.menu__list { display: flex; flex-direction: column; gap: 9px; padding: 18px 0 0; }
+
+/* 菜单项:游戏 UI 里最常见的「图标 + 文字 + 右侧箭头」行 */
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  align-items: center;
+  gap: 13px;
+  height: 58px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card-soft);
+  font-family: var(--font-u);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+}
+.item__ico {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.item__ico svg { width: 19px; height: 19px; display: block; }
+.item__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item__t { font-size: 15px; font-weight: 700; letter-spacing: .06em; color: var(--ink); }
+.item__s { font-size: 10.5px; letter-spacing: .04em; color: var(--ink-3); }
+.item__arrow { color: var(--ink-3); font-size: 15px; }
+
+.item:hover { transform: translateX(3px); border-color: #cfdcf3; box-shadow: var(--shadow-sm); background: #fff; }
+.item:hover .item__ico { color: var(--blue); border-color: #cfdcf3; }
+
+/* 主操作:实心强调色 */
+.item--primary {
+  background: linear-gradient(180deg, #4b87f4, var(--blue-d));
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(47, 111, 237, .30);
+}
+.item--primary .item__ico { background: rgba(255, 255, 255, .2); border-color: rgba(255, 255, 255, .3); color: #fff; }
+.item--primary .item__t { color: #fff; }
+.item--primary .item__s { color: rgba(255, 255, 255, .78); }
+.item--primary .item__arrow { color: rgba(255, 255, 255, .8); }
+.item--primary:hover { background: linear-gradient(180deg, #5a93f6, #2a63d6); border-color: transparent; }
+.item--primary:hover .item__ico { color: #fff; border-color: rgba(255, 255, 255, .3); }
+
+/* 禁用项:灰置 + 明示原因,不使用问号 */
+.item--off {
+  background: #f2f4f8;
+  border-color: var(--line-2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.item--off .item__t { color: var(--ink-3); }
+.item--off .item__ico { color: var(--ink-3); background: #f7f9fc; }
+.item--off:hover { transform: none; background: #f2f4f8; border-color: var(--line-2); box-shadow: none; }
+.item--off:hover .item__ico { color: var(--ink-3); border-color: var(--line); }
+.item__tag {
+  position: absolute;
+  right: 14px; top: -7px;
+  padding: 2px 7px;
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  color: #fff;
+  background: var(--ink-3);
+  border-radius: 5px;
+}
+
+.menu__foot {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+}
+
+/* ============ 右:信息面板 ============ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+}
+
+/* 上:当前剧本 */
+.now { padding: 22px 24px 20px; flex: 0 0 auto; }
+.now__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.now__eyebrow { font-size: 10.5px; letter-spacing: .3em; color: var(--ink-3); }
+.now__title {
+  margin: 8px 0 0;
+  font-family: var(--font-d);
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: .06em;
+  color: var(--ink);
+}
+.now__sub { margin: 6px 0 0; font-size: 12.5px; letter-spacing: .06em; color: var(--ink-2); }
+.now__badge {
+  flex: 0 0 auto;
+  padding: 7px 13px;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--blue);
+  background: rgba(47, 111, 237, .08);
+  border: 1px solid rgba(47, 111, 237, .2);
+  border-radius: 999px;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 27px;
+  padding: 0 11px;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.chip b { color: var(--ink); font-weight: 700; }
+.chip--on { color: var(--blue-d); background: rgba(47, 111, 237, .09); border-color: rgba(47, 111, 237, .22); }
+
+/* 进度 */
+.prog { margin-top: 18px; }
+.prog__row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+.prog__k { font-size: 11.5px; letter-spacing: .08em; color: var(--ink-2); }
+.prog__v { font-family: var(--font-s); font-size: 15px; color: var(--ink); }
+.prog__v b { color: var(--blue); }
+.prog__track { height: 8px; border-radius: 4px; background: #eef2f8; overflow: hidden; }
+.prog__fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #6aa2f7, var(--blue)); }
+
+/* 下:两栏小卡 */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1 1 auto; min-height: 0; }
+.mini { padding: 18px 20px; display: flex; flex-direction: column; }
+.mini__title {
+  font-size: 12px;
+  letter-spacing: .14em;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mini__title span { color: var(--ink-3); font-size: 10.5px; letter-spacing: .06em; }
+
+/* 四维评分条 */
+.bars { display: flex; flex-direction: column; justify-content: space-between; flex: 1 1 auto; gap: 12px; margin-top: 16px; }
+.bar__top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px; }
+.bar__k { font-size: 11.5px; color: var(--ink-2); letter-spacing: .06em; }
+.bar__v { font-family: var(--font-s); font-size: 13.5px; color: var(--ink); }
+.bar__track { height: 6px; border-radius: 3px; background: #eef2f8; overflow: hidden; }
+.bar__fill { height: 100%; border-radius: 3px; }
+.bar__fill--blue  { background: linear-gradient(90deg, #7aabf8, var(--blue)); }
+.bar__fill--teal  { background: linear-gradient(90deg, #4cc9b8, var(--teal)); }
+.bar__fill--amber { background: linear-gradient(90deg, #f0b064, var(--amber)); }
+.bar__fill--rose  { background: linear-gradient(90deg, #ea8a9c, var(--rose)); }
+
+/* 最近结局列表 */
+.logs { display: flex; flex-direction: column; gap: 9px; margin-top: 15px; }
+.log {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--card-soft);
+  border: 1px solid var(--line-2);
+}
+.log__seal {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: #fff;
+  letter-spacing: 0;
+}
+.log__t { font-size: 12px; color: var(--ink); letter-spacing: .04em; }
+.log__s { font-size: 10px; color: var(--ink-3); letter-spacing: .04em; }
+.log__g { font-family: var(--font-s); font-size: 14px; }
+
+/* ---------- 底栏 ---------- */
+.footbar {
+  position: relative;
+  z-index: 4;
+  height: 46px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+}
+.footbar__l { display: flex; align-items: center; gap: 18px; }
+.footbar__r { display: flex; align-items: center; gap: 8px; }
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px; height: 20px;
+  padding: 0 5px;
+  margin-right: 4px;
+  font-size: 10px;
+  color: var(--ink-2);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) { .item { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="blob blob--a"></div>
+  <div class="blob blob--b"></div>
+  <div class="blob blob--c"></div>
+  <div class="mesh"></div>
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark">青</span>
+      <span class="brand__name">青史志</span>
+      <span class="brand__sub">HISTORY DEVIATION SIMULATOR</span>
+    </div>
+    <div class="topbar__right">
+      <span class="pill pill--save"><i class="pill__dot"></i>本地存档:空</span>
+      <span class="pill">v1.0.1</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- 左:主菜单 -->
+    <nav class="menu">
+      <div class="menu__head">
+        <div class="menu__eyebrow">主 菜 单</div>
+        <h1 class="menu__title">青史志</h1>
+        <p class="menu__desc">重生历史人物,从第一道岔口起,<br />每一次选择都在对抗历史惯性。</p>
+      </div>
+
+      <div class="menu__list">
+        <button class="item item--primary" type="button">
+          <span class="item__ico">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+          </span>
+          <span class="item__txt">
+            <span class="item__t">开始新局</span>
+            <span class="item__s">选择剧本与难度</span>
+          </span>
+          <span class="item__arrow">›</span>
+        </button>
+
+        <button class="item item--off" type="button">
+          <span class="item__tag">无存档</span>
+          <span class="item__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4h4"/></svg>
+          </span>
+          <span class="item__txt">
+            <span class="item__t">继续上局</span>
+            <span class="item__s">尚未开始任何一局</span>
+          </span>
+          <span class="item__arrow">›</span>
+        </button>
+
+        <button class="item" type="button">
+          <span class="item__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/></svg>
+          </span>
+          <span class="item__txt">
+            <span class="item__t">词条图鉴</span>
+            <span class="item__s">38 / 160 已解锁</span>
+          </span>
+          <span class="item__arrow">›</span>
+        </button>
+
+        <button class="item" type="button">
+          <span class="item__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4.5v1.5A3 3 0 0 0 7 9.5M17 5h2.5v1.5A3 3 0 0 1 17 9.5"/><path d="M12 14v3M9 20h6l-.5-3h-5z"/></svg>
+          </span>
+          <span class="item__txt">
+            <span class="item__t">成就</span>
+            <span class="item__s">5 / 62 已达成</span>
+          </span>
+          <span class="item__arrow">›</span>
+        </button>
+
+        <button class="item" type="button">
+          <span class="item__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6"/></svg>
+          </span>
+          <span class="item__txt">
+            <span class="item__t">设置</span>
+            <span class="item__s">朗读 · 音画 · 数据</span>
+          </span>
+          <span class="item__arrow">›</span>
+        </button>
+      </div>
+
+      <div class="menu__foot">
+        <span>首次游玩建议从「李斯」开始</span>
+        <span>1 / 5 局</span>
+      </div>
+    </nav>
+
+    <!-- 右:信息面板 -->
+    <section class="panel">
+      <div class="card now">
+        <div class="now__head">
+          <div>
+            <div class="now__eyebrow">推 荐 剧 本</div>
+            <h2 class="now__title">仓鼠之局 · 李斯</h2>
+            <p class="now__sub">约前 280 — 前 208 · 七十余年 · 7 章 31 事件</p>
+          </div>
+          <span class="now__badge">新手向</span>
+        </div>
+
+        <div class="chips">
+          <span class="chip chip--on"><b>剧情</b></span>
+          <span class="chip">普通</span>
+          <span class="chip">硬核</span>
+          <span class="chip">结局 20 种</span>
+          <span class="chip">史实选项 50%</span>
+        </div>
+
+        <div class="prog">
+          <div class="prog__row">
+            <span class="prog__k">本局进度</span>
+            <span class="prog__v"><b>未开始</b></span>
+          </div>
+          <div class="prog__track"><div class="prog__fill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card mini">
+          <div class="mini__title">上局四维评分 <span>最近一局</span></div>
+          <div class="bars">
+            <div>
+              <div class="bar__top"><span class="bar__k">功业</span><span class="bar__v">62</span></div>
+              <div class="bar__track"><div class="bar__fill bar__fill--blue" style="width:62%"></div></div>
+            </div>
+            <div>
+              <div class="bar__top"><span class="bar__k">存续</span><span class="bar__v">48</span></div>
+              <div class="bar__track"><div class="bar__fill bar__fill--teal" style="width:48%"></div></div>
+            </div>
+            <div>
+              <div class="bar__top"><span class="bar__k">史评</span><span class="bar__v">55</span></div>
+              <div class="bar__track"><div class="bar__fill bar__fill--amber" style="width:55%"></div></div>
+            </div>
+            <div>
+              <div class="bar__top"><span class="bar__k">影响</span><span class="bar__v">41</span></div>
+              <div class="bar__track"><div class="bar__fill bar__fill--rose" style="width:41%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mini">
+          <div class="mini__title">最近结局 <span>共 12 / 74</span></div>
+          <div class="logs">
+            <div class="log">
+              <span class="log__seal" style="background:#12a594">稳健</span>
+              <span>
+                <span class="log__t">禄位终其身</span><br />
+                <span class="log__s">李斯 · 普通</span>
+              </span>
+              <span class="log__g" style="color:#12a594">A</span>
+            </div>
+            <div class="log">
+              <span class="log__seal" style="background:#e08a2e">苟活</span>
+              <span>
+                <span class="log__t">犬逐东门</span><br />
+                <span class="log__s">李斯 · 普通</span>
+              </span>
+              <span class="log__g" style="color:#e08a2e">B</span>
+            </div>
+            <div class="log">
+              <span class="log__seal" style="background:#d9536b">败局</span>
+              <span>
+                <span class="log__t">具五刑</span><br />
+                <span class="log__s">李斯 · 剧情</span>
+              </span>
+              <span class="log__g" style="color:#d9536b">C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底栏 -->
+  <footer class="footbar">
+    <div class="footbar__l">
+      <span><span class="kbd">↑</span><span class="kbd">↓</span>选择</span>
+      <span><span class="kbd">Enter</span>确认</span>
+      <span>横屏体验最佳</span>
+    </div>
+    <div class="footbar__r">
+      <span>玄墨为局,朱青为子</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var stage = document.querySelector('.stage');
+  function fit() {
+    stage.style.setProperty('--scale', String(Math.min(window.innerWidth / 1320, window.innerHeight / 780, 1)));
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+
+</body>
+</html>
