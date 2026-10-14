@@ -17,9 +17,28 @@
   `build-voice.py`(配音切片)都无法重跑,它们都读 `assets/` 下的原件
 - 想补齐:从别处拷贝 `assets/` 整个目录到仓库根即可,无需改任何配置
 
-**不缺什么**:`h5/src/assets/` 里的**成品**资产(webp / webm / m4a,49.8 MB)
-照常入库,所以克隆后 `npm run build` 与全套浏览器验收(`npm run test:browser`)
-都能直接跑通。
+**不缺什么**:`h5/src/assets/` 里的**图像**成品(webp,约 11.7 MB)照常入库,
+所以克隆后 `npm run build` 与全套浏览器验收(`npm run test:browser`)
+都能直接跑通,页面版式也完整。
+
+## ⚠️ 转码音频同样不在 Git 版本库里
+
+`h5/src/assets/bgm/`(34.2 MB)与 `h5/src/assets/voice/`(6.9 MB)同样已 `.gitignore`。
+
+这两个目录是 `h5/tools/build-audio.py`、`h5/tools/build-voice.py`
+从 `assets/audio/` 下的原声转出来的**派生物**——而输入 `assets/` 本就不入库。
+等于仓库里存着一堆自己算不出结果的产物,还占了推送量的 56%。
+
+**影响**:克隆后的游戏**没有声音**,但其余一切正常。音频是运行时按需加载的,
+缺了不会影响构建、布局、玩法与任何一条验收测试。
+
+**重新生成**:
+
+    # 先把 assets/ 整个目录拷回仓库根
+    python h5/tools/build-audio.py            # BGM  → h5/src/assets/bgm/
+    python h5/tools/build-voice.py           # 配音 → h5/src/assets/voice/ (默认李斯 c1)
+
+两个脚本都需要 ffmpeg,且只**生成**产物、不会改动任何源码。
 
 ## 目录
 

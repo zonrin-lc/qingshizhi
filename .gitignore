@@ -25,6 +25,16 @@ qingshi-source.zip
 # 恢复方式见 README-ASSETS.md。
 assets/
 
+# 转码产物:h5/src/assets/bgm(34.2MB)+ h5/src/assets/voice(6.9MB)=41.1MB。
+# 这两个目录是 build-audio.py / build-voice.py 从 assets/ 下的原声转出来的**派生物**,
+# 而它们的输入(assets/)本就不入库 —— 也就是说这里存着一堆自己算不出结果的产物。
+# 排除后推送降到约 32MB(代理实测 527KB/s,单连接撑不住十几分钟,先前 73MB
+# 推了 13.5 分钟被 HTTP 408 掐断)。
+# 不带音频不影响构建与验收:音频是运行时按需加载的,缺了只是没有声音。
+# 重新生成:补齐 assets/ 后跑 python h5/tools/build-audio.py 与 build-voice.py
+h5/src/assets/bgm/
+h5/src/assets/voice/
+
 # Temp & swap files
 .tmp/
 *.crswap
