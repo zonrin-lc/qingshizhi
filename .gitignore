@@ -10,6 +10,12 @@ logs/.nfs*
 .sce/logs/
 .sce/build/build_steps/__pycache__/
 
+# 顶层打包产物。qingshi-assets.zip 164MB,超过 GitHub 单文件 100MB 硬上限,
+# 留着会让任何 GitHub 推送被直接拒绝。内容与 assets/ 重复,不进版本库;
+# 本地文件保留,只是不再跟踪。
+qingshi-assets.zip
+qingshi-source.zip
+
 # Temp & swap files
 .tmp/
 *.crswap
