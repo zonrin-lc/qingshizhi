@@ -16,6 +16,15 @@ logs/.nfs*
 qingshi-assets.zip
 qingshi-source.zip
 
+# 原始素材 assets/(721.7 MB / 4,743 个文件):配音原声 291MB + 原图 400MB + UI 23MB。
+# 不进版本库的理由是体量,不是内容 —— 一次推送要传 1.16 GiB 的 pack,
+# 实测走本地代理推了 26 分钟后被远端 unpack 拒绝(连接被截断)。
+# 代价:克隆下来的仓库跑不了素材管线,build-assets.py / build-audio.py / build-voice.py
+# 都需要先补齐 assets/ 才能重跑。h5/src/assets/ 里的成品(49.8MB)照常入库,
+# 所以 npm run build 与全套浏览器验收在克隆后仍可直接跑通。
+# 恢复方式见 README-ASSETS.md。
+assets/
+
 # Temp & swap files
 .tmp/
 *.crswap

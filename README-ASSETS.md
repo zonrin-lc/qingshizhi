@@ -3,6 +3,24 @@
 ## 这是什么
 **设计过程稿与原始素材**。这些**不参与游戏运行**(构建时被排除),仅供查看/存档/二次加工。
 
+## ⚠️ `assets/` 目录不在 Git 版本库里
+
+2026-10-14 起,`assets/`(721.7 MB / 4,743 个文件)已加入 `.gitignore`。
+**本机文件完好保留**,只是不再进版本控制。
+
+**为什么**:同步到 GitHub 时,包含 `assets/` 的推送要传 1.16 GiB 的 git pack,
+实测走本地代理传输 26 分钟后被远端拒绝(`index-pack failed`,连接被截断)。
+排除后仓库约 73 MB,一次推送即可完成。
+
+**代价 —— 克隆下来的仓库缺什么**:
+- `h5/tools/build-assets.py`(webp 资产管线)、`build-audio.py`(BGM 转码)、
+  `build-voice.py`(配音切片)都无法重跑,它们都读 `assets/` 下的原件
+- 想补齐:从别处拷贝 `assets/` 整个目录到仓库根即可,无需改任何配置
+
+**不缺什么**:`h5/src/assets/` 里的**成品**资产(webp / webm / m4a,49.8 MB)
+照常入库,所以克隆后 `npm run build` 与全套浏览器验收(`npm run test:browser`)
+都能直接跑通。
+
 ## 目录
 
     assets/image/                    ← 设计稿与效果图(约 155MB)
@@ -19,6 +37,8 @@
 
     assets/images/devlog/            ← 开发者日志配图(DAY1–12)
     assets/ui/logo/                  ← 标志与图标(横版/方版/标识 + 64–512 多尺寸)
+    assets/audio/                    ← 配音原声 1927 条 + BGM 11 首(291 MB)
+    assets/fonts/                    ← 字体(1.3 MB)
 
 ## 关于立绘
 `image/renwulihui_new/` 是**美术交付原件**(2048×3072,单张 3–11MB)。
