@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 朝代选择页 · 「未开卷朝代」改版设计稿
+ *
+ * 现状问题:右侧只有竖排「准备中」+ 一行小字,大片留白,像加载失败。
+ * 改版思路:把它做成「朝代预告页」——用这个朝代自己的历史内容把版面填满,
+ *   让玩家看到"这里将来会有什么",而不是"这里什么都没有"。
+ *
+ * 版面自上而下:
+ *   ① 朝代题头(大字 + 年代 + 一句话定位)
+ *   ② 时代关键词(标签)
+ *   ③ 开卷进度(三卷:已开 / 编纂中 / 待启)
+ *   ④ 即将登场(三张锁定剧本卡,人物剪影 + 待定)
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612; --ink-strong:#2a251d; --ink:#3e372c;
+  --ink-soft:#605646; --ink-dim:#847864;
+  --zhu:#b0432f; --zhu-hi:#9e3422; --gold:#8a6a34; --gold-hi:#c4a05a;
+  --line:#c6b492; --line-soft:#d6c8ae;
+  --paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;
+  --disp:'QS Display',serif;
+  --sans:'QS Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#3a3226;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{
+  position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/h5/src/assets/lua/bg-select.webp') center/cover no-repeat,#f6efe0;
+}
+
+/* ---------- 顶栏 ---------- */
+.top{position:absolute;top:22px;left:0;right:0;display:flex;justify-content:space-between;padding:0 38px;z-index:3}
+.top__back{width:72px;height:72px;background:url('/workspace/h5/src/assets/lua/back-btn.webp') center/contain no-repeat}
+.top__brand{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.top__title{width:138px;height:50px;background:url('/workspace/h5/src/assets/lua/title-h.webp') center/contain no-repeat}
+.top__sub{font-size:10px;letter-spacing:.2em;color:var(--ink-soft)}
+
+/* ---------- 主体 ---------- */
+.row{position:absolute;inset:0;display:flex;align-items:center;gap:34px;padding:0 38px}
+
+/* ---------- 左:朝代罗盘 ----------
+   容器留出外圈空间给朝代名:环 330px 居中,名签半径 200px。 */
+.wheel{position:relative;width:400px;height:400px;flex:0 0 auto;margin-left:-8px;overflow:visible}
+.wheel__ring{position:absolute;left:35px;top:35px;width:330px;height:330px;background:url('/workspace/h5/src/assets/lua/wheel-ring.webp') center/contain no-repeat}
+.wheel__disk{
+  position:absolute;left:50%;top:50%;width:172px;height:172px;transform:translate(-50%,-50%);
+  border-radius:50%;overflow:hidden;background:#f3ece0;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(154,123,69,.35);
+}
+.wheel__arch{position:absolute;inset:0;background:url('/workspace/h5/src/assets/lua/arch-han.webp') center 64%/74% auto no-repeat;opacity:.4}
+.wheel__dyn{position:relative;font-family:var(--disp);font-size:70px;color:var(--ink-heavy);line-height:1}
+.wheel__era{position:relative;margin-top:5px;font-size:10.5px;letter-spacing:.1em;color:var(--ink-soft)}
+/* 朝代名钉在环外五个方位(汉在正上,秦左、唐右、明左下、宋右下) */
+.wheel__name{position:absolute;transform:translate(-50%,-50%);font-family:var(--kai);font-size:15px;color:var(--ink-soft);white-space:nowrap;letter-spacing:.06em}
+.wheel__name.is-on{color:var(--zhu);font-weight:700;font-size:19px}
+.wheel__name.is-locked{opacity:.5}
+
+/* ---------- 右:内容列 ---------- */
+.right{flex:1 1 auto;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:center;padding:64px 0 30px}
+
+/* ① 题头 */
+.head{position:relative;display:flex;align-items:flex-end;gap:20px;padding-left:2px}
+.head__glyph{
+  font-family:var(--disp);font-size:96px;line-height:.86;color:var(--ink-heavy);
+  text-shadow:0 2px 0 rgba(255,255,255,.5);
+}
+.head__meta{display:flex;flex-direction:column;gap:7px;padding-bottom:8px}
+.head__era{font-size:14px;letter-spacing:.16em;color:var(--gold);font-weight:700}
+.head__en{font-size:9.5px;letter-spacing:.36em;color:var(--ink-dim)}
+.head__line{flex:1 1 auto;height:1px;background:linear-gradient(90deg,var(--line) 0%,rgba(198,180,146,0) 100%);margin-bottom:16px}
+
+/* ② 定位句 */
+.lede{
+  margin-top:16px;font-size:15px;line-height:1.9;color:var(--ink);
+  letter-spacing:.05em;max-width:46rem;
+}
+.lede b{color:var(--zhu);font-weight:400}
+
+/* ③ 关键词 */
+.tags{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.tag{
+  padding:5px 13px;font-size:11.5px;letter-spacing:.12em;color:var(--ink-soft);
+  background:rgba(255,255,255,.5);border:1px solid var(--line-soft);border-radius:999px;
+}
+.tag--on{color:var(--zhu-hi);border-color:rgba(176,67,47,.3);background:rgba(176,67,47,.07)}
+
+/* ④ 开卷进度 */
+.prog{margin-top:22px;padding:14px 18px;background:rgba(255,255,255,.42);border:1px solid var(--line-soft);border-radius:10px}
+.prog__head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.prog__k{font-size:11.5px;letter-spacing:.2em;color:var(--ink-soft)}
+.prog__v{font-size:11px;letter-spacing:.1em;color:var(--ink-dim)}
+.prog__steps{display:flex;align-items:center}
+.step{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.step__dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:0 0 auto}
+.step--done .step__dot{background:var(--gold);box-shadow:0 0 0 3px rgba(138,106,52,.16)}
+.step--now .step__dot{background:var(--zhu);box-shadow:0 0 0 4px rgba(176,67,47,.16)}
+.step__t{font-size:11.5px;letter-spacing:.1em;color:var(--ink-dim);white-space:nowrap}
+.step--done .step__t{color:var(--ink-soft)}
+.step--now .step__t{color:var(--zhu-hi);font-weight:700}
+.step__bar{flex:1 1 auto;height:1px;background:var(--line-soft);margin:0 12px}
+
+/* ⑤ 即将登场 */
+.soon{margin-top:22px}
+.soon__title{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.soon__rule{height:1px;background:var(--line);flex:1 1 auto}
+.soon__txt{font-size:11.5px;letter-spacing:.28em;color:var(--ink-soft)}
+.soon__note{font-size:10.5px;letter-spacing:.1em;color:var(--ink-dim)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tcard{
+  position:relative;height:132px;border-radius:9px;overflow:hidden;
+  background:rgba(255,255,255,.34);border:1px solid var(--line-soft);
+  display:flex;align-items:flex-end;
+}
+.tcard__img{
+  position:absolute;right:-6px;bottom:-8px;height:132px;width:auto;
+  opacity:.42;filter:grayscale(1) contrast(.9);
+}
+.tcard__veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(246,239,224,.1),rgba(246,239,224,.82) 76%)}
+.tcard__body{position:relative;padding:0 13px 12px;width:100%}
+.tcard__name{font-family:var(--disp);font-size:20px;color:var(--ink-strong);letter-spacing:.08em}
+.tcard__sub{margin-top:3px;font-size:10.5px;letter-spacing:.1em;color:var(--ink-dim)}
+.tcard__lock{
+  position:absolute;top:9px;right:9px;padding:2px 8px;font-size:9.5px;letter-spacing:.1em;
+  color:var(--ink-soft);background:rgba(255,255,255,.75);border:1px solid var(--line-soft);border-radius:4px;
+}
+/* 金框:与已开卷剧本卡同族 */
+.tcard::after{content:'';position:absolute;inset:0;background:url('/workspace/h5/src/assets/lua/card-frame.webp') center/100% 100% no-repeat;pointer-events:none;opacity:.75}
+
+/* ⑥ 底注 */
+.foot{
+  margin-top:18px;padding-top:13px;border-top:1px solid var(--line-soft);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:10.5px;letter-spacing:.12em;color:var(--ink-dim);
+}
+.foot__hint{display:flex;align-items:center;gap:7px}
+.foot__dot{width:5px;height:5px;border-radius:50%;background:var(--gold)}
+</style></head>
+<body>
+<div class="stage">
+  <div class="top">
+    <div class="top__back"></div>
+    <div class="top__brand">
+      <div class="top__title"></div>
+      <div class="top__sub">悠 悠 千 载  ·  青 史 万 卷</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- 左:朝代罗盘(汉 选中) -->
+    <div class="wheel">
+      <div class="wheel__ring"></div>
+      <div class="wheel__disk">
+        <div class="wheel__arch"></div>
+        <div class="wheel__dyn">汉</div>
+        <div class="wheel__era">前 202 — 220 · 准备中</div>
+      </div>
+      <!-- 名签方位:正上=汉(选中);左=秦、右=唐、左下=明、右下=宋 -->
+      <div class="wheel__name is-on" style="left:50%;top:1.5%">汉</div>
+      <div class="wheel__name is-locked" style="left:3%;top:50%">秦</div>
+      <div class="wheel__name is-locked" style="left:97%;top:50%">唐</div>
+      <div class="wheel__name is-locked" style="left:19.5%;top:91%">明</div>
+      <div class="wheel__name is-locked" style="left:80.5%;top:91%">宋</div>
+    </div>
+
+    <!-- 右:朝代预告 -->
+    <div class="right">
+      <div class="head">
+        <div class="head__glyph">汉</div>
+        <div class="head__meta">
+          <div class="head__era">前 202 — 220 · 四百年</div>
+          <div class="head__en">H A N &nbsp; D Y N A S T Y</div>
+        </div>
+        <div class="head__line"></div>
+      </div>
+
+      <p class="lede">
+        布衣提三尺剑取天下,<b>汉承秦制</b>而定四百年基业——
+        从白马之盟到丝绸之路,从文景之治到党锢之祸。
+      </p>
+
+      <div class="tags">
+        <span class="tag tag--on">楚汉相争</span>
+        <span class="tag">白马之盟</span>
+        <span class="tag">文景之治</span>
+        <span class="tag">汉武拓边</span>
+        <span class="tag">丝绸之路</span>
+        <span class="tag">外戚与宦官</span>
+      </div>
+
+      <div class="prog">
+        <div class="prog__head">
+          <span class="prog__k">开 卷 进 度</span>
+          <span class="prog__v">三卷待启 · 此卷编纂中</span>
+        </div>
+        <div class="prog__steps">
+          <div class="step step--done"><i class="step__dot"></i><span class="step__t">考据</span></div>
+          <i class="step__bar"></i>
+          <div class="step step--now"><i class="step__dot"></i><span class="step__t">编纂</span></div>
+          <i class="step__bar"></i>
+          <div class="step"><i class="step__dot"></i><span class="step__t">校验</span></div>
+          <i class="step__bar"></i>
+          <div class="step"><i class="step__dot"></i><span class="step__t">开卷</span></div>
+        </div>
+      </div>
+
+      <div class="soon">
+        <div class="soon__title">
+          <span class="soon__txt">即 将 登 场</span>
+          <i class="soon__rule"></i>
+          <span class="soon__note">剧本征集中</span>
+        </div>
+        <div class="cards">
+          <div class="tcard">
+            <img class="tcard__img" src="/workspace/h5/src/assets/char/liubang.webp" alt="">
+            <div class="tcard__veil"></div>
+            <span class="tcard__lock">待定</span>
+            <div class="tcard__body">
+              <div class="tcard__name">布衣天子</div>
+              <div class="tcard__sub">约前 256 — 前 195</div>
+            </div>
+          </div>
+          <div class="tcard">
+            <img class="tcard__img" src="/workspace/h5/src/assets/char/xiaohe.webp" alt="">
+            <div class="tcard__veil"></div>
+            <span class="tcard__lock">待定</span>
+            <div class="tcard__body">
+              <div class="tcard__name">汉承秦制</div>
+              <div class="tcard__sub">约前 257 — 前 193</div>
+            </div>
+          </div>
+          <div class="tcard">
+            <img class="tcard__img" src="/workspace/h5/src/assets/char/jibu.webp" alt="">
+            <div class="tcard__veil"></div>
+            <span class="tcard__lock">待定</span>
+            <div class="tcard__body">
+              <div class="tcard__name">一诺千金</div>
+              <div class="tcard__sub">约前 240 — 前 185</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="foot__hint"><i class="foot__dot"></i><span>此卷尚未开卷,可先回「秦」入局</span></div>
+        <span>转动罗盘可查看其它朝代</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
