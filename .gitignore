@@ -8,31 +8,6 @@ logs/.nfs*
 .sce/logs/
 .sce/build/build_steps/__pycache__/
 
-# 顶层打包产物。qingshi-assets.zip 164MB,超过 GitHub 单文件 100MB 硬上限,
-# 留着会让任何 GitHub 推送被直接拒绝。内容与 assets/ 重复,不进版本库;
-# 本地文件保留,只是不再跟踪。
-qingshi-assets.zip
-qingshi-source.zip
-
-# 原始素材 assets/(721.7 MB / 4,743 个文件):配音原声 291MB + 原图 400MB + UI 23MB。
-# 不进版本库的理由是体量,不是内容 —— 一次推送要传 1.16 GiB 的 pack,
-# 实测走本地代理推了 26 分钟后被远端 unpack 拒绝(连接被截断)。
-# 代价:克隆下来的仓库跑不了素材管线,build-assets.py / build-audio.py / build-voice.py
-# 都需要先补齐 assets/ 才能重跑。h5/src/assets/ 里的成品(49.8MB)照常入库,
-# 所以 npm run build 与全套浏览器验收在克隆后仍可直接跑通。
-# 恢复方式见 README-ASSETS.md。
-assets/
-
-# 转码产物:h5/src/assets/bgm(34.2MB)+ h5/src/assets/voice(6.9MB)=41.1MB。
-# 这两个目录是 build-audio.py / build-voice.py 从 assets/ 下的原声转出来的**派生物**,
-# 而它们的输入(assets/)本就不入库 —— 也就是说这里存着一堆自己算不出结果的产物。
-# 排除后推送降到约 32MB(代理实测 527KB/s,单连接撑不住十几分钟,先前 73MB
-# 推了 13.5 分钟被 HTTP 408 掐断)。
-# 不带音频不影响构建与验收:音频是运行时按需加载的,缺了只是没有声音。
-# 重新生成:补齐 assets/ 后跑 python h5/tools/build-audio.py 与 build-voice.py
-h5/src/assets/bgm/
-h5/src/assets/voice/
-
 # Temp & swap files
 .tmp/
 *.crswap
