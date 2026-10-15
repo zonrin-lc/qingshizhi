@@ -61,8 +61,10 @@ const PROBE = `(async () => {
       if (c) { c.click(); await sleep(10); continue; }
     }
     if (ph === 'event' || ph === 'choice') {
-      const e = qa('.stage__foot .card--tappable')[0];
+      const e = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
       if (e) { e.click(); await sleep(10); continue; }
+      const cont = q('.stage__main .btn--primary');
+      if (cont) { cont.click(); await sleep(8); continue; }
     }
     if (ph === 'intro' || ph === 'summary') {
       const b = q('.stage__foot .btn--primary'); if (b) { b.click(); await sleep(8); continue; }

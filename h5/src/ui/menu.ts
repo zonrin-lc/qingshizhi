@@ -1,14 +1,13 @@
 /**
  * 主菜单:封存 Lua 版 home.lua renderMenu 的 H5 复刻。
  *
- * 版式:整页水墨山水底;左侧 56% 是竖排书法标题(星火粒子常驻),
- * 右侧 44% 是米白纱帘菜单(开始/继续/存档/设置/退出)。
+ * 版式:整页水墨山水底;左侧 56% 是组合主 logo(花纹在上、竖排书法居中、
+ * 朱印压文字右下角),右侧 44% 是米白纱帘菜单(开始/继续/存档/设置/退出)。
  *
  * 入场时序与 Lua 一致(自绘插值,不用 CSS transition 的延迟链):
  *   一、标题淡入(1.0s,easeOutCubic,停留至 1.5s)
  *   二、停留 1.0s(让标题独自站定)
  *   三、右帘从屏外推入 + 标题左移归位(同步 0.9s)
- *   四、星火淡入(1.0s)后常驻
  *
  * 「退出游戏」在浏览器里没法真退出:确认后给出落幕页(青史长存,后会有期),
  * 而不是调 window.close() —— 非脚本打开的窗口会被浏览器拒绝,表现为没反应。
@@ -17,6 +16,8 @@ import { el, lbl } from './kit';
 import { APP_VERSION } from '../game/settings';
 
 import titleImg from '../assets/lua/title-calligraphy.webp';
+import logoIconImg from '../assets/lua/logo-icon.webp';
+import logoYinImg from '../assets/lua/logo-yin.webp';
 
 export interface MenuActions {
   /** 开始游戏 → 选择页 */
@@ -35,40 +36,26 @@ export interface MenuPage {
   destroy(): void;
 }
 
-// ---------- 星火粒子(ui/sparks.lua 的 canvas 移植) ----------
-interface Spark {
-  x: number; y: number; r: number; vy: number;
-  sway: number; phase: number; life: number; age: number;
-}
-
-function spawnSpark(w: number, h: number, initial: boolean): Spark {
-  const rnd = (a: number, b: number) => a + (b - a) * Math.random();
-  const life = rnd(2.6, 5.2);
-  return {
-    x: rnd(w * 0.06, w * 0.94),
-    y: rnd(h * 0.02, h * 0.98),
-    r: rnd(3.0, 6.0),
-    vy: -rnd(10, 26),
-    sway: rnd(0.4, 1.3),
-    phase: rnd(0, Math.PI * 2),
-    life,
-    age: initial ? rnd(0, life) : 0,
-  };
-}
-
 export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   host.querySelector('.menu')?.remove();
   const root = el('div', 'menu');
 
-  // ---------- 左侧:书法标题 + 星火 ----------
+  // ---------- 左侧:组合主 logo(花纹 + 书法 + 朱印) ----------
   const titleWrap = el('div', 'menu__titlewrap');
   const titleBox = el('div', 'menu__titlebox');
-  const sparksCv = el('canvas', 'menu__sparks') as HTMLCanvasElement;
+  const icon = el('img', 'menu__logoicon') as HTMLImageElement;
+  icon.src = logoIconImg;
+  icon.alt = '';
+  icon.draggable = false;
   const art = el('img', 'menu__title') as HTMLImageElement;
   art.src = titleImg;
   art.alt = '青史志';
   art.draggable = false;
-  titleBox.append(sparksCv, art);
+  const seal = el('img', 'menu__seal') as HTMLImageElement;
+  seal.src = logoYinImg;
+  seal.alt = '';
+  seal.draggable = false;
+  titleBox.append(icon, art, seal);
   titleWrap.append(titleBox);
   root.append(titleWrap);
 
@@ -133,7 +120,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     root.append(ov);
   }
 
-  // ---------- 入场时序 + 星火(单 rAF 循环) ----------
+  // ---------- 入场时序(单 rAF 循环,落幕后停止) ----------
   const reduced = typeof matchMedia === 'function'
     && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let alive = true;
@@ -142,20 +129,11 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   // 阶段计时:t 是当前阶段已进行秒数
   let stage = reduced ? 5 : 1;
   let t = 0;
-  const sparks: Spark[] = [];
-  const ctx = sparksCv.getContext('2d');
 
   const easeOut = (p: number) => 1 - (1 - p) ** 3;
 
-  function layout(): { W: number; boxW: number; boxH: number } {
-    const W = root.clientWidth || 1280;
-    const boxW = titleBox.clientWidth || 264;
-    const boxH = titleBox.clientHeight || 556;
-    return { W, boxW, boxH };
-  }
-
   function applyStage(): void {
-    const { W } = layout();
+    const W = root.clientWidth || 1280;
     const curtainW = W * 0.44;
     const titleOff = W * 0.22;
     if (stage === 1) {
@@ -164,13 +142,11 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
       curtain.style.transform = `translateX(${curtainW + 4}px)`;
       (root.querySelector('.menu__edge') as HTMLElement).style.transform =
         `translateX(${curtainW + 4}px)`;
-      sparksCv.style.opacity = '0';
     } else if (stage >= 5) {
       titleWrap.style.transform = 'translateX(0px)';
       titleWrap.style.opacity = '1';
       curtain.style.transform = 'translateX(0px)';
       (root.querySelector('.menu__edge') as HTMLElement).style.transform = 'translateX(0px)';
-      sparksCv.style.opacity = '1';
     }
   }
 
@@ -181,7 +157,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     t += dt;
 
     // ---- 入场时序 ----
-    const { W } = layout();
+    const W = root.clientWidth || 1280;
     const curtainW = W * 0.44;
     const titleOff = W * 0.22;
     if (stage === 1) {
@@ -198,59 +174,13 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
       const cx = (curtainW + 4) * (1 - e);
       curtain.style.transform = `translateX(${cx}px)`;
       (root.querySelector('.menu__edge') as HTMLElement).style.transform = `translateX(${cx}px)`;
-      if (t >= 0.9) { stage = 4; t = 0; }
-    } else if (stage === 4) {
-      const p = Math.min(1, t / 1.0);
-      sparksCv.style.opacity = String(easeOut(p));
-      if (t >= 1.0) { sparksCv.style.opacity = '1'; stage = 5; t = 0; }
-    }
-
-    // ---- 星火 ----
-    if (ctx) {
-      const { boxW, boxH } = layout();
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      if (sparksCv.width !== Math.round(boxW * dpr) || sparksCv.height !== Math.round(boxH * dpr)) {
-        sparksCv.width = Math.round(boxW * dpr);
-        sparksCv.height = Math.round(boxH * dpr);
-      }
-      const sx = boxW / 264; // Lua 的粒子域是 264×556,按实际盒宽等比换算
-      if (sparks.length === 0 && boxW > 0) {
-        for (let i = 0; i < 26; i += 1) sparks.push(spawnSpark(264, 556, true));
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, boxW, boxH);
-      for (let i = 0; i < sparks.length; i += 1) {
-        let p = sparks[i]!;
-        p.age += dt;
-        if (p.age >= p.life) { p = spawnSpark(264, 556, false); sparks[i] = p; }
-        p.y += p.vy * dt;
-        p.x += Math.sin(p.age * 1.6 + p.phase) * p.sway * dt * 12;
-        if (p.y < -20) p.y = 556 + 10;
-        if (p.x < 0) p.x = 0; else if (p.x > 264) p.x = 264;
-        const k = p.age / p.life;
-        let a = Math.sin(k * Math.PI);
-        a *= a;
-        if (a > 0.02) {
-          const x = p.x * sx;
-          const y = p.y * sx;
-          const rr = p.r * sx;
-          // 外晕(深琥珀)+ 亮芯(近白暖金),与 sparks.lua 同色
-          ctx.beginPath();
-          ctx.arc(x, y, rr * 3.2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(214, 150, 58, ${(a * 90) / 255})`;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(x, y, rr * 1.15, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 236, 176, ${a})`;
-          ctx.fill();
-        }
-      }
+      if (t >= 0.9) { stage = 5; t = 0; applyStage(); return; }
     }
     raf = requestAnimationFrame(tick);
   }
 
   applyStage();
-  raf = requestAnimationFrame(tick);
+  if (stage < 5) raf = requestAnimationFrame(tick);
 
   return {
     root,

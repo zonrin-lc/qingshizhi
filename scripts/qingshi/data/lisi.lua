@@ -3916,6 +3916,8 @@ return {
         dev = 0,
       },
       id = "ACT-1",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -3939,6 +3941,8 @@ return {
         dev = 0,
       },
       id = "ACT-2",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -3961,6 +3965,8 @@ return {
         dev = 0,
       },
       id = "ACT-3",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -3980,6 +3986,8 @@ return {
         dev = 0,
       },
       id = "ACT-4",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4002,6 +4010,8 @@ return {
         dev = 0,
       },
       id = "ACT-5",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4025,6 +4035,8 @@ return {
         dev = 0,
       },
       id = "ACT-6",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4044,6 +4056,8 @@ return {
         dev = 0,
       },
       id = "ACT-49",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4062,6 +4076,8 @@ return {
         dev = 0,
       },
       id = "ACT-50",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4081,6 +4097,8 @@ return {
         dev = 0,
       },
       id = "ACT-7",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4101,6 +4119,8 @@ return {
         dev = 0,
       },
       id = "ACT-8",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4119,6 +4139,8 @@ return {
         dev = 0,
       },
       id = "ACT-9",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4142,6 +4164,8 @@ return {
         dev = 0,
       },
       id = "ACT-10",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4162,6 +4186,8 @@ return {
         dev = 0,
       },
       id = "ACT-11",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4183,6 +4209,8 @@ return {
         dev = 0,
       },
       id = "ACT-12",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4202,6 +4230,8 @@ return {
         dev = 0,
       },
       id = "ACT-51",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4220,6 +4250,8 @@ return {
         dev = 0,
       },
       id = "ACT-52",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4241,6 +4273,8 @@ return {
         dev = 0,
       },
       id = "ACT-13",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4261,6 +4295,8 @@ return {
         dev = 0,
       },
       id = "ACT-14",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4279,6 +4315,8 @@ return {
         dev = 0,
       },
       id = "ACT-15",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4301,6 +4339,8 @@ return {
         dev = 0,
       },
       id = "ACT-16",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4320,6 +4360,8 @@ return {
         dev = 0,
       },
       id = "ACT-17",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4339,6 +4381,8 @@ return {
         dev = 0,
       },
       id = "ACT-18",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4357,6 +4401,8 @@ return {
         dev = 0,
       },
       id = "ACT-53",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4375,6 +4421,8 @@ return {
         dev = 0,
       },
       id = "ACT-54",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4398,6 +4446,8 @@ return {
         dev = 0,
       },
       id = "ACT-19",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4420,6 +4470,8 @@ return {
         dev = 0,
       },
       id = "ACT-20",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4440,6 +4492,8 @@ return {
         dev = 0,
       },
       id = "ACT-21",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4462,6 +4516,8 @@ return {
         dev = 0,
       },
       id = "ACT-22",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4484,6 +4540,8 @@ return {
         dev = 0,
       },
       id = "ACT-23",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4502,6 +4560,8 @@ return {
         dev = 0,
       },
       id = "ACT-24",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4521,6 +4581,8 @@ return {
         dev = 0,
       },
       id = "ACT-55",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4543,6 +4605,8 @@ return {
         dev = 0,
       },
       id = "ACT-56",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4562,6 +4626,8 @@ return {
         dev = 0,
       },
       id = "ACT-25",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4584,6 +4650,8 @@ return {
         dev = 0,
       },
       id = "ACT-26",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4605,6 +4673,8 @@ return {
         dev = 0,
       },
       id = "ACT-27",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4626,6 +4696,8 @@ return {
         dev = 0,
       },
       id = "ACT-28",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4644,6 +4716,8 @@ return {
         dev = 0,
       },
       id = "ACT-29",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4665,6 +4739,8 @@ return {
         dev = 0,
       },
       id = "ACT-30",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4683,6 +4759,8 @@ return {
         dev = 0,
       },
       id = "ACT-57",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4701,6 +4779,8 @@ return {
         dev = 0,
       },
       id = "ACT-58",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4724,6 +4804,8 @@ return {
         dev = 0,
       },
       id = "ACT-31",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4745,6 +4827,8 @@ return {
         dev = 0,
       },
       id = "ACT-32",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4766,6 +4850,8 @@ return {
         dev = 0,
       },
       id = "ACT-33",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4790,6 +4876,8 @@ return {
         dev = 0,
       },
       id = "ACT-34",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4813,6 +4901,8 @@ return {
         dev = 0,
       },
       id = "ACT-35",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4836,6 +4926,8 @@ return {
         dev = 0,
       },
       id = "ACT-36",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -4855,6 +4947,8 @@ return {
         dev = 0,
       },
       id = "ACT-59",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4874,6 +4968,8 @@ return {
         dev = 0,
       },
       id = "ACT-60",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -4894,6 +4990,8 @@ return {
         dev = 0,
       },
       id = "ACT-37",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4914,6 +5012,8 @@ return {
         dev = 0,
       },
       id = "ACT-38",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -4933,6 +5033,8 @@ return {
         dev = 0,
       },
       id = "ACT-39",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4954,6 +5056,8 @@ return {
         dev = 0,
       },
       id = "ACT-40",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4974,6 +5078,8 @@ return {
         dev = 0,
       },
       id = "ACT-41",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -4993,6 +5099,8 @@ return {
         dev = 0,
       },
       id = "ACT-42",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -5011,6 +5119,8 @@ return {
         dev = 0,
       },
       id = "ACT-61",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -5031,6 +5141,8 @@ return {
         dev = 0,
       },
       id = "ACT-62",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -5053,6 +5165,8 @@ return {
         dev = 0,
       },
       id = "ACT-43",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -5072,6 +5186,8 @@ return {
         dev = 0,
       },
       id = "ACT-44",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -5090,6 +5206,8 @@ return {
         dev = 0,
       },
       id = "ACT-45",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -5113,6 +5231,8 @@ return {
         dev = 0,
       },
       id = "ACT-46",
+
+      type = "兑换",
     },
     {
       chapters = {
@@ -5132,6 +5252,8 @@ return {
         dev = 0,
       },
       id = "ACT-47",
+
+      type = "保身",
     },
     {
       chapters = {
@@ -5152,6 +5274,8 @@ return {
         dev = 0,
       },
       id = "ACT-48",
+
+      type = "进取",
     },
     {
       chapters = {
@@ -5170,6 +5294,8 @@ return {
         dev = 0,
       },
       id = "ACT-63",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -5188,6 +5314,8 @@ return {
         dev = 0,
       },
       id = "ACT-64",
+
+      type = "守成",
     },
     {
       chapters = {
@@ -5242,6 +5370,8 @@ return {
       },
       desc = "故旧登门，言断炊待援——帮或不帮、帮到几分，由你亲定",
       id = "ACT-65",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5297,6 +5427,8 @@ return {
       },
       desc = "有客深夜怀策求见，纳金、却金、闭门，皆在一念",
       id = "ACT-66",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5351,6 +5483,8 @@ return {
       },
       desc = "东西两邻争一条田埂，各执一词——断或不断，都是是非",
       id = "ACT-67",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5406,6 +5540,8 @@ return {
       },
       desc = "荀卿夜问：术与礼，何者可以治国——一答之间，已见生平",
       id = "ACT-68",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5460,6 +5596,8 @@ return {
       },
       desc = "韩非掷来新著《孤愤》，以一炷香为赌——接不接这一局",
       id = "ACT-69",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5516,6 +5654,8 @@ return {
       },
       desc = "文信侯与长信侯同日设宴，两份请柬并排躺在案上",
       id = "ACT-70",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5571,6 +5711,8 @@ return {
       },
       desc = "逐客之议汹汹，联名书寻到你门前——签与不签，皆在你",
       id = "ACT-71",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5626,6 +5768,8 @@ return {
       },
       desc = "宗室遣媒登门，愿以族中女妻你长子——是梯子，也是绳子",
       id = "ACT-72",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5682,6 +5826,8 @@ return {
       },
       desc = "焚书令下，旧识深夜叩门，怀中抱着半部《诗》",
       id = "ACT-73",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5735,6 +5881,8 @@ return {
       },
       desc = "东巡刻石，功烈稿与德政稿同呈案头——石上的字比人活得久",
       id = "ACT-74",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5789,6 +5937,8 @@ return {
       },
       desc = "中车府令遣使赠白璧一双——璧色无暇，来历浑浊",
       id = "ACT-75",
+
+      type = "抉择",
     },
     {
       chapters = {
@@ -5843,6 +5993,8 @@ return {
       },
       desc = "老狱卒凑近栅门：五十金，替你传一封家书入宫——是生机还是饵",
       id = "ACT-76",
+
+      type = "抉择",
     },
   },
   GLOSSARY = {

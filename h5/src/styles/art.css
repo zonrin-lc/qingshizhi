@@ -17,7 +17,7 @@
   background-size: cover;
 }
 .stage[data-bg='game']     { background-image: url('../assets/bg/game.webp'); }
-/* 主菜单/选择页:封存 Lua 版的那套素材(ui/bg-ink.jpg、ui/bg-select.jpg) */
+/* 主菜单:水墨山水孤舟图(ui/menu-bg.jpg);选择页:封存 Lua 版素材(ui/bg-select.jpg) */
 .stage[data-bg='menu']     { background-image: url('../assets/lua/menu-bg.webp'); }
 .stage[data-bg='select']   { background-image: url('../assets/lua/bg-select.webp'); }
 .stage[data-bg='save']     { background-image: url('../assets/bg/save.webp'); }
@@ -27,10 +27,13 @@
 
 /* ---------- 九宫格面板 ---------- */
 
-/* 剧情卷轴:左右是木质轴杆,上下是平金线。左右切片要含整根轴杆 */
+/* 剧情卷轴:左右是木质轴杆,上下是平金线。左右切片要含整根轴杆。
+ * border-width 必须显式写出来:border-image-width 只管贴图缩放,不占布局,
+ * 不写的话内容(立绘/正文)会直接压到轴杆与内框金线上(2026-10-14 截图证实)。 */
 .panel-scroll {
   border-image: url('../assets/panel/scroll-main.webp') 50 62 50 62 fill;
   border-image-width: 50px 62px 50px 62px;
+  border-width: 50px 62px 50px 62px;
   border-style: solid;
 }
 
@@ -237,11 +240,10 @@
   border-left: 0;
 }
 
-/* 立绘 */
+/* 立绘(主角像,宽度由 .castbox 收口) */
 .portrait {
   flex: 0 0 auto;
-  width: 13rem;
-  max-width: 34%;
+  width: 100%;
   text-align: center;
 }
 .portrait__img {
@@ -267,8 +269,9 @@
 }
 
 /* 出场立绘排(cast row) ---------------------------------------------
- * 立绘不是一张主角大图,而是「同场 NPC 的圆形小像」一排,点开词条。
- * 规则来自 ⟦词条⟧ 标记(见 ui/cast.ts),不是另造的数据字段。
+ * 左列 = 主角大立绘(.portrait,五本各一张)+ 名签;其下是「同场 NPC
+ * 的圆形小像」一排,都点开词条。NPC 规则来自 ⟦词条⟧ 标记(见 ui/cast.ts),
+ * 不是另造的数据字段。
  * ------------------------------------------------------------------ */
 .castbox {
   flex: 0 0 auto;
@@ -276,8 +279,11 @@
   flex-direction: column;
   align-items: center;
   gap: var(--sp-xs);
-  width: 9rem;
+  width: 13rem;
   max-width: 30%;
+  /* 长文滚动时立绘钉在卷轴可视区顶部,不跟着正文滚出画框、不被上缘金线裁头 */
+  position: sticky;
+  top: var(--sp-sm);
 }
 .castRow {
   display: flex;
@@ -289,6 +295,9 @@
   position: relative;
   width: 2.6rem;
   height: 2.6rem;
+  /* 触控兜底:rem 随界面缩放走,小缩放档下不能小于可点的指触尺寸 */
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
   border: 2px solid var(--gold);
   border-radius: 50%;
@@ -300,6 +309,11 @@
 .castChip:hover {
   transform: scale(1.08);
   border-color: var(--zhu);
+}
+/* 当前大立绘焦点的圆像:朱圈常驻,与 hover 同色相但不动 */
+.castChip.is-on {
+  border-color: var(--zhu);
+  box-shadow: 0 0 0 1.5px var(--zhu);
 }
 .castChip__img {
   width: 100%;
@@ -318,11 +332,6 @@
   text-align: center;
   line-height: 1.35;
   letter-spacing: 0;
-}
-.portrait__name {
-  font-size: var(--fs-ui);
-  letter-spacing: 0.4em;
-  color: var(--ink-strong);
 }
 
 .prose-body {
@@ -371,14 +380,17 @@
 .side__title {
   color: var(--ink-strong);
   letter-spacing: 0.5em;
-  font-size: var(--fs-title);
+  /* 2026-10-14 用户拍板:属性标题加粗放大;行高收紧,把字号放大多占的高度让回来 */
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
   text-align: center;
 }
 .radar {
   display: block;
-  width: 100%;
-  max-width: 17rem;
-  margin: var(--sp-xs) auto var(--sp-sm);
+  /* 2026-10-14 用户拍板:雷达图放大,占属性区内容宽度的 70%。 */
+  width: 70%;
+  margin: 0 auto var(--sp-xs);
   overflow: visible;
 }
 .radar__ring {
@@ -424,16 +436,30 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas: 'k . v' 'm m m';
+  /* 基类 .kv 的 gap 会同时成为 row-gap(8px),条形行与标签行之间凭空多一道缝;
+     右栏竖向预算紧(雷达 70% 宽后更高),行缝收窄、行高收紧才不溢出 */
   column-gap: var(--sp-sm);
+  row-gap: 2px;
+  line-height: 1.4;
   align-items: baseline;
-  margin-bottom: var(--sp-sm);
-  font-size: var(--fs-ui);
+  margin-bottom: var(--sp-xs);
+  /* 2026-10-14 用户拍板:身外维度字号加大(0.75→0.85rem),区域左右留间距 */
+  padding: 0 var(--sp-sm);
+  font-size: 0.85rem;
 }
 .stage__side .kv__k { grid-area: k; color: var(--ink); white-space: nowrap; }
 .stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; }
 .stage__side .kv .meter { grid-area: m; }
+/* 维度进度条加高(5→7px);偏离条(side__foot 的 meter)不动 */
+.stage__side .kv .meter {
+  height: 7px;
+  border-radius: 4px;
+}
+.stage__side .kv .meter__fill {
+  border-radius: 4px;
+}
 .meter {
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
   background: rgba(138, 106, 52, 0.16);
 }
@@ -442,8 +468,8 @@
   background: linear-gradient(90deg, var(--gold-hi), var(--gold));
 }
 .side__foot {
-  margin-top: var(--sp-sm);
-  padding-top: var(--sp-sm);
+  margin-top: var(--sp-xs);
+  padding-top: var(--sp-xs);
   border-top: 1px solid var(--line);
   text-align: center;
   font-size: var(--fs-note);
@@ -600,6 +626,7 @@
   .panel-scroll {
     border-image-width: 30px 38px 30px 38px;
     border-image-slice: 50 62 50 62;
+    border-width: 30px 38px 30px 38px;
   }
   .panel-plain {
     border-image-width: 34px;
@@ -623,7 +650,7 @@
   .stage__bar {
     padding: var(--sp-xs) var(--sp-sm);
   }
-  .portrait {
+  .castbox {
     width: 7rem;
   }
   .deco-plum-tr {
@@ -638,15 +665,14 @@
 }
 
 /* ============================================================================
- * 竖屏引导(替代硬塞对局)
+ * 竖屏引导(全游戏强制横屏 —— 2026-10-14 用户拍板)
  *
  * 竖屏下 .stage 被压成 16:9(390x844 → 390x219)。再怎么收边距,
  * 219px 的棋盘也放不下「带九宫格边框的剧情卷轴 + 属性条 + 决策区 + 正文」——
  * 实测边框收到 14px、决策区收到 28% 之后,叙事区仍只剩 22px。
  *
- * 所以竖屏不再硬渲染对局,直接给「请横屏」提示。这原属 P6 的预置项,
- * 提前落地是因为美术一上来(边框变厚、雷达进右栏)就把竖屏彻底压垮了。
- * 横屏 640px 起一切正常,不受影响。
+ * 所以竖屏不渲染任何页面(主菜单/选择/设置/存档一并盖住),直接给
+ * 「请横屏」提示。横屏 640px 起一切正常,不受影响。
  * ==========================================================================*/
 @media (orientation: portrait) {
   .stage__foot {

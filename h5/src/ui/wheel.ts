@@ -129,7 +129,9 @@ export function createWheel(opts: {
     // 中心盘文字随罗盘尺寸走(对齐 wheel.lua:R*0.46 朝代字 / R*0.072 年代)
     diskName.style.fontSize = `${R * 0.46}px`;
     diskEra.style.fontSize = `${R * 0.072}px`;
-    const nameR = R * (442 / 405) * 1.06;
+    // 朝代名放到环带圈外:环带外缘(含八向菱饰)在 0.546·min 处,名签半径 0.58·min,
+    // 超出容器边缘不裁切(.selwheel 无 overflow),由行布局留白容纳
+    const nameR = R * 1.45;
     for (let i = 0; i < items.length; i += 1) {
       const a = nameAng(i);
       const nel = nameEls[i]!;
@@ -211,13 +213,24 @@ export function createWheel(opts: {
       }
       return;
     }
-    // 松手:保留惯性(限幅)先滑行,再由帧循环吸附到最近一项
+    endDragWithInertia();
+  });
+  // 移动端 webview 里系统手势/来电/切后台会发 pointercancel 而不是 pointerup。
+  // 不收尾的话 phase 永远卡在 drag:惯性、吸附、归位全停,盘面定格在松手角度。
+  root.addEventListener('pointercancel', () => {
+    if (phase !== 'drag') return;
+    // 取消不算点击(累积位移不可信),直接带惯性进吸附
+    endDragWithInertia();
+  });
+
+  /** 松手/取消共用:保留惯性(限幅)先滑行,再由帧循环吸附到最近一项 */
+  function endDragWithInertia(): void {
     let v = dragVel;
     if (v > MAX_VEL) v = MAX_VEL;
     else if (v < -MAX_VEL) v = -MAX_VEL;
     baseVel = v;
     phase = 'settle';
-  });
+  }
 
   // ---------- 帧循环(与 wheel.lua Update 同构) ----------
   let raf = 0;

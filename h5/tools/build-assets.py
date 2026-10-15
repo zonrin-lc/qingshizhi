@@ -140,6 +140,41 @@ ASSETS = [
     ("lua", r"repo:ui\parts\deco.png",          "lua/deco.webp",             None, None, 92),
 ]
 
+# ============ 主角大立绘(对局页左侧) ============
+# 李斯用对局页素材里的专用立绘(见上面 game 组);其余四主角从本仓库
+# assets/image/portraits/ 的 char_*.png 转。shrink 只缩不放,512x768 原尺寸
+# 转出,与李斯的 620 宽在 CSS 里统一收口(.portrait width:100%)。
+ASSETS += [
+    ("portrait", r"repo:image\portraits\char_jingke.png",    "portrait/jingke.webp",    620, 860, 86),
+    ("portrait", r"repo:image\portraits\char_hanxin.png",    "portrait/hanxin.webp",    620, 860, 86),
+    ("portrait", r"repo:image\portraits\char_xiangyu.png",   "portrait/xiangyu.webp",   620, 860, 86),
+    ("portrait", r"repo:image\portraits\char_chensheng.png", "portrait/chensheng.webp", 620, 860, 86),
+]
+
+# ============ NPC 大立绘(对局页出场角色可切换,2026-10-14) ============
+# 源:本仓库 assets/image/portraits/char_*.png(75 张抠图立绘)。
+# 只转「五本剧本 ⟦NPC⟧ 标记里真实出场、且 src/ui/cast.ts CHAR_IMG 里有映射」
+# 的角色。liubang/jibu 无大立绘源(只有圆像),跳过;五主角已在上面
+# game/portrait 组,不重复。樊於期源文件名是 char_fanyuqi.png(生成时的
+# 拼音笔误),输出仍按正确读音 fanwuqi.webp,与圆像同 id。
+NPC_PORTRAIT_IDS = [
+    "caomo", "caowushang", "chenping", "chenxi", "chunshenjun", "chunyuyue",
+    "fankuai", "fanwuqi", "fanzeng", "fusu", "gaojianli", "genie", "geying",
+    "hanfei", "hougong", "huhai", "jingju", "kongfu", "kuaitong", "laoai",
+    "liyuan", "liyou", "lizuoche", "longju", "lujujian", "lvhou", "lvmatong",
+    "mengjia", "mengtian", "pengyue", "piaomu", "qinwuyang", "songyi",
+    "taizidan", "tenggong", "tianguang", "tianrong", "wangjian", "wangli",
+    "wuchen", "wuguang", "xiawuju", "xiangbo", "xiangliang", "xiangqiang",
+    "xiangyan", "xiangzhuang", "xiaohe", "xufuren", "xunqing", "yidi",
+    "yingbu", "yingzheng", "yintong", "yuji", "zhanghan", "zhangliang",
+    "zhaogao", "zhengguo", "zhouqingchen", "zhouwen", "zhonglimei", "zhuangjia",
+]
+for _cid in NPC_PORTRAIT_IDS:
+    # 两个源文件名与标准读音不一致:樊於期(於 wū)写成了 fanyuqi,钟离眜(眜 mò)写成了 zhonglimo
+    _src = {"fanwuqi": "char_fanyuqi.png", "zhonglimei": "char_zhonglimo.png"}.get(
+        _cid, f"char_{_cid}.png")
+    ASSETS.append(("npc", rf"repo:image\portraits\{_src}", f"portrait/{_cid}.webp", 620, 860, 86))
+
 # ============ 角色立绘全集(来自原型 assets/char) ============
 # 33 个角色,对齐原型 ui-core.js 的 CHAR_IMG 表。立绘不是按剧本挑的,
 # 而是扫描叙事文本里的 ⟦NPC⟧ 标记——凡是在场且有图的,都出一张圆像,
@@ -201,11 +236,20 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    if not SRC.is_dir():
-        print(f"找不到美术源目录: {SRC}", file=sys.stderr)
-        return 2
-
     rows = [a for a in ASSETS if not args.only or a[0] in args.only]
+    # 按需检查源根:只转 repo: 组(本仓库 assets/)时不该因为 ui/ 素材目录
+    # 不在就退出 —— 那个目录只在美术机上存在,克隆仓库的开发机没有。
+    def need(pred, root, label):
+        if any(pred(rel) for _, rel, *_ in rows) and not root.is_dir():
+            print(f"找不到{label}: {root}", file=sys.stderr)
+            return True
+        return False
+    if need(lambda r: not r.startswith(("proto/", "repo:")), SRC, "美术源目录"):
+        return 2
+    if need(lambda r: r.startswith("proto/"), SRC2, "原型 assets 目录"):
+        return 2
+    if need(lambda r: r.startswith("repo:"), SRC3, "仓库 assets 目录"):
+        return 2
     missing = []
     total_in = 0
     total_out = 0
@@ -222,6 +266,11 @@ def main() -> int:
         if not src.is_file():
             missing.append(rel)
             continue
+        # 增量:输出已存在且不比源旧,跳过(上次跑到一半超时也能断点续转)
+        dst = OUT / out
+        if not args.dry_run and dst.is_file() and dst.stat().st_mtime >= src.stat().st_mtime:
+            done += 1
+            continue
         in_kb = src.stat().st_size / 1024
         total_in += in_kb
         if not args.dry_run:
@@ -230,7 +279,6 @@ def main() -> int:
             if im.mode not in ("RGBA", "LA"):
                 im = im.convert("RGBA")
             im = shrink(im, mw, mh)
-            dst = OUT / out
             dst.parent.mkdir(parents=True, exist_ok=True)
             im.save(dst, "WEBP", quality=q, method=6)
             out_kb = dst.stat().st_size / 1024

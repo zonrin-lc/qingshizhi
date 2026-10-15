@@ -456,7 +456,7 @@
 
   /* ---------- 回合发牌 ----------
    * 以当前 eventId 为关键事件卡（限时 keyRoundsLeft 回合），
-   * 从本章可用行动池随机补 3 张行动卡（同轮不重复）。
+   * 从本章可用行动池随机补 3 张行动卡（同轮不重复；决策区含蓄势至多 4 项，关键卡不占位）。
    * 行动池 = ACTIONS 中 chapters 覆盖本章（字段缺失时按 [0,6] 处理）且 req 当前满足者。 */
   Game.prototype.beginRounds = function () {
     var self = this;
@@ -482,7 +482,11 @@
       this.choiceGap = 0;
       for (var ci = 0; ci < pool.length; ci++) { if (pool[ci] === cpick) { pool.splice(ci, 1); break; } }
     }
-    var n = Math.min(3, pool.length);
+    var cure = !!(this.ill && this.d.ILLNESS);
+    var reserved = (cpick ? 1 : 0) + (cure ? 1 : 0);
+    // 底部固定 4 占位：关键卡不再占位（挪入文本区提示条），行动卡补到 3 张；
+    // 抉择卡/求医卡各替换一个行动卡位，总数仍 ≤4（3 - reserved + reserved + 蓄势）。
+    var n = Math.min(3 - reserved, pool.length);
     for (var k = 0; k < n; k++) {
       var idx = Math.floor(deal() * pool.length);
       picks.push(pool.splice(idx, 1)[0]);
@@ -490,8 +494,8 @@
     this.offer = [{ type: 'key' }];
     picks.forEach(function (a) { self.offer.push({ type: 'action', id: a.id }); });
     if (cpick) this.offer.push({ type: 'action', id: cpick.id });
-    // 治病卡（v1.8，剧本 ILLNESS）：染病时额外发一张「求医问药」，不占行动池、不入收益递减
-    if (this.ill && this.d.ILLNESS) this.offer.push({ type: 'action', id: '__cure__' });
+    // 治病卡（v1.8，剧本 ILLNESS）：染病时额外发一张「求医问药」，不占行动池、不入收益递减，但占一个发牌位（上方 reserved 已计入）
+    if (cure) this.offer.push({ type: 'action', id: '__cure__' });
     this.phase = 'round';
     return { type: 'round' };
   };

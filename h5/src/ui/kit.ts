@@ -76,7 +76,7 @@ export function card(opts: {
 }
 
 /** 按钮 */
-export function btn(text: string, opts: { onClick?: () => void; variant?: 'primary' | 'ghost'; cls?: string } = {}): HTMLElement {
+export function btn(text: string, opts: { onClick?: (e: MouseEvent) => void; variant?: 'primary' | 'ghost'; cls?: string } = {}): HTMLElement {
   const node = el(
     'button',
     `btn ${opts.variant === 'primary' ? 'btn--primary' : 'btn--ghost'} ${opts.cls ?? ''}`.trim(),

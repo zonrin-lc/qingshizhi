@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 叙事渐显。
  *
  * 对齐 Lua shell.lua 的 revealSegs / cancelReveal / TapReveal。
@@ -19,8 +19,16 @@ const PROBE = `(async () => {
   // 推进逻辑复用 harness 的 advanceOnce:浮层/选项/行动牌/主按钮/跳渐显都覆盖了。
   // 自己重写过一版,漏了回合里的 .card--action[role=button],结果卡在回合推进不动。
   ${STEP_SNIPPET}
-  const paras = () => qa('.stage__main .prose').length;
-  const opts = () => qa('.stage__foot .card--tappable').length;
+  // 文本区改为累积式小节后,旧小节的 .prose 仍在 DOM 里(收起留题签),
+  // 全文档计数会把上一章的段落也算进来 —— 只数当前展开的那一节。
+  const paras = () => {
+    const secs = qa('.stage__main .sec');
+    const cur = secs.filter(s => !s.classList.contains('is-collapsed')).pop() || secs[secs.length - 1];
+    return cur ? [...cur.querySelectorAll('.prose')].length : 0;
+  };
+  // 偶遇/随机事件的选项现在内联在文本区小节里,底部的也要算(抉择卡仍在底部)。
+  // 渐显期间两边都没挂,所以「渐显期间为 0」的负向断言语义不变。
+  const opts = () => qa('.stage__main .card--tappable, .stage__foot .card--tappable').length;
   const cont = () => qa('.stage__foot .btn--primary').length;
   const revealing = () => !!window.__QS__.session.isRevealing;
   const out = {};
@@ -77,7 +85,7 @@ const PROBE = `(async () => {
   out.optionsAfterSkip = opts();
 
   // ---------- 换一个相位,确认没有残留的渐显往新页塞段落 ----------
-  opts() && qa('.stage__foot .card--tappable')[0].click();
+  opts() && qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0].click();
   await sleep(500);
   out.revealingAfterChoose = revealing();
   out.phaseAfterChoose = g.phase;

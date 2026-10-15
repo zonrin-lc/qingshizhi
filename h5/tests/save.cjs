@@ -38,7 +38,8 @@ ${STEP_SNIPPET}
       else { advanceOnce(); await sleep(8); }
     } else if (g.phase === 'event' || g.phase === 'choice') {
       // choice 相位也要点,否则循环空转、永远打不出第二张牌
-      const c = qa('.stage__foot .card--tappable')[0];
+      // 偶遇/随机事件的选项内联在文本区,选择器要带上 .stage__main
+      const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
       if (c) { c.click(); await sleep(12); await step(); await sleep(8); }
       else { advanceOnce(); await sleep(8); }
     } else { advanceOnce(); await sleep(8); }
@@ -72,16 +73,44 @@ const LOAD_FLOW = `(async () => {
            caixue: g.attrs.caixue, caifu: g.attrs.caifu, backtracks: g.backtracksThisChapter };
 })()`;
 
-/** 存档页渲染 */
+/** 存档页渲染 + 选项卡过滤 + 删除二次确认 */
 const UI_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   window.__QS__.goSaves();
   await sleep(220);
-  const q = s => document.querySelector(s);
-  return { shown: !!q('.saves'), tabs: document.querySelectorAll('.stab').length,
-           slots: document.querySelectorAll('.slot').length,
-           filled: document.querySelectorAll('.slot:not(.is-empty)').length,
-           hint: (q('.saves__hint') || {}).textContent || '' };
+  const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
+  const counts = () => ({ tabs: qa('.stab').length, slots: qa('.slot').length,
+                          filled: qa('.slot:not(.is-empty)').length });
+  const base = counts();
+  const hint = (q('.saves__hint') || {}).textContent || '';
+  const storedOf = () => Object.values(JSON.parse(localStorage.getItem('qingshi.saves.v1') || '{}')).filter(Boolean).length;
+  const storedBefore = storedOf();
+
+  // 切「全部」(第一个页签)
+  qa('.stab')[0].click(); await sleep(60);
+  const all = counts();
+  // 切到一个计数为 0 的剧本页签:占用档应被滤掉,并出现空提示
+  const zero = qa('.stab').find(t => ((t.querySelector('.stab__cnt') || {}).textContent || '').startsWith('0'));
+  zero?.click(); await sleep(60);
+  const filtered = counts();
+  const emptyHint = !!q('.saves__empty');
+  // 切回「全部」
+  qa('.stab')[0].click(); await sleep(60);
+
+  // 删除二次确认:点删除 → 浮层 → 再想想 → 档还在;再点删除 → 确认 → 档消失
+  const before = counts().filled;
+  const delOf = () => q('.slot:not(.is-empty) .slot__acts .btn--ghost');
+  delOf()?.click(); await sleep(60);
+  const confirmShown = !!q('.saves__confirm');
+  q('.saves__confirm .btn--ghost')?.click(); await sleep(60);
+  const afterCancel = counts().filled;
+  delOf()?.click(); await sleep(60);
+  q('.saves__confirm .btn--primary')?.click(); await sleep(80);
+  const afterDel = counts().filled;
+  const stored = storedOf();
+
+  return { shown: !!q('.saves'), ...base, hint, all, filtered, emptyHint,
+           before, confirmShown, afterCancel, afterDel, storedBefore, stored };
 })()`;
 
 /** 退出自动存档:打牌 → 退出 → 主菜单出现「继 续 旅 程」→ 点它回到章首 */
@@ -100,7 +129,7 @@ ${STEP_SNIPPET}
       if (c) { c.click(); played += 1; await sleep(30); }
       else { advanceOnce(); await sleep(8); }
     } else if (g.phase === 'event') {
-      const c = qa('.stage__foot .card--tappable')[0];
+      const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
       if (c) { c.click(); await sleep(10); } else { advanceOnce(); await sleep(8); }
     } else { advanceOnce(); await sleep(8); }
   }
@@ -159,9 +188,16 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
       loadRes.caixue !== ((loadRes.started || {}).caixue) || ((loadRes.started || {}).caixue) === 40],
     ['回溯计数归零', loadRes.backtracks === 0],
     ['存档页可打开', uiRes.shown === true],
-    ['存档页有 5 个剧本页签', uiRes.tabs === 5],
+    ['存档页有 6 个页签(全部 + 5 剧本)', uiRes.tabs === 6],
     ['存档页有 6 个槽位', uiRes.slots === 6],
     ['存档页显示已占用槽位', uiRes.filled >= 1],
+    ['切「全部」后槽位齐全', uiRes.all && uiRes.all.slots === 6 && uiRes.all.filled >= 1],
+    ['按剧本过滤:无档剧本不显示占用档', uiRes.filtered && uiRes.filtered.filled === 0],
+    ['过滤为空时出现提示', uiRes.emptyHint === true],
+    ['删除弹出二次确认', uiRes.confirmShown === true],
+    ['取消删除后档案还在', uiRes.afterCancel === uiRes.before],
+    ['确认删除后档案消失', uiRes.afterDel === uiRes.before - 1],
+    ['删除已落到 localStorage', uiRes.stored === uiRes.storedBefore - 1],
     ['界面写明「章首快照」与硬核不可存',
       uiRes.hint.includes('章首') && uiRes.hint.includes('硬核')],
     ['退出前打到了中途', ab.played >= 1],

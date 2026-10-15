@@ -1,5 +1,9 @@
 /* js/ui-round.js —— 回合页与出牌/蓄势（自 index.html 内联脚本原样搬移，行为零变化） */
 
+  // 行动卡类型角标（v2.2.1）：进取/守成/兑换/保身/抉择，见 game-data.js ACTIONS[].type；治病卡无 type，不渲染
+  var TYPE_BADGE = { '进取': 't-jin', '守成': 't-shou', '兑换': 't-dui', '保身': 't-bao', '抉择': 't-jue' };
+
+
   /* ---------- 回合页（行动卡回合制主界面：关键事件卡 ×1 + 行动卡 ×3） ---------- */
   function renderRound(){
     ttsCancel();
@@ -31,7 +35,7 @@
         var a = e.action;
         var b = el('button','card'+(e.locked ? ' locked' : '')+(e.risky ? ' risky' : ''));
         var h = '<div class="cardTitle">'+esc(a ? a.name : String(e.id))+'</div>';
-        if (e.choice) h += '<div class="cardDim">〔抉择〕</div>';
+        if (a && a.type && TYPE_BADGE[a.type]) h += '<span class="cardTypeBadge ' + TYPE_BADGE[a.type] + '">' + a.type + '</span>';
         if (a && a.desc) h += '<div class="cardDesc">'+esc(game.cardDesc(game.diff.hideAttrs && a.descHidden ? a.descHidden : a.desc))+'</div>';
         if (e.diminishing) h += '<div class="cardDim">已用 '+e.usedCount+' 次 · 收益递减</div>';
         if (e.locked && e.reason) h += '<div class="cardLock">🔒 '+esc(e.reason)+'</div>';
@@ -46,6 +50,7 @@
     // 蓄势卡（v1.6）：放弃本轮出牌，为下一次事件抉择蓄一分胜算（险招 +10，限一次）
     var xs = el('button','card xushi'+(game.xushi ? ' active' : ''));
     xs.innerHTML = '<div class="cardTitle">蓄势 · 静观其变</div>'+
+      '<span class="cardTypeBadge t-xu">蓄势</span>'+
       '<div class="cardDesc">'+(game.xushi ? '已蓄势——下一次事件抉择的险招成功率 +10' : '不出手牌，为下一次事件抉择蓄一分胜算（险招成功率 +10，无险招则落空）')+'</div>';
     if (!game.xushi) xs.onclick = function(){ disableOpts(); doXushi(); };
     optBox.appendChild(xs);

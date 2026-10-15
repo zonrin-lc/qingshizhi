@@ -9,11 +9,29 @@
 .stage__bar {
   gap: var(--sp-md);
 }
-.stage__chap {
+/* 左右两按钮不变形:定宽牌匾,收缩只发生在中部标题区 */
+.topbtn--back {
+  flex: 0 0 auto;
+}
+/* 中部标题区高度固定:章节名 + 金线两行,长题省略号截断不撑高 */
+.stage__head {
   flex: 1 1 auto;
+  min-width: 0;
+  height: 4.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+.stage__chap {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stage__rule {
+  flex: 0 0 auto;
 }
 .stage__band {
   flex: 0 0 auto;
@@ -30,20 +48,26 @@
   font-size: var(--fs-h2);
   line-height: 1.3;
 }
+/* 对局页章题/事件题对齐效果图:居中放大楷体,下接菱形金线(.rule)。
+ * 限定非窄卷轴,章末结算/结局页版式本次不动。 */
+.stage__main:not(.stage__main--narrow) .chapter__sub {
+  text-align: center;
+}
+.stage__main:not(.stage__main--narrow) .chapter__title {
+  text-align: center;
+  font-size: 1.8rem;
+}
 .rule {
   width: 3rem;
   height: 2px;
   background: var(--gold);
   margin-bottom: var(--sp-md);
 }
+/* 段落间距与行距一致(2026-10-14 拍板):不再额外留段距;首行缩进两格 */
 .prose {
-  margin: 0 0 var(--sp-md);
+  margin: 0;
   max-width: 42rem;
-}
-.settle-recall {
-  padding: var(--sp-sm);
-  border-left: 2px solid var(--line-soft);
-  margin-bottom: var(--sp-md);
+  text-indent: 2em;
 }
 .intro-note {
   margin: 0 0 var(--sp-sm);
@@ -118,12 +142,26 @@
   border-style: solid;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
-/* 决策区在棋盘底部,卡片整体上移一点,别贴着屏幕边缘 */
+/* 决策区在棋盘底部,卡片整体上移一点,别贴着屏幕边缘。
+ * 右缘让出 30%:与 .stage__cols 的 3fr 右栏同宽,使选项区与中部文本区等宽
+ * (2026-10-14 用户拍板)。cols 左右各有 sp-lg 内边距后,内容宽 = 100% - 2·sp-lg,
+ * 精确对齐右内边距 = 30% + 0.4·sp-lg。 */
 .stage__foot {
-  padding: var(--sp-sm) var(--sp-lg) var(--sp-md);
+  padding: var(--sp-sm) calc(30% + 0.4 * var(--sp-lg)) var(--sp-md) var(--sp-lg);
 }
 .card--tappable {
   cursor: pointer;
+}
+/* 选项牌匾对齐效果图:文字居中,标题两侧饰以金色菱纹 */
+.card--opt {
+  text-align: center;
+}
+.card--opt .card__title::before,
+.card--opt .card__title::after {
+  content: '◇';
+  color: var(--gold);
+  font-size: 0.72em;
+  margin: 0 0.55em;
 }
 .card--tappable:hover,
 .card--tappable:focus-visible {
@@ -169,6 +207,81 @@
 .card__risk {
   font-size: var(--fs-cap);
 }
+
+/* 行动卡水墨卡面（assets/image/cards 交付：卡面 1200×600 + 通用边框 + 角签）：
+   卡面作底、边框叠上层；类型由 prot ACTIONS[].type 驱动，
+   治病卡无 type → 纸面 + 边框；蓄势为 UI 内置卡（t-xu）。 */
+.card.card--action,
+.card.card--action.card--tappable:hover,
+.card.card--action.card--tappable:focus-visible,
+.card.card--action.is-locked,
+.card.card--action.is-hi {
+  border-image: none;
+  border: 0;
+}
+.card.card--action {
+  position: relative;
+  /* 不定死 2:1：五卡同排时宽度收窄，描述文字可能两三行，
+     用 min-height 保卡面比例下限，内容多时任其长高（同行等高由 flex stretch 保证） */
+  min-height: 6rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: 5px;
+  background-color: var(--paper-card);
+  background-image: url('../assets/card/card-frame.webp');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  box-shadow: 0 2px 6px rgba(42, 37, 29, 0.16);
+}
+.card.card--action.t-jin,
+.card.card--action.t-shou,
+.card.card--action.t-dui,
+.card.card--action.t-bao,
+.card.card--action.t-jue,
+.card.card--action.t-xu {
+  background-size: 100% 100%, cover;
+}
+.card.card--action.t-jin  { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-jin.webp'); }
+.card.card--action.t-shou { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-shou.webp'); }
+.card.card--action.t-dui  { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-dui.webp'); }
+.card.card--action.t-bao  { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-bao.webp'); }
+.card.card--action.t-jue  { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-jue.webp'); }
+.card.card--action.t-xu   { background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-face-xu.webp'); }
+.card.card--action.card--tappable:hover,
+.card.card--action.card--tappable:focus-visible {
+  filter: brightness(1.06) saturate(1.05);
+  box-shadow: 0 0.35rem 0.75rem rgba(42, 37, 29, 0.22);
+}
+/* 正文让开左侧角签 */
+.card.card--action .card__body {
+  padding-left: 2rem;
+}
+.card.card--action .card__title,
+.card.card--action .card__desc {
+  text-shadow: 0 1px 2px rgba(245, 240, 228, 0.85);
+}
+/* 类型角签：深色挂签 + 竖排类型字，文字取各类型主色的提亮变体 */
+.card__badge {
+  position: absolute;
+  top: -0.2rem;
+  left: 0.5rem;
+  width: 1.45rem;
+  height: 3.2rem;
+  padding-top: 0.62rem;
+  background: url('../assets/card/card-badge.webp') center / 100% 100% no-repeat;
+  writing-mode: vertical-rl;
+  text-align: center;
+  line-height: 1.45rem;
+  font-size: var(--fs-cap);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+.card__badge.t-jin  { color: #d4685f; }
+.card__badge.t-shou { color: #7ba3cc; }
+.card__badge.t-dui  { color: #d9a94e; }
+.card__badge.t-bao  { color: #7bb58a; }
+.card__badge.t-jue  { color: #a48fc9; }
+.card__badge.t-xu   { color: #6aa8c4; }
 .card__lock {
   font-size: var(--fs-cap);
 }
@@ -351,9 +464,11 @@
   margin: 0;
 }
 
-/* ---------- 右栏 ---------- */
+/* ---------- 右栏 ----------
+ * 宽度由 .stage__cols 的 7fr 3fr 决定,不再定宽 13rem;
+ * grid 行 stretch 使其高度与叙事区一致、下缘对齐决策区顶。 */
 .stage__side {
-  flex: 0 0 13rem;
+  min-width: 0;
   padding: var(--sp-sm) var(--sp-md);
   border-left: 1px solid var(--line);
   background: var(--paper);
@@ -366,17 +481,24 @@
   color: var(--gold);
 }
 
-/* ---------- 主/右 两栏 ---------- */
+/* ---------- 主/右 两栏 ----------
+ * 文本区 : 属性区 = 7 : 3(2026-10-14 用户拍板)。
+ * grid 默认同行 stretch,属性区自然延伸到与决策区顶边相接。
+ * 左右内边距 sp-lg:卷轴左缘与顶栏返回按钮左缘对齐(顶栏 padding 亦是 sp-lg);
+ * 上下 sp-md:中部区域与顶栏、底部决策区之间留出间距(2026-10-14 用户拍板)。 */
 .stage__cols {
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  padding: var(--sp-md) var(--sp-lg);
 }
 .stage__main {
-  flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
-  padding: var(--sp-lg) var(--sp-md);
+  /* 四边同距:正文与立绘之间由 flex gap(sp-lg)分隔,
+   * 文本区与画卷内缘(轴杆内沿的金线)也保持同样的边距(2026-10-14 拍板) */
+  padding: var(--sp-lg);
 }
 
 /* ---------- 顶栏回溯按钮 ---------- */
@@ -411,8 +533,13 @@
  * 决策区限高并内部滚动。P3 的雷达图上到这里也要跟着改成紧凑形态。
  * ========================================================================== */
 @media (max-width: 880px) {
+  /* 窄屏退回纵向 flex:7/3 分栏在小屏上叙事区过窄(同原 13rem 定宽的问题) */
   .stage__cols {
+    display: flex;
     flex-direction: column;
+  }
+  .stage__head {
+    height: 3.2rem;
   }
   .stage__side {
     flex: 0 0 auto;
@@ -497,9 +624,141 @@
   .prose {
     font-size: var(--fs-ui);
     line-height: 1.6;
-    margin-bottom: var(--sp-xs);
   }
   .prompt {
     padding: var(--sp-xs);
   }
+}
+
+/* ---------- 累积小节 ---------- */
+.sec {
+  margin-bottom: var(--sp-sm);
+}
+.sec__head {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--sp-xs) 0;
+  font-family: var(--font-kai);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: var(--ink-heavy);
+  cursor: pointer;
+}
+.sec__head::before {
+  content: '▾ ';
+  color: var(--gold);
+}
+.sec.is-collapsed .sec__head {
+  opacity: 0.6;
+  font-size: var(--fs-body);
+}
+.sec.is-collapsed .sec__head::before {
+  content: '▸ ';
+}
+.sec.is-collapsed .sec__body {
+  display: none;
+}
+.sec__body .card {
+  margin-top: var(--sp-xs);
+}
+.sec__body .btn {
+  margin-top: var(--sp-sm);
+}
+
+/* 题签内联:落定后追加的「——所选」后缀与属性胶囊(2026-10-14 拍板) */
+.sec__result {
+  font-size: var(--fs-note);
+  font-weight: 400;
+}
+.chglist.chglist--tags {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+  margin: 0 0 0 var(--sp-sm);
+  max-width: none;
+  vertical-align: middle;
+}
+.chglist--tags .chgrow {
+  display: inline-flex;
+  gap: 2px;
+  align-items: baseline;
+  padding: 0 var(--sp-xs);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--paper-card);
+  font-size: var(--fs-cap);
+}
+.chglist--tags .chgrow__v {
+  font-size: var(--fs-cap);
+}
+
+/* 滚动条:细条古铜,跟画卷配色走(替换浏览器默认灰条) */
+.stage__main,
+.stage__side,
+.stage__foot,
+.overlay__box {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+.stage__main::-webkit-scrollbar,
+.stage__side::-webkit-scrollbar,
+.stage__foot::-webkit-scrollbar,
+.overlay__box::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.stage__main::-webkit-scrollbar-thumb,
+.stage__side::-webkit-scrollbar-thumb,
+.stage__foot::-webkit-scrollbar-thumb,
+.overlay__box::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 3px;
+}
+.stage__main::-webkit-scrollbar-track,
+.stage__side::-webkit-scrollbar-track,
+.stage__foot::-webkit-scrollbar-track,
+.overlay__box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 关键事件内联提示 ---------- */
+.prompt--key.is-live {
+  cursor: pointer;
+  border-color: var(--zhu);
+  color: var(--zhu-hi);
+}
+
+/* ---------- 属性变化动效 ---------- */
+@keyframes chg-flash {
+  0% {
+    background: rgba(138, 106, 52, 0.3);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.chgrow.is-flash,
+.kv.is-flash {
+  animation: chg-flash 1.1s ease-out;
+}
+.meter__fill {
+  transition: width 0.5s ease;
+}
+.flychg {
+  position: fixed;
+  z-index: 90;
+  pointer-events: none;
+  font-family: var(--font-kai);
+  font-weight: 700;
+  font-size: var(--fs-ui);
+}
+.flychg.is-up {
+  color: var(--good);
+}
+.flychg.is-down {
+  color: var(--zhu);
 }

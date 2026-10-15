@@ -116,6 +116,7 @@ export interface ScenarioData {
     name: string;
     desc?: string;
     descHidden?: string;
+    type?: '进取' | '守成' | '兑换' | '保身' | '抉择';
     res?: string;
     eff?: Effect;
     req?: Record<string, number>;
@@ -305,6 +306,7 @@ export interface OfferView {
     name: string;
     desc?: string;
     descHidden?: string;
+    type?: '进取' | '守成' | '兑换' | '保身' | '抉择';
     res?: string;
   };
   locked: boolean;

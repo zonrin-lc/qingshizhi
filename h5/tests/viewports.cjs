@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 多视口布局体检。
  *
  * 为什么要单独一套:P1 验的是单栏壳,P2 加了两栏(定宽右栏 + 限高决策区 + 浮层),
@@ -6,7 +6,9 @@
  * 竖屏 390px 更占到 53%,叙事区被挤到 166px;决策区还会顶穿整个棋盘。
  *
  * 判据分两种形态:
- * - 并排(side 占比 < 0.9):右栏占比不得超过 28%
+ * - 并排(side 占比 < 0.9):右栏占比不得超过 32%
+ *   (2026-10-14 改版:用户拍板「文本区约 70% / 属性区约 30%」,
+ *    阈值由 28% 放宽到 32%,实测并排形态稳定在 29.5% 左右)
  * - 降级(side 整宽横条,占比 > 0.9):叙事区须占到 90% 以上
  */
 'use strict';
@@ -47,7 +49,13 @@ ${STEP_SNIPPET}
       const ov = q('.overlay');
       if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(4); continue; }
       if (g.phase === 'intro') { q('.stage__foot .btn--primary')?.click(); await sleep(4); }
-      else if (g.phase === 'event') { (qa('.stage__foot .card--tappable')[0]||{}).click?.(); await sleep(4); }
+      else if (g.phase === 'event') {
+        // 偶遇/随机事件:选项与结算「继续」内联在文本区,不在底部
+        const cont = q('.stage__main .btn--primary');
+        if (cont) cont.click();
+        else (qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0] || {}).click?.();
+        await sleep(4);
+      }
       else { advanceOnce(); await sleep(4); }
     }
   }
@@ -100,7 +108,7 @@ withPage(async ({ evaluate, load, enterGame, consoleErrors }) => {
       if (o.phase !== 'round') problems.push('未进到回合页');
       if (o.stageH && o.footH > o.stageH) problems.push('决策区顶穿棋盘');
       if (stacked) { if (mainShare < 0.9) problems.push(`叙事区仅占${mainShare}`); }
-      else if (sideShare > 0.28) problems.push(`右栏过宽${sideShare}`);
+      else if (sideShare > 0.32) problems.push(`右栏过宽${sideShare}`);
       if (o.mainW < 240) problems.push(`叙事区过窄${o.mainW}px`);
       // 高度也要看:之前只断言宽度,叙事区一度掉到 16px 却仍报 ok —— 补上这条。
       if (o.mainH < 56) problems.push(`叙事区过矮${o.mainH}px`);

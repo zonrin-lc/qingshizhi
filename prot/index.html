@@ -132,6 +132,15 @@
   .cardBadge{position:absolute; right:10px; top:10px; color:var(--gold); border:1px solid var(--gold);
     border-radius:2px; font-size:11px; padding:1px 5px; opacity:.8}
   .card.key.crisis .cardBadge{color:var(--zhu); border-color:var(--zhu)}
+  /* 行动卡类型角标（v2.2.1）：右上角小字徽标，六类型分色；无 type 的卡（治病卡）不渲染 */
+  .cardTypeBadge{position:absolute; right:10px; top:10px; font-size:11px; padding:1px 5px;
+    border:1px solid; border-radius:2px; opacity:.75}
+  .cardTypeBadge.t-jin{color:var(--zhu-hi); border-color:var(--zhu)}
+  .cardTypeBadge.t-shou{color:var(--qing); border-color:var(--qing)}
+  .cardTypeBadge.t-dui{color:var(--gold); border-color:var(--gold)}
+  .cardTypeBadge.t-bao{color:var(--ink-dim); border-color:var(--ink-dim)}
+  .cardTypeBadge.t-jue{color:var(--orange); border-color:var(--orange)}
+  .cardTypeBadge.t-xu{color:var(--ink); border-color:var(--ink)}
   .cardDim{font-size:11px; color:var(--orange); margin-top:5px}
   .cardLock{font-size:12px; color:var(--zhu-hi); margin-top:5px}   /* v2.0.7：11px 亮朱 → 12px 高对比朱 */
 

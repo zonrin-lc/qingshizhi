@@ -68,18 +68,23 @@
   min-height: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 轮盘钉在左 3vw 边距线(与顶栏返回钮同一条线),右列靠 margin 吸到右边 */
+  justify-content: flex-start;
   gap: 3vw;
   padding: 0 3vw;
 }
 
 /* ---------- 朝代罗盘 ---------- */
 .selwheel {
-  width: min(36vw, 80vh);
-  height: min(36vw, 80vh);
+  /* 2026-10-14:轮盘再收一档(32vw→27vw / 72vh→60vh);朝代名移到圈外,
+   * 名签会超出容器边缘,靠 .selrow 的留白容纳,容器本身不裁切 */
+  width: min(27vw, 60vh);
+  height: min(27vw, 60vh);
   flex: 0 0 auto;
-  /* 罗盘图在画布内左右各留 3.7%,抵消后朝代名才真正贴到边距上 */
-  margin-left: calc(min(36vw, 80vh) * -0.037);
+  /* 左边距与顶栏返回钮对齐(2026-10-15 拍板):不再用负边距补偿环图内边距 */
+  margin-left: 0;
+  /* 圈外名签右侧探出约 0.10·size(「汉」位),留白接住,免得压到剧本卡 */
+  margin-right: calc(min(27vw, 60vh) * 0.1);
 }
 .dwheel {
   position: relative;
@@ -160,10 +165,12 @@
 
 /* ---------- 右列 ---------- */
 .selright {
+  /* 占满主体行剩余宽度与全部高度:剧本卡要占整个高度(2026-10-15 拍板) */
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 0;
 }
 
 /* 小标题:金线 ─ 菱饰 ─ 题字 ─ 菱饰 ─ 金线 */
@@ -195,43 +202,39 @@
   white-space: nowrap;
 }
 
-/* ---------- 剧本卡 ---------- */
+/* ---------- 剧本卡:手风琴 + 抽屉(2026-10-15 改版) ---------- */
 .selscen {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  /* 整体下移(对齐 Lua 的 translateY 8% 屏高) */
-  transform: translateY(4vh);
 }
-.selcards {
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.selcards::-webkit-scrollbar {
-  display: none;
-}
-.selcards__strip {
+/* 卡条舞台:一行,卡占满高度;抽屉是最后一个 flex 项 */
+.selstage {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  gap: 1.1vw;
-  align-items: center;
-  /* 四周留白:选中卡的外发光与悬停上浮不被裁掉 */
-  padding: 14px;
+  align-items: stretch;
+  gap: 1.2vh;
+  padding: 1.2vh 0.2vh;
 }
 .scard2 {
   position: relative;
-  /* 卡高 = vw*0.088*1.82*0.90 ≈ 14.4vw(Lua 同口径),卡宽按立绘 2:3 */
-  height: min(14.4vw, 34vh);
-  aspect-ratio: 2 / 3;
-  border-radius: calc(min(14.4vw, 34vh) * 0.05);
+  /* 默认窄条:大家平分;选中那份展宽(flex-grow 可过渡,手风琴动画) */
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 1vh;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: flex-grow 0.38s ease, box-shadow 0.16s ease, filter 0.16s ease;
 }
 .scard2:hover {
-  transform: translateY(-6px);
+  filter: brightness(1.07);
 }
 .scard2.is-on {
+  /* 选中:展宽,立绘完整展开 */
+  flex-grow: 4.6;
   /* 选中态:朱金辉光外发光(非加粗边框) */
   box-shadow: 0 0 0 1px var(--gold-hi), 0 0 14px 3px rgba(196, 160, 90, 0.55),
     0 6px 14px rgba(138, 106, 52, 0.3);
@@ -252,11 +255,17 @@
   font-size: var(--fs-cap);
   color: var(--ink-dim);
 }
-/* 未选中:同形制压暗,让选中的那张自然凸显 */
+/* 未选中:同形制压暗,让选中的那张自然凸显;层常驻,选中时淡出 */
 .scard2__dim {
   position: absolute;
   inset: 0;
   background: rgba(28, 24, 18, 0.6);
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.scard2.is-on .scard2__dim {
+  opacity: 0;
 }
 /* 金框:细金线外框(内部透明),等比铺满 */
 .scard2::after {
@@ -268,11 +277,14 @@
 }
 .scard2__plate {
   position: absolute;
-  bottom: 3.5%;
+  bottom: 2.4%;
   left: 50%;
   transform: translateX(-50%);
-  height: 34%;
+  /* 窄条卡里匾额随卡宽,展宽后封顶 12vh,免得遮掉整张立绘 */
+  width: 74%;
+  max-width: 12vh;
   aspect-ratio: 84 / 180;
+  max-height: 30%;
   background-size: 100% 100%;
   display: flex;
   align-items: center;
@@ -281,20 +293,21 @@
 }
 .scard2__name {
   font-family: var(--font-kai);
-  /* 字号 = 匾额可用内高 ÷ 字数( Lua: plH*0.56/nChar/1.08 );
-     剧本局名均为 4 字,plH ≈ 0.34*14.4vw → 0.63vw */
-  font-size: min(0.64vw, 1.5vh);
+  font-size: 1.5vh;
   font-weight: 700;
   color: var(--ink-strong);
   line-height: 1.0;
+  transition: font-size 0.38s ease;
 }
 .scard2.is-on .scard2__name {
   color: var(--zhu);
+  font-size: 3vh;
 }
 
-/* 准备中(未开卷朝代) */
+/* 准备中(未开卷朝代):占满舞台高度 */
 .selprep {
-  height: min(14.4vw, 34vh);
+  flex: 1 1 auto;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -312,23 +325,67 @@
   white-space: nowrap;
 }
 
-/* ---------- 难度 ---------- */
-.seldiff {
+/* ---------- 抽屉:竖排难度 + 入局漩涡 ---------- */
+/* 外壳做宽度动画(0 → 17vh),内容固定宽度不外溢,像从选中卡旁边抽出 */
+.seldrawer {
+  flex: 0 0 auto;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: width 0.38s ease, opacity 0.3s ease;
+}
+.seldrawer.is-open {
+  width: 17vh;
+  opacity: 1;
+}
+.seldrawer__in {
+  width: 17vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform: translateY(3.5vh);
-  margin-top: 0.6rem;
-}
-.seldiff__row {
-  display: flex;
-  gap: 1.4vw;
   justify-content: center;
+  gap: 1.6vh;
+  padding: 1.5vh 0;
+  /* 抽屉面:淡纸底 + 左缘金线 */
+  background: rgba(246, 239, 224, 0.6);
+  border-left: 2px solid var(--line);
+  border-radius: 0.8vh;
 }
+.seldrawer__title {
+  font-family: var(--font-kai);
+  font-size: 1.6vh;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.3em;
+}
+.seldrawer__caps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2vh;
+}
+.seldrawer__desc {
+  width: 15vh;
+  min-height: 4.6vh;
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+  text-align: center;
+  line-height: 1.5;
+}
+.seldrawer .selenter {
+  width: 11vh;
+  height: 11vh;
+  margin-top: 0.4vh;
+}
+
+/* ---------- 难度胶囊(抽屉内竖排) ---------- */
 .seldiff__cap {
-  /* 胶囊素材 560×151,宽 11.5vw 等比 */
-  width: 11.5vw;
-  min-width: 6.5rem;
+  /* 胶囊素材 560×151;抽屉内宽 13vh 等比 */
+  width: 13vh;
+  min-width: 5.5rem;
+  /* 触控兜底:小窗/小缩放下胶囊不能小于可点的指触高度 */
+  min-height: 36px;
   aspect-ratio: 560 / 151;
   border: 0;
   padding: 0;
@@ -340,7 +397,7 @@
   transition: transform 0.16s ease;
 }
 .seldiff__cap:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
 }
 .seldiff__cap.is-on {
   background-image: url('../assets/lua/diff-on.webp');
@@ -355,27 +412,10 @@
 .seldiff__cap.is-on .seldiff__capname {
   color: var(--paper-card);
 }
-.seldiff__row--desc {
-  margin-top: 8px;
-  height: 5.5vh;
-  align-items: flex-start;
-}
-.seldiff__desc {
-  width: 11.5vw;
-  min-width: 6.5rem;
-  font-size: var(--fs-note);
-  color: var(--ink-soft);
-  text-align: center;
-  line-height: 1.5;
-}
 
-/* ---------- 入局(水墨漩涡) ---------- */
+/* ---------- 入局(水墨漩涡,收在抽屉里;尺寸由 .seldrawer .selenter 定) ---------- */
 .selenter {
   position: relative;
-  /* 按钮尺寸 = 短边*0.30*0.75(Lua 同口径) */
-  width: 22.5vh;
-  height: 22.5vh;
-  margin-top: 1.5vh;
   padding: 0;
   border: 0;
   background: none;
@@ -410,10 +450,10 @@
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 6px;
+  margin-top: 4px;
   text-align: center;
   font-family: var(--font-kai);
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--ink-soft);
   letter-spacing: 0.3em;
@@ -424,6 +464,12 @@
 .selenter:hover .selenter__lbl,
 .selenter:focus-visible .selenter__lbl {
   opacity: 1;
+}
+/* 触屏无 hover:「入 局」操作提示常显(2026-10-14 用户拍板) */
+@media (hover: none) {
+  .selenter__lbl {
+    opacity: 1;
+  }
 }
 
 /* ---------- 窄屏:纵排滚动 ---------- */
@@ -439,15 +485,41 @@
     width: min(52vw, 30vh);
     height: min(52vw, 30vh);
     margin-left: 0;
+    margin-right: 0;
   }
+  /* 纵排时右列占满宽、不再撑满高度 */
+  .selright {
+    flex: 0 0 auto;
+    width: 100%;
+    align-self: center;
+  }
+  .selstage {
+    overflow-x: auto;
+    min-height: 30vh;
+    scrollbar-width: none;
+  }
+  .selstage::-webkit-scrollbar {
+    display: none;
+  }
+  /* 窄屏下手风琴改走宽度过渡 */
   .scard2 {
-    height: 20vh;
+    flex: 0 0 auto;
+    width: 13vw;
+    height: 26vh;
+    transition: width 0.3s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  }
+  .scard2.is-on {
+    flex-grow: 0;
+    width: 34vw;
   }
   .scard2__name {
-    font-size: 0.9vh;
+    font-size: 1.1vh;
   }
-  .selenter {
-    width: 16vh;
-    height: 16vh;
+  .scard2.is-on .scard2__name {
+    font-size: 1.9vh;
+  }
+  .seldrawer .selenter {
+    width: 9vh;
+    height: 9vh;
   }
 }

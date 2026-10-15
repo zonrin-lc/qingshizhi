@@ -725,214 +725,214 @@
    * chapters:[起,止]：0 吴中 / 1 起兵 / 2 安阳巨鹿 / 3 鸿门 / 4 分封 / 5 荥阳 / 6 垓下。 */
   var ACTIONS = [
     /* ---- 通用行动（全章可用） ---- */
-    { id: 'XY-ACT-1', name: '校场演武', desc: '亲赴校场，以武统军（权势≥20 三军方服）', descHidden: '亲赴校场，以武统军（威权既立，三军方服）', req: { quanshi: 20 }, chapters: [0, 6],
+    { id: 'XY-ACT-1', type: '进取', name: '校场演武', desc: '亲赴校场，以武统军（权势≥20 三军方服）', descHidden: '亲赴校场，以武统军（威权既立，三军方服）', req: { quanshi: 20 }, chapters: [0, 6],
       eff: { attrs: { wuli: 2, quanshi: 2, shengwang: 1, weiji: 2 }, dev: 0 },
       res: '三场演武，三军心服。老兵们收队时还在比划你的枪路：跟着大王，死也值。' },
-    { id: 'XY-ACT-2', name: '置酒高会', desc: '置酒结客（财富-8）', descHidden: '置酒结客（所费不赀）', req: { caifu: 8 }, chapters: [0, 6],
+    { id: 'XY-ACT-2', type: '兑换', name: '置酒高会', desc: '置酒结客（财富-8）', descHidden: '置酒结客（所费不赀）', req: { caifu: 8 }, chapters: [0, 6],
       eff: { attrs: { biancai: 1, caifu: -8, shengwang: 3, junxin: 1 }, dev: 0 },
       res: '一场大宴，宾主尽欢。散场时月色正好，府里多了几个肯替你说话的人。' },
-    { id: 'XY-ACT-3', name: '入朝问安', desc: '趋府问安，以固人心（需起兵）', descHidden: '趋府问安，以固人心（需起兵）', req: { minChapter: 1 }, chapters: [0, 6],
+    { id: 'XY-ACT-3', type: '进取', name: '入朝问安', desc: '趋府问安，以固人心（需起兵）', descHidden: '趋府问安，以固人心（需起兵）', req: { minChapter: 1 }, chapters: [0, 6],
       eff: { attrs: { junxin: 3, weiji: 2 }, dev: 0 },
       res: '你在阶下站了半个时辰，换来三句寒暄。值不值，看你怎么算。' },
-    { id: 'XY-ACT-4', name: '闭门读阵', desc: '谢客静修，温习阵图', descHidden: '谢客静修，温习阵图', chapters: [0, 6],
+    { id: 'XY-ACT-4', type: '守成', name: '闭门读阵', desc: '谢客静修，温习阵图', descHidden: '谢客静修，温习阵图', chapters: [0, 6],
       eff: { attrs: { caixue: 2, moulue: 1, tupo: -1, weiji: -1 }, dev: 0 },
       res: '门一关，阵图铺了满案，烛火换了两支。这一夜，你的兵又精了一分。' },
-    { id: 'XY-ACT-5', name: '散财养士', desc: '厚币招贤（财富-8）', descHidden: '厚币招贤（倾囊市义）', req: { caifu: 8 }, chapters: [0, 6],
+    { id: 'XY-ACT-5', type: '保身', name: '散财养士', desc: '厚币招贤（财富-8）', descHidden: '厚币招贤（倾囊市义）', req: { caifu: 8 }, chapters: [0, 6],
       eff: { attrs: { caifu: -8, weiji: -4, shengwang: 2 }, dev: 0 },
       res: '千金散尽，门下多了几十张嘴。也多了几十双替你看路的眼睛。' },
-    { id: 'XY-ACT-6', name: '称病蛰伏', desc: '闭门称病，避人锋芒（需起兵）', descHidden: '闭门称病，避人锋芒（需起兵）', req: { minChapter: 1 }, chapters: [0, 6],
+    { id: 'XY-ACT-6', type: '保身', name: '称病蛰伏', desc: '闭门称病，避人锋芒（需起兵）', descHidden: '闭门称病，避人锋芒（需起兵）', req: { minChapter: 1 }, chapters: [0, 6],
       eff: { attrs: { tupo: 1, weiji: -5, quanshi: -3, junxin: -2 }, dev: 0 },
       res: '病假条递上去，麻烦少了一半。探病的人来了几拨，真假难辨。' },
     /* ---- 通用行动（v2：锻体养身，全章可用；武力已封顶，纯体魄向） ---- */
-    { id: 'XY-ACT-49', name: '演武锻体', desc: '校场锻体，砺筋骨于未衰', descHidden: '校场锻体，砺筋骨于未衰', chapters: [0, 6],
+    { id: 'XY-ACT-49', type: '守成', name: '演武锻体', desc: '校场锻体，砺筋骨于未衰', descHidden: '校场锻体，砺筋骨于未衰', chapters: [0, 6],
       eff: { attrs: { tupo: 3, shengwang: 1, weiji: 1 }, dev: 0 },
       res: '亲赴校场，不较胜负，只较筋骨。石锁举起又放下三百回，汗透重衣——武已封顶，体犹可砺。士卒围观，喝彩声一浪高过一浪。' },
-    { id: 'XY-ACT-50', name: '调息养力', desc: '闭帐调息，养精神于鞍马之余', descHidden: '闭帐调息，养精神于鞍马之余', chapters: [0, 6],
+    { id: 'XY-ACT-50', type: '守成', name: '调息养力', desc: '闭帐调息，养精神于鞍马之余', descHidden: '闭帐调息，养精神于鞍马之余', chapters: [0, 6],
       eff: { attrs: { tupo: 2, weiji: -1 }, dev: 0 },
       res: '闭帐半日，吐纳调息。连年鞍马攒下的乏，一寸一寸化开。出帐时天色正好，脚步比进帐时轻了三分。' },
 
     /* ---- 章 0：吴中 ---- */
-    { id: 'XY-ACT-7', name: '举鼎立威', desc: '举鼎于市，以力服众', descHidden: '举鼎于市，以力服众', chapters: [0, 0],
+    { id: 'XY-ACT-7', type: '进取', name: '举鼎立威', desc: '举鼎于市，以力服众', descHidden: '举鼎于市，以力服众', chapters: [0, 0],
       eff: { attrs: { wuli: 2, shengwang: 3, weiji: 2 }, dev: 0 },
       res: '千斤之鼎过顶，满市皆呼，鼎足下的青砖裂了两块。吴中的少年，自此不敢与你比肩。' },
-    { id: 'XY-ACT-8', name: '教授剑术', desc: '教里中儿剑，以技易粟', descHidden: '教里中儿剑，以技易粟', chapters: [0, 0],
+    { id: 'XY-ACT-8', type: '兑换', name: '教授剑术', desc: '教里中儿剑，以技易粟', descHidden: '教里中儿剑，以技易粟', chapters: [0, 0],
       eff: { attrs: { wuli: 1, caifu: 3, weiji: 2 }, dev: 0 },
       res: '束脩不多，够吃半月。孩子们练得起劲，你看得也起劲。' },
-    { id: 'XY-ACT-9', name: '结交豪杰', desc: '折节下交（财富-3）', descHidden: '折节下交（小有破费）', req: { caifu: 3 }, chapters: [0, 0],
+    { id: 'XY-ACT-9', type: '兑换', name: '结交豪杰', desc: '折节下交（财富-3）', descHidden: '折节下交（小有破费）', req: { caifu: 3 }, chapters: [0, 0],
       eff: { attrs: { biancai: 1, caifu: -3, shengwang: 2 }, dev: 0 },
       res: '三教九流的门槛，你都踏过了一遍。乱世里，名单就是路。' },
-    { id: 'XY-ACT-10', name: '夜读兵阵', desc: '挑灯读阵，以谋补勇（才学≥45 方能啃下）', descHidden: '挑灯读阵，以谋补勇（学养不足者难啃）', req: { caixue: 45 }, chapters: [0, 0],
+    { id: 'XY-ACT-10', type: '守成', name: '夜读兵阵', desc: '挑灯读阵，以谋补勇（才学≥45 方能啃下）', descHidden: '挑灯读阵，以谋补勇（学养不足者难啃）', req: { caixue: 45 }, chapters: [0, 0],
       eff: { attrs: { caixue: 2, moulue: 1 }, dev: 0 },
       res: '兵书难啃，啃下来就是你的。万人敌，先得读过万人之书。' },
-    { id: 'XY-ACT-11', name: '游猎郊野', desc: '驰马试剑，且放形骸', descHidden: '驰马试剑，且放形骸', chapters: [0, 0],
+    { id: 'XY-ACT-11', type: '保身', name: '游猎郊野', desc: '驰马试剑，且放形骸', descHidden: '驰马试剑，且放形骸', chapters: [0, 0],
       eff: { attrs: { tupo: 1, weiji: -3 }, dev: 0 },
       res: '一日三获，风把胸口吹得透亮。回城时箭囊空了，心也空了片刻。' },
-    { id: 'XY-ACT-12', name: '征发乡勇', desc: '编练乡曲，以观人材', descHidden: '编练乡曲，以观人材', chapters: [0, 0],
+    { id: 'XY-ACT-12', type: '进取', name: '征发乡勇', desc: '编练乡曲，以观人材', descHidden: '编练乡曲，以观人材', chapters: [0, 0],
       eff: { attrs: { wuli: 1, quanshi: 2 }, dev: 0 },
       res: '乡曲的丁壮在你眼前过了一遍。哪些人能战、哪些人能用，你心里的册子又厚了一页。' },
-  { id: 'XY-ACT-51', name: '纵谈时势', desc: '与宾客纵谈天下，练练嘴皮子', descHidden: '与宾客纵谈天下，练练嘴皮子', chapters: [0, 0],
+  { id: 'XY-ACT-51', type: '守成', name: '纵谈时势', desc: '与宾客纵谈天下，练练嘴皮子', descHidden: '与宾客纵谈天下，练练嘴皮子', chapters: [0, 0],
   eff: { attrs: { biancai: 3, moulue: 1, weiji: 1 }, dev: 0 },
       res: '座上纵谈，秦失其鹿、天下共逐，你一语剖到骨里。满座动容——也有人暗暗记住了这张敢说话的嘴。' },
-    { id: 'XY-ACT-52', name: '为人解纷', desc: '任侠解纷，以理服人（财富-2）', descHidden: '任侠解纷，以理服人（略尽东道）', req: { caifu: 2 }, chapters: [0, 0],
+    { id: 'XY-ACT-52', type: '兑换', name: '为人解纷', desc: '任侠解纷，以理服人（财富-2）', descHidden: '任侠解纷，以理服人（略尽东道）', req: { caifu: 2 }, chapters: [0, 0],
       eff: { attrs: { biancai: 1, shengwang: 2, caifu: -2, zhengji: 1 }, dev: 0 },
       res: '两姓争田，打了三年。你去说了半日，各退一步，事了。乡里自此有争，先来寻你评理。' },
 
     /* ---- 章 1：起兵 ---- */
-    { id: 'XY-ACT-13', name: '操练八千', desc: '亲训子弟兵', descHidden: '亲训子弟兵', chapters: [1, 1],
+    { id: 'XY-ACT-13', type: '进取', name: '操练八千', desc: '亲训子弟兵', descHidden: '亲训子弟兵', chapters: [1, 1],
       eff: { attrs: { wuli: 2, quanshi: 3, weiji: 2 }, dev: 0 },
       res: '鼓声起落，八千子弟号令如一。这八千个名字，你都叫得出来。' },
-    { id: 'XY-ACT-14', name: '安抚会稽', desc: '绥靖郡城（财富-3）', descHidden: '绥靖郡城（须开仓廪）', req: { caifu: 3 }, chapters: [1, 1],
+    { id: 'XY-ACT-14', type: '兑换', name: '安抚会稽', desc: '绥靖郡城（财富-3）', descHidden: '绥靖郡城（须开仓廪）', req: { caifu: 3 }, chapters: [1, 1],
       eff: { attrs: { caifu: -3, shengwang: 2 }, dev: 0 },
       res: '米价稳了，市集重新开了早市。会稽人开始认这面楚旗。' },
-    { id: 'XY-ACT-15', name: '搜缴军械', desc: '收兵刃于民间', descHidden: '收兵刃于民间', chapters: [1, 1],
+    { id: 'XY-ACT-15', type: '兑换', name: '搜缴军械', desc: '收兵刃于民间', descHidden: '收兵刃于民间', chapters: [1, 1],
       eff: { attrs: { caifu: 3, weiji: 3 }, dev: 0 },
       res: '府库多了三千副甲。有人夜里咬牙，有人夜里磨刀。' },
-    { id: 'XY-ACT-16', name: '礼贤下士', desc: '礼敬耆老（财富-3）', descHidden: '礼敬耆老（束帛将意）', req: { caifu: 3 }, chapters: [1, 1],
+    { id: 'XY-ACT-16', type: '兑换', name: '礼贤下士', desc: '礼敬耆老（财富-3）', descHidden: '礼敬耆老（束帛将意）', req: { caifu: 3 }, chapters: [1, 1],
       eff: { attrs: { biancai: 1, caifu: -3, shengwang: 2 }, dev: 0 },
       res: '你亲自登门的几位老成，如今逢人便说项氏的好处。老人的嘴，比布告管用。' },
-    { id: 'XY-ACT-17', name: '加固城防', desc: '修垒固防，深根固本', descHidden: '修垒固防，深根固本', chapters: [1, 1],
+    { id: 'XY-ACT-17', type: '进取', name: '加固城防', desc: '修垒固防，深根固本', descHidden: '修垒固防，深根固本', chapters: [1, 1],
       eff: { attrs: { moulue: 1, quanshi: 2 }, dev: 0 },
       res: '城防连成一线，壕深了一丈。守得住的根据地，才是根据地。' },
-    { id: 'XY-ACT-18', name: '探秦虚实', desc: '遣人觇关中消息', descHidden: '遣人觇关中消息', chapters: [1, 1],
+    { id: 'XY-ACT-18', type: '守成', name: '探秦虚实', desc: '遣人觇关中消息', descHidden: '遣人觇关中消息', chapters: [1, 1],
       eff: { attrs: { caixue: 2, moulue: 1, weiji: 2 }, dev: 0 },
       res: '关中的每一条消息，你都听了三遍。天下的裂缝在哪里，你看得清。' },
-    { id: 'XY-ACT-53', name: '申明军法', desc: '立规申令，以治新军', descHidden: '立规申令，以治新军', chapters: [1, 1],
+    { id: 'XY-ACT-53', type: '进取', name: '申明军法', desc: '立规申令，以治新军', descHidden: '立规申令，以治新军', chapters: [1, 1],
       eff: { attrs: { zhengji: 1, quanshi: 1 }, dev: 0 },
       res: '十七条军令刻在木牍上，悬于辕门。犯者立斩，先斩的是你自己的一个旧识——自此令行禁止，八千子弟成了一支军。' },
-    { id: 'XY-ACT-54', name: '问对幕僚', desc: '与幕僚问对竟夜，以广耳目', descHidden: '与幕僚问对竟夜，以广耳目', chapters: [1, 1],
+    { id: 'XY-ACT-54', type: '守成', name: '问对幕僚', desc: '与幕僚问对竟夜，以广耳目', descHidden: '与幕僚问对竟夜，以广耳目', chapters: [1, 1],
       eff: { attrs: { moulue: 2, caixue: 1 }, dev: 0 },
       res: '你放下身段，逐条问、逐条驳，驳到幕僚词穷处，自己先笑了。烛火换了两支，心里的图，亮了一片。' },
 
     /* ---- 章 2：安阳巨鹿 ---- */
-    { id: 'XY-ACT-19', name: '激励士卒', desc: '巡营鼓气，以振军心', descHidden: '巡营鼓气，以振军心', chapters: [2, 2],
+    { id: 'XY-ACT-19', type: '进取', name: '激励士卒', desc: '巡营鼓气，以振军心', descHidden: '巡营鼓气，以振军心', chapters: [2, 2],
       eff: { attrs: { biancai: 1, shengwang: 2, weiji: 2 }, dev: 0 },
       res: '你走过的地方，士卒的胸膛都挺高了一寸。军营的火堆，今夜烧得格外旺。' },
-    { id: 'XY-ACT-20', name: '检视军粮', desc: '亲核粮账，以安三军', descHidden: '亲核粮账，以安三军', chapters: [2, 2],
+    { id: 'XY-ACT-20', type: '守成', name: '检视军粮', desc: '亲核粮账，以安三军', descHidden: '亲核粮账，以安三军', chapters: [2, 2],
       eff: { attrs: { moulue: 1, caifu: 2 }, dev: 0 },
       res: '粮官的三笔假账被你翻了出来，人赃俱在。军中从此没人敢在粮上做手脚。' },
-    { id: 'XY-ACT-21', name: '与诸将宴', desc: '设宴结心（财富-3）', descHidden: '设宴结心（酒肉之费）', req: { caifu: 3 }, chapters: [2, 2],
+    { id: 'XY-ACT-21', type: '兑换', name: '与诸将宴', desc: '设宴结心（财富-3）', descHidden: '设宴结心（酒肉之费）', req: { caifu: 3 }, chapters: [2, 2],
       eff: { attrs: { biancai: 1, caifu: -3, shengwang: 2, junxin: 1 }, dev: 0 },
       res: '酒过三巡，几个别部将领的话也热络了。人心这种东西，要一碗一碗焐。' },
-    { id: 'XY-ACT-22', name: '夜巡营垒', desc: '亲巡夜哨，以肃军纪', descHidden: '亲巡夜哨，以肃军纪', chapters: [2, 2],
+    { id: 'XY-ACT-22', type: '保身', name: '夜巡营垒', desc: '亲巡夜哨，以肃军纪', descHidden: '亲巡夜哨，以肃军纪', chapters: [2, 2],
       eff: { attrs: { wuli: 1, weiji: -2 }, dev: 0 },
       res: '你查到第三座营时，拎出两个偷睡的哨兵。从此夜里站岗的，没人敢合眼。' },
-    { id: 'XY-ACT-23', name: '研读阵图', desc: '推演巨鹿地势', descHidden: '推演巨鹿地势', chapters: [2, 2],
+    { id: 'XY-ACT-23', type: '守成', name: '研读阵图', desc: '推演巨鹿地势', descHidden: '推演巨鹿地势', chapters: [2, 2],
       eff: { attrs: { caixue: 2, moulue: 1 }, dev: 0 },
       res: '漳水的深浅、甬道的走向，都在你脑中展开成图。巨鹿这一仗，你先在沙盘上赢了。' },
-    { id: 'XY-ACT-24', name: '抚问伤兵', desc: '厚恤伤亡（财富-3）', descHidden: '厚恤伤亡（恤金不菲）', req: { caifu: 3 }, chapters: [2, 2],
+    { id: 'XY-ACT-24', type: '兑换', name: '抚问伤兵', desc: '厚恤伤亡（财富-3）', descHidden: '厚恤伤亡（恤金不菲）', req: { caifu: 3 }, chapters: [2, 2],
       eff: { attrs: { caifu: -3, shengwang: 1, weiji: -1, zhengji: 1 }, dev: 0 },
       res: '伤者得恤，死者得葬，名册上每个名字都落了实处。士卒知将军不弃人。' },
-  { id: 'XY-ACT-55', name: '说合诸将', desc: '游说诸将同心，以聚力于一战', descHidden: '游说诸将同心，以聚力于一战', chapters: [2, 2],
+  { id: 'XY-ACT-55', type: '守成', name: '说合诸将', desc: '游说诸将同心，以聚力于一战', descHidden: '游说诸将同心，以聚力于一战', chapters: [2, 2],
   eff: { attrs: { biancai: 3, junxin: 1, weiji: 1 }, dev: 0 },
       res: '你挨个营帐走，话不重样：对勇者言义，对疑者言利。出最后一座帐时，诸将的刀，指向了同一个方向。' },
-    { id: 'XY-ACT-56', name: '沙盘演阵', desc: '堆沙为山，推演九战之势', descHidden: '堆沙为山，推演九战之势', chapters: [2, 2],
+    { id: 'XY-ACT-56', type: '守成', name: '沙盘演阵', desc: '堆沙为山，推演九战之势', descHidden: '堆沙为山，推演九战之势', chapters: [2, 2],
       eff: { attrs: { moulue: 2, caixue: 1, tupo: -1 }, dev: 0 },
       res: '沙盘堆了拆、拆了堆，漳水两岸在案上活了。哪一战先断粮、哪一战后夺气，推演到第七遍，天边泛了白。' },
 
     /* ---- 章 3：鸿门 ---- */
-    { id: 'XY-ACT-25', name: '整肃降卒', desc: '编练新附之众', descHidden: '编练新附之众', chapters: [3, 3],
+    { id: 'XY-ACT-25', type: '进取', name: '整肃降卒', desc: '编练新附之众', descHidden: '编练新附之众', chapters: [3, 3],
       eff: { attrs: { wuli: 1, quanshi: 2, weiji: 3 }, dev: 0 },
       res: '降卒混编入楚，日日操练，号令渐齐。用好了是军，用不好是火。' },
-    { id: 'XY-ACT-26', name: '清点府库', desc: '核收秦之府库', descHidden: '核收秦之府库', chapters: [3, 3],
+    { id: 'XY-ACT-26', type: '兑换', name: '清点府库', desc: '核收秦之府库', descHidden: '核收秦之府库', chapters: [3, 3],
       eff: { attrs: { caifu: 3, shengwang: -2, zhengji: 1 }, dev: 0 },
       res: '府库的账核清了，咸阳的宝货也看清了。账房先生们熬了三夜，有人欢喜有人眼红。' },
-    { id: 'XY-ACT-27', name: '问计亚父', desc: '就范增问计（需范增在侧）', descHidden: '就范增问计（需范增在侧）', req: { flag: 'fanzeng' }, chapters: [3, 3],
+    { id: 'XY-ACT-27', type: '守成', name: '问计亚父', desc: '就范增问计（需范增在侧）', descHidden: '就范增问计（需范增在侧）', req: { flag: 'fanzeng' }, chapters: [3, 3],
       eff: { attrs: { caixue: 2, moulue: 1, junxin: 1 }, dev: 0 },
       res: '老人家的三句话，值你三夜长考。出帐时，月亮已经偏西了。' },
-    { id: 'XY-ACT-28', name: '犒赏三军', desc: '以私财犒军（财富-4）', descHidden: '以私财犒军（犒赏颇厚）', req: { caifu: 4 }, chapters: [3, 3],
+    { id: 'XY-ACT-28', type: '兑换', name: '犒赏三军', desc: '以私财犒军（财富-4）', descHidden: '以私财犒军（犒赏颇厚）', req: { caifu: 4 }, chapters: [3, 3],
       eff: { attrs: { caifu: -4, shengwang: 2 }, dev: 0 },
       res: '酒肉到营，士气大振。士兵记得项王的赏，更记得赏的时候你在场。' },
-    { id: 'XY-ACT-29', name: '巡视关防', desc: '亲巡函谷诸隘', descHidden: '亲巡函谷诸隘', chapters: [3, 3],
+    { id: 'XY-ACT-29', type: '守成', name: '巡视关防', desc: '亲巡函谷诸隘', descHidden: '亲巡函谷诸隘', chapters: [3, 3],
       eff: { attrs: { wuli: 1, quanshi: 1, caixue: 1 }, dev: 0 },
       res: '函谷的天险，你在心里又给刘邦留了一道。守关的将士，把腰杆挺直了许多。' },
-    { id: 'XY-ACT-30', name: '压粮备进', desc: '多备军粮，以支大战', descHidden: '多备军粮，以支大战', chapters: [3, 3],
+    { id: 'XY-ACT-30', type: '兑换', name: '压粮备进', desc: '多备军粮，以支大战', descHidden: '多备军粮，以支大战', chapters: [3, 3],
       eff: { attrs: { caifu: 2, weiji: 2 }, dev: 0 },
       res: '仓廪渐实，运粮的车队没断过。旦日若战，三军不会饿着。' },
-  { id: 'XY-ACT-57', name: '折冲樽俎', desc: '筵前应对，以口舌代干戈', descHidden: '筵前应对，以口舌代干戈', chapters: [3, 3],
+  { id: 'XY-ACT-57', type: '守成', name: '折冲樽俎', desc: '筵前应对，以口舌代干戈', descHidden: '筵前应对，以口舌代干戈', chapters: [3, 3],
   eff: { attrs: { biancai: 3, moulue: 1 }, dev: 0 },
       res: '来使话里藏针，你筵前拆针，一句一句还了回去。散席时对方拱手，你自己也惊了一惊：原来嘴也能当剑使。' },
-    { id: 'XY-ACT-58', name: '抚循降营', desc: '亲抚降卒，以安反侧', descHidden: '亲抚降卒，以安反侧', chapters: [3, 3],
+    { id: 'XY-ACT-58', type: '保身', name: '抚循降营', desc: '亲抚降卒，以安反侧', descHidden: '亲抚降卒，以安反侧', chapters: [3, 3],
       eff: { attrs: { biancai: 1, shengwang: 1, weiji: -2 }, dev: 0 },
       res: '你走进降卒的营，问籍贯、问家口，亲手给一个秦卒裹了伤。当夜营里的关中歌谣，调子缓了些。' },
 
     /* ---- 章 4：分封 ---- */
-    { id: 'XY-ACT-31', name: '安抚秦民', desc: '绥抚关中（财富-3）', descHidden: '绥抚关中（抚民之费）', req: { caifu: 3 }, chapters: [4, 4],
+    { id: 'XY-ACT-31', type: '兑换', name: '安抚秦民', desc: '绥抚关中（财富-3）', descHidden: '绥抚关中（抚民之费）', req: { caifu: 3 }, chapters: [4, 4],
       eff: { attrs: { caifu: -3, shengwang: 2, weiji: -1 }, dev: 0 },
       res: '关中父老的脸色，一日比一日缓。民心这种东西，急不来。' },
-    { id: 'XY-ACT-32', name: '修缮宫室', desc: '修宫治府，以示定居（财富-4）', descHidden: '修宫治府，以示定居（土木糜费）', req: { caifu: 4 }, chapters: [4, 4],
+    { id: 'XY-ACT-32', type: '兑换', name: '修缮宫室', desc: '修宫治府，以示定居（财富-4）', descHidden: '修宫治府，以示定居（土木糜费）', req: { caifu: 4 }, chapters: [4, 4],
       eff: { attrs: { caifu: -4, quanshi: 2 }, dev: 0 },
       res: '彭城的宫殿一日高过一日。天下的眼睛都看得见你的野心，也都看得见你的底气。' },
-    { id: 'XY-ACT-33', name: '遣使诸侯', desc: '报聘十八王（财富-3）', descHidden: '报聘十八王（聘币甚丰）', req: { caifu: 3 }, chapters: [4, 4],
+    { id: 'XY-ACT-33', type: '兑换', name: '遣使诸侯', desc: '报聘十八王（财富-3）', descHidden: '报聘十八王（聘币甚丰）', req: { caifu: 3 }, chapters: [4, 4],
       eff: { attrs: { biancai: 1, caifu: -3, junxin: 1, shengwang: 1 }, dev: 0 },
       res: '使者四出，回话都极恭敬。只是恭敬这个东西，最经不起风。' },
-    { id: 'XY-ACT-34', name: '检阅兵籍', desc: '核天下兵籍', descHidden: '核天下兵籍', chapters: [4, 4],
+    { id: 'XY-ACT-34', type: '进取', name: '检阅兵籍', desc: '核天下兵籍', descHidden: '核天下兵籍', chapters: [4, 4],
       eff: { attrs: { moulue: 1, quanshi: 2 }, dev: 0 },
       res: '诸侯各有多少兵、多少粮，你心里的册子又厚了一层。纸上的天下，也是天下。' },
-    { id: 'XY-ACT-35', name: '收葬遗骸', desc: '收咸阳战骨', descHidden: '收咸阳战骨', chapters: [4, 4],
+    { id: 'XY-ACT-35', type: '进取', name: '收葬遗骸', desc: '收咸阳战骨', descHidden: '收咸阳战骨', chapters: [4, 4],
       eff: { attrs: { shengwang: 2, weiji: -1 }, dev: 0 },
       res: '咸阳城的灰烬里，多了几座新坟。咒骂声，因此少了几声。' },
-    { id: 'XY-ACT-36', name: '约法于市', desc: '与秦民约法', descHidden: '与秦民约法', chapters: [4, 4],
+    { id: 'XY-ACT-36', type: '进取', name: '约法于市', desc: '与秦民约法', descHidden: '与秦民约法', chapters: [4, 4],
       eff: { attrs: { caixue: 1, shengwang: 2, junxin: 1, weiji: 2 }, dev: 0 },
       res: '市口贴了约法，围观的秦民读了一遍又一遍。有人读完，朝着楚旗的方向拱了拱手。' },
-    { id: 'XY-ACT-59', name: '考校封政', desc: '考校诸侯封域之政，以定赏罚', descHidden: '考校诸侯封域之政，以定赏罚', chapters: [4, 4],
+    { id: 'XY-ACT-59', type: '进取', name: '考校封政', desc: '考校诸侯封域之政，以定赏罚', descHidden: '考校诸侯封域之政，以定赏罚', chapters: [4, 4],
       eff: { attrs: { zhengji: 2, moulue: 1 }, dev: 0 },
       res: '十八王的封域、户口、赋入，你亲自一笔一笔考校。谁的封地肥、谁的封地贫，册子合上的那一刻，赏罚已在胸中。' },
-    { id: 'XY-ACT-60', name: '廷对来使', desc: '殿上亲对诸侯来使，以观四方之心', descHidden: '殿上亲对诸侯来使，以观四方之心', chapters: [4, 4],
+    { id: 'XY-ACT-60', type: '守成', name: '廷对来使', desc: '殿上亲对诸侯来使，以观四方之心', descHidden: '殿上亲对诸侯来使，以观四方之心', chapters: [4, 4],
       eff: { attrs: { biancai: 2, junxin: 1 }, dev: 0 },
       res: '来使各怀心思，你当庭逐一对答，恩威并施。退殿时，几国的使者把今日的每一句话都默背了下来。' },
 
     /* ---- 章 5：荥阳 ---- */
-    { id: 'XY-ACT-37', name: '护粮通道', desc: '亲督护粮，以保敖仓之路', descHidden: '亲督护粮，以保敖仓之路', chapters: [5, 5],
+    { id: 'XY-ACT-37', type: '进取', name: '护粮通道', desc: '亲督护粮，以保敖仓之路', descHidden: '亲督护粮，以保敖仓之路', chapters: [5, 5],
       eff: { attrs: { wuli: 1, quanshi: 2, weiji: 2 }, dev: 0 },
       res: '你亲自押了三趟，刀不离鞍。彭越的游兵，近来收敛了些。' },
-    { id: 'XY-ACT-38', name: '截击彭越', desc: '剿击梁地游兵', descHidden: '剿击梁地游兵', chapters: [5, 5],
+    { id: 'XY-ACT-38', type: '进取', name: '截击彭越', desc: '剿击梁地游兵', descHidden: '剿击梁地游兵', chapters: [5, 5],
       eff: { attrs: { wuli: 2, tupo: -2, quanshi: 3, weiji: 3 }, dev: 0 },
       res: '彭越吃了亏，躲得更深了。泥鳅一样的人，抓不如赶。' },
-    { id: 'XY-ACT-39', name: '休整精骑', desc: '休养马力，以蓄锐气', descHidden: '休养马力，以蓄锐气', chapters: [5, 5],
+    { id: 'XY-ACT-39', type: '保身', name: '休整精骑', desc: '休养马力，以蓄锐气', descHidden: '休养马力，以蓄锐气', chapters: [5, 5],
       eff: { attrs: { tupo: 1, weiji: -3 }, dev: 0 },
       res: '三万精骑饱餐休整，马都喂出了膘。下一战，还得靠他们。' },
-    { id: 'XY-ACT-40', name: '问计帷幄', desc: '与谋士夜议军情', descHidden: '与谋士夜议军情', chapters: [5, 5],
+    { id: 'XY-ACT-40', type: '守成', name: '问计帷幄', desc: '与谋士夜议军情', descHidden: '与谋士夜议军情', chapters: [5, 5],
       eff: { attrs: { caixue: 2, moulue: 1, junxin: 1 }, dev: 0 },
       res: '舆图前的烛火，烧到了四更。散帐时，诸将的眼里都有了底。' },
-    { id: 'XY-ACT-41', name: '筑垒巩洛', desc: '筑垒以困汉军', descHidden: '筑垒以困汉军', chapters: [5, 5],
+    { id: 'XY-ACT-41', type: '进取', name: '筑垒巩洛', desc: '筑垒以困汉军', descHidden: '筑垒以困汉军', chapters: [5, 5],
       eff: { attrs: { moulue: 1, quanshi: 2 }, dev: 0 },
       res: '壁垒向巩洛推进了十里，壕堑如齿。磨盘，就该这么转。' },
-    { id: 'XY-ACT-42', name: '募兵淮南', desc: '募新军于淮南（财富-3）', descHidden: '募新军于淮南（募金所费）', req: { caifu: 3 }, chapters: [5, 5],
+    { id: 'XY-ACT-42', type: '兑换', name: '募兵淮南', desc: '募新军于淮南（财富-3）', descHidden: '募新军于淮南（募金所费）', req: { caifu: 3 }, chapters: [5, 5],
       eff: { attrs: { quanshi: 3, caifu: -3, weiji: 2 }, dev: 0 },
       res: '淮南的应募者络绎于途，名册一日三换。你的兵源，还没有断。' },
-    { id: 'XY-ACT-61', name: '治军申令', desc: '申严号令，以持久战之军', descHidden: '申严号令，以持久战之军', chapters: [5, 5],
+    { id: 'XY-ACT-61', type: '进取', name: '治军申令', desc: '申严号令，以持久战之军', descHidden: '申严号令，以持久战之军', chapters: [5, 5],
       eff: { attrs: { zhengji: 1, quanshi: 1 }, dev: 0 },
       res: '相持日久，军纪易弛。你重申号令，赏罚当日兑现——疲军之怕的不是强敌，是先松了自己的弦。' },
-    { id: 'XY-ACT-62', name: '遣使说援', desc: '遣辩士说诸侯发兵，以分汉势', descHidden: '遣辩士说诸侯发兵，以分汉势', chapters: [5, 5],
+    { id: 'XY-ACT-62', type: '守成', name: '遣使说援', desc: '遣辩士说诸侯发兵，以分汉势', descHidden: '遣辩士说诸侯发兵，以分汉势', chapters: [5, 5],
       eff: { attrs: { biancai: 2, junxin: 1, weiji: 2 }, dev: 0 },
       res: '使者衔命四出，措辞你逐句改过。应者寥寥，但有一国点头，汉王就得分一份心——舌头的仗，也是仗。' },
 
     /* ---- 章 6：垓下乌江 ---- */
-    { id: 'XY-ACT-43', name: '聚拢残骑', desc: '收拢溃散之众', descHidden: '收拢溃散之众', chapters: [6, 6],
+    { id: 'XY-ACT-43', type: '进取', name: '聚拢残骑', desc: '收拢溃散之众', descHidden: '收拢溃散之众', chapters: [6, 6],
       eff: { attrs: { quanshi: 2, weiji: 2 }, dev: 0 },
       res: '溃散的人马一点点聚回来，有的还带着伤。还肯回来的，都是真楚人。' },
-    { id: 'XY-ACT-44', name: '激励死士', desc: '以死义气激励残部', descHidden: '以死义气激励残部', chapters: [6, 6],
+    { id: 'XY-ACT-44', type: '进取', name: '激励死士', desc: '以死义气激励残部', descHidden: '以死义气激励残部', chapters: [6, 6],
       eff: { attrs: { biancai: 1, shengwang: 2 }, dev: 0 },
       res: '你说：楚虽三户，亡秦必楚。残骑的眼里，熄了的火又着了。' },
-    { id: 'XY-ACT-45', name: '夜探敌营', desc: '亲探汉军虚实', descHidden: '亲探汉军虚实', chapters: [6, 6],
+    { id: 'XY-ACT-45', type: '守成', name: '夜探敌营', desc: '亲探汉军虚实', descHidden: '亲探汉军虚实', chapters: [6, 6],
       eff: { attrs: { wuli: 1, tupo: -1, caixue: 2, weiji: 3 }, dev: 0 },
       res: '你摸到敌营三里之内，露水打透了斗篷。围有几重，破绽在哪，你看清了。' },
-    { id: 'XY-ACT-46', name: '毁辎疾行', desc: '弃辎重，轻装突围（财富-3）', descHidden: '弃辎重，轻装突围（辎重尽弃）', req: { caifu: 3 }, chapters: [6, 6],
+    { id: 'XY-ACT-46', type: '保身', name: '毁辎疾行', desc: '弃辎重，轻装突围（财富-3）', descHidden: '弃辎重，轻装突围（辎重尽弃）', req: { caifu: 3 }, chapters: [6, 6],
       eff: { attrs: { caifu: -3, weiji: -3 }, dev: 0 },
       res: '辎重烧掉的烟起了三柱，百里外都看得见。心疼归心疼，命要紧。' },
-    { id: 'XY-ACT-47', name: '祭旗突围', desc: '杀牲祭旗，以壮行色', descHidden: '杀牲祭旗，以壮行色', chapters: [6, 6],
+    { id: 'XY-ACT-47', type: '进取', name: '祭旗突围', desc: '杀牲祭旗，以壮行色', descHidden: '杀牲祭旗，以壮行色', chapters: [6, 6],
       eff: { attrs: { wuli: 1, shengwang: 3 }, dev: 0 },
       res: '战旗举起时，八百人没有一个低头。牲血未干，刀已出鞘。' },
-    { id: 'XY-ACT-48', name: '秣马乌江岸', desc: '于乌江岸休整残骑', descHidden: '于乌江岸休整残骑', chapters: [6, 6],
+    { id: 'XY-ACT-48', type: '保身', name: '秣马乌江岸', desc: '于乌江岸休整残骑', descHidden: '于乌江岸休整残骑', chapters: [6, 6],
       eff: { attrs: { tupo: 1, weiji: -2 }, dev: 0 },
       res: '江水很急，马饮得很饱，鬃毛在江风里贴成一线。对岸的灯火，比北岸的安静。' },
-    { id: 'XY-ACT-63', name: '审势定策', desc: '烛下审天下之势，定去就之策', descHidden: '烛下审天下之势，定去就之策', chapters: [6, 6],
+    { id: 'XY-ACT-63', type: '守成', name: '审势定策', desc: '烛下审天下之势，定去就之策', descHidden: '烛下审天下之势，定去就之策', chapters: [6, 6],
       eff: { attrs: { moulue: 2, caixue: 1 }, dev: 0 },
       res: '围有几重，路有几条，你一条条在心里过了秤。渡与不渡，战与不战——这一夜，你把最坏的几步棋都先想完了。' },
-    { id: 'XY-ACT-64', name: '誓师固志', desc: '阵前誓师，以固残部之志', descHidden: '阵前誓师，以固残部之志', chapters: [6, 6],
+    { id: 'XY-ACT-64', type: '守成', name: '誓师固志', desc: '阵前誓师，以固残部之志', descHidden: '阵前誓师，以固残部之志', chapters: [6, 6],
       eff: { attrs: { biancai: 2, shengwang: 1, weiji: 1 }, dev: 0 },
       res: '你立马阵前，声音不高，字字砸在地上：今日之事，有进无退。残骑举戟相应，声动四野。' },
-    { id: 'XY-ACT-65', name: '舆驾之叹', desc: '始皇渡浙江，舆驾如山——你脱口而出：彼可取而代也', descHidden: '始皇渡浙江，舆驾如山——你脱口而出：彼可取而代也', chapters: [0, 0],
+    { id: 'XY-ACT-65', type: '抉择', name: '舆驾之叹', desc: '始皇渡浙江，舆驾如山——你脱口而出：彼可取而代也', descHidden: '始皇渡浙江，舆驾如山——你脱口而出：彼可取而代也', chapters: [0, 0],
       choice: {
         segs: [
           '秦始皇游会稽，渡浙江，舆驾如山，万民俯伏。你与项梁挤在人群中，脱口而出：「彼可取而代也！」——话出口的刹那，你自己也怔了一下。',
@@ -947,7 +947,7 @@
             res: '你不再言语，把那句话咽回腹中，压成一块铁。会稽的水静静东流——有些话不必说两遍，做一遍就够了。你站在河埠头，看着流水，忽然想：这世上的王，不是喊出来的——是打出来的。' }
         ]
       } },
-    { id: 'XY-ACT-66', name: '吴中丧事', desc: '两家为丧仪排位争执，刀都按到了柄上', descHidden: '两家为丧仪排位争执，刀都按到了柄上', chapters: [0, 0],
+    { id: 'XY-ACT-66', type: '抉择', name: '吴中丧事', desc: '两家为丧仪排位争执，刀都按到了柄上', descHidden: '两家为丧仪排位争执，刀都按到了柄上', chapters: [0, 0],
       choice: {
         segs: [
           '吴中每有大徭役与丧事，常由你主办。今日两家为丧仪排位争执不下，刀都按到了柄上——灵堂里，哭声和骂声混在一起。',
@@ -962,7 +962,7 @@
             res: '你把争端推给族中宗老，自己退后半步。事情平平稳稳地了结——你的威望没涨，可也没沾上是非。你站在人圈外，看着宗老们分席论礼，忽然想：有些场，不必自己出面；出的面越多，欠的债越多。' }
         ]
       } },
-    { id: 'XY-ACT-67', name: '八千之选', desc: '点兵册上有故人之子——其父昨夜跪在你帐前', descHidden: '点兵册上有故人之子——其父昨夜跪在你帐前', chapters: [1, 1],
+    { id: 'XY-ACT-67', type: '抉择', name: '八千之选', desc: '点兵册上有故人之子——其父昨夜跪在你帐前', descHidden: '点兵册上有故人之子——其父昨夜跪在你帐前', chapters: [1, 1],
       choice: {
         segs: [
           '会稽起兵，吴中子弟争投麾下，你点得精兵八千。点兵册上，有故人之子的名字——其父昨夜跪在你帐前，额头磕在帐门外的土上。',
@@ -977,7 +977,7 @@
             res: '你把选择丢回去：愿留则留，愿去则去。那少年咬牙留下，后来战死在巨鹿——你亲自为他抬的棺。你抬着那口薄棺，忽然想：那一夜，你给了他自己选的路；他选了，走完了——这账，两清了。' }
         ]
       } },
-    { id: 'XY-ACT-68', name: '七十老叟', desc: '居鄛人范增扶杖来投，年轻将领窃笑：又来一个养老的', descHidden: '居鄛人范增扶杖来投，年轻将领窃笑：又来一个养老的', chapters: [1, 1],
+    { id: 'XY-ACT-68', type: '抉择', name: '七十老叟', desc: '居鄛人范增扶杖来投，年轻将领窃笑：又来一个养老的', descHidden: '居鄛人范增扶杖来投，年轻将领窃笑：又来一个养老的', chapters: [1, 1],
       choice: {
         segs: [
           '居鄛人范增，年七十，素居家好奇计，扶杖来投。帐外有年轻将领窃笑：「又来一个养老的。」——笑声不高，恰好够老人听见。',
@@ -992,7 +992,7 @@
             res: '你按寻常食客之礼安置了他。范增不愠不火住了下来，只是再没主动进过你的帐。有些账，要等很多年才看得清。你偶尔在帐中看见他的背影，忽然想：那根杖，你始终没有扶过——这件事，你后来，想过很多遍。' }
         ]
       } },
-    { id: 'XY-ACT-69', name: '私藏之粮', desc: '沉船破釜之后，屯长私藏干粮一囊——按令当斩', descHidden: '沉船破釜之后，屯长私藏干粮一囊——按令当斩', chapters: [2, 2],
+    { id: 'XY-ACT-69', type: '抉择', name: '私藏之粮', desc: '沉船破釜之后，屯长私藏干粮一囊——按令当斩', descHidden: '沉船破釜之后，屯长私藏干粮一囊——按令当斩', chapters: [2, 2],
       choice: {
         segs: [
           '渡漳既毕，沉船破釜，军持三日粮。清查时，有屯长私藏干粮一囊，按你新颁的军令——当斩。军令是你亲手写的，墨迹还没干透。',
@@ -1007,7 +1007,7 @@
             res: '你命他率死士为前锋，以功赎罪。巨鹿城下他第一个登上城墙，死在破城的那一刻——罪与功，一笔结清。你站在城下，看着那个从城头落下来的身影，忽然想：你给了他一条路，他把命走完了——这样的账，你希望多几笔，又希望少几笔。' }
         ]
       } },
-    { id: 'XY-ACT-70', name: '诸侯膝行', desc: '巨鹿既破，诸侯将入辕门，无不膝行而前', descHidden: '巨鹿既破，诸侯将入辕门，无不膝行而前', chapters: [2, 2],
+    { id: 'XY-ACT-70', type: '抉择', name: '诸侯膝行', desc: '巨鹿既破，诸侯将入辕门，无不膝行而前', descHidden: '巨鹿既破，诸侯将入辕门，无不膝行而前', chapters: [2, 2],
       choice: {
         segs: [
           '巨鹿既破，诸侯将入辕门谒见，无不膝行而前，莫敢仰视——几十位诸侯将，跪着爬过辕门的门槛。',
@@ -1022,7 +1022,7 @@
             res: '你摆摆手：「战未完，礼先免。」诸侯如蒙大赦。你省了虚礼，也省了周旋——诸侯敬畏的终究是刀，不是礼数。你看着他们退出帐外，忽然想：礼这个东西，省了是痛快；可省掉的，也是诸侯欠你的那一份“敬”——敬，有时候比刀管用。' }
         ]
       } },
-    { id: 'XY-ACT-71', name: '新安之夜', desc: '夜坑之前，降卒百长跪于帐外，言家中有八旬老母', descHidden: '夜坑之前，降卒百长跪于帐外，言家中有八旬老母', chapters: [3, 3],
+    { id: 'XY-ACT-71', type: '抉择', name: '新安之夜', desc: '夜坑之前，降卒百长跪于帐外，言家中有八旬老母', descHidden: '夜坑之前，降卒百长跪于帐外，言家中有八旬老母', chapters: [3, 3],
       choice: {
         segs: [
           '二十万秦卒已降，坑杀之令将行。动手前夜，降卒百长跪于帐外，言家中有八旬老母，求一线生机——他的声音，被夜风吹得断断续续。',
@@ -1037,7 +1037,7 @@
             res: '你把这一营拣入亲军，名为监视，实为保全。夜半坑声起时，他们在你的中军帐外，听得清清楚楚——这份清楚，是福是祸，只有天知道。你站在帐中，听着帐外的动静，忽然想：这一营人，从今夜起，就是你心里的一道缝——缝里，漏着光。' }
         ]
       } },
-    { id: 'XY-ACT-72', name: '亚父碎斗', desc: '范增拔剑撞破玉斗：竖子不足与谋', descHidden: '范增拔剑撞破玉斗：竖子不足与谋', chapters: [3, 3],
+    { id: 'XY-ACT-72', type: '抉择', name: '亚父碎斗', desc: '范增拔剑撞破玉斗：竖子不足与谋', descHidden: '范增拔剑撞破玉斗：竖子不足与谋', chapters: [3, 3],
       choice: {
         segs: [
           '鸿门宴罢，刘邦已走。范增受你转赠的玉斗，拔剑撞而破之：「竖子不足与谋！夺项王天下者，必沛公也！」——玉碎声，在满帐的寂静里，格外响。',
@@ -1052,7 +1052,7 @@
             res: '你昂首陈说放走刘邦的三层道理。范增听完冷笑一声，再不多言。道理赢了，人心输了——从那以后，亚父进帐的次数少了。你看着那个不再进帐的背影，忽然想：这一辩，辩赢了道理，辩输了人——人和道理，哪个值钱，你当时不知道。' }
         ]
       } },
-    { id: 'XY-ACT-73', name: '韩生之讥', desc: '韩生讥你「沐猴而冠」，一字不漏传到你耳中', descHidden: '韩生讥你「沐猴而冠」，一字不漏传到你耳中', chapters: [4, 4],
+    { id: 'XY-ACT-73', type: '抉择', name: '韩生之讥', desc: '韩生讥你「沐猴而冠」，一字不漏传到你耳中', descHidden: '韩生讥你「沐猴而冠」，一字不漏传到你耳中', chapters: [4, 4],
       choice: {
         segs: [
           '有韩生献策留都关中，你以「富贵不归故乡，如衣绣夜行」拒之。韩生退而对人说：「人言楚人沐猴而冠，果然。」',
@@ -1067,7 +1067,7 @@
             res: '你大笑：「沐猴而冠？这颗头颅，偏要戴着王冠回江东！」左右哄堂。韩生愕然免死。这份雅量史官记下了——只是没几个人学得来。你看着他跪地谢恩，忽然想：这一笑，笑的是他，也是你自己——有些话，接了，就轻了。' }
         ]
       } },
-    { id: 'XY-ACT-74', name: '定都之议', desc: '关中金城千里，彭城四战之地——你站在残垣上向东望', descHidden: '关中金城千里，彭城四战之地——你站在残垣上向东望', chapters: [4, 4],
+    { id: 'XY-ACT-74', type: '抉择', name: '定都之议', desc: '关中金城千里，彭城四战之地——你站在残垣上向东望', descHidden: '关中金城千里，彭城四战之地——你站在残垣上向东望', chapters: [4, 4],
       choice: {
         segs: [
           '宫室已焚，宝物既收。左右争于定都：一说关中金城千里，一说彭城四战之地可示勇武——两种声音，在帐里争了三天。',
@@ -1082,7 +1082,7 @@
             res: '你遣骑夜问范增。老人只回了八个字：「将军之心，已不在秦。」你默然烧掉回信。其实你要的，从来不是答案，是赞同。你看着那封烧成灰的回信，忽然想：这八个字，他看得比你自己还清楚——看清你的人，你偏偏最怕他看清。' }
         ]
       } },
-    { id: 'XY-ACT-75', name: '太公之俎', desc: '刘邦回话：幸分我一杯羹——这一刀，下还是不下', descHidden: '刘邦回话：幸分我一杯羹——这一刀，下还是不下', chapters: [5, 5],
+    { id: 'XY-ACT-75', type: '抉择', name: '太公之俎', desc: '刘邦回话：幸分我一杯羹——这一刀，下还是不下', descHidden: '刘邦回话：幸分我一杯羹——这一刀，下还是不下', chapters: [5, 5],
       choice: {
         segs: [
           '你置太公于高俎之上，告刘邦：「今不急下，吾烹太公。」汉军那边回话：「吾翁即若翁，必欲烹而翁，则幸分我一杯羹。」——回话的人，声音都没有抖。',
@@ -1097,7 +1097,7 @@
             res: '你扣下来使，回书只有一句：「羹则无，刀在此。」汉营再无回音。这局心理战，你们打了个平手——平手，对你就是输。你放下笔，看着那封没有回音的军报，忽然想：有些仗，不流血，也伤骨——这一局，你伤了，他也伤了，谁也没赢。' }
         ]
       } },
-    { id: 'XY-ACT-76', name: '虞姬之问', desc: '垓下帐中夜饮，虞姬把盏轻问：若事不济，妾当何如', descHidden: '垓下帐中夜饮，虞姬把盏轻问：若事不济，妾当何如', chapters: [6, 6],
+    { id: 'XY-ACT-76', type: '抉择', name: '虞姬之问', desc: '垓下帐中夜饮，虞姬把盏轻问：若事不济，妾当何如', descHidden: '垓下帐中夜饮，虞姬把盏轻问：若事不济，妾当何如', chapters: [6, 6],
       choice: {
         segs: [
           '垓下帐中，夜饮。楚歌自四野而起，虞姬为你把盏，忽然轻声问：「若事不济，妾当何如？」——她的声音很轻，轻得像怕惊着什么。',

@@ -9,7 +9,7 @@
  * 退出码:0 = 通过;非 0 = 阻断。
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -44,3 +44,34 @@ if (r.status !== 0) {
   process.exit(r.status ?? 1);
 }
 console.log('[verify:data] ✓ 数据校验通过');
+
+// ---------- 剧本结构校验(由运行时 main.ts checkData 前移到构建期) ----------
+// 原来浏览器启动时逐本拉五份 JSON 查字段,280KB(gzip)首屏开销换一份安心;
+// 那是运行期检查唯一能查到的东西,其实构建期查得更早、更便宜。
+// 查法与旧 checkData 一致:轻量表 ↔ JSON 的 id/章数对账 + 关键字段非空。
+const metaPath = resolve(here, '../src/data/scenario-meta.json');
+const dataDir = resolve(protDir, 'lua-data');
+const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+const structProblems = [];
+for (const s of meta) {
+  const f = resolve(dataDir, `${s.key}.json`);
+  if (!existsSync(f)) { structProblems.push(`${s.key}: 数据分片缺失 ${f}`); continue; }
+  let d;
+  try {
+    d = JSON.parse(readFileSync(f, 'utf8'));
+  } catch (e) {
+    structProblems.push(`${s.key}: JSON 解析失败(${e.message})`);
+    continue;
+  }
+  if (!d.SCENARIO?.id) structProblems.push(`${s.key}: SCENARIO.id 缺失`);
+  if (d.SCENARIO?.id !== s.id) structProblems.push(`${s.key}: 轻量表 id 与 JSON 不符(${s.id} vs ${d.SCENARIO?.id})`);
+  if (!d.CHAPTERS?.length) structProblems.push(`${s.key}: CHAPTERS 为空`);
+  if (d.CHAPTERS?.length !== s.chapters) structProblems.push(`${s.key}: 轻量表章数 ${s.chapters} 与 JSON ${d.CHAPTERS?.length} 不符`);
+  if (!d.ACTIONS?.length) structProblems.push(`${s.key}: ACTIONS 为空`);
+}
+if (structProblems.length) {
+  console.error('[verify:data] ✗ 剧本结构校验未通过:');
+  for (const p of structProblems) console.error(`  - ${p}`);
+  process.exit(1);
+}
+console.log(`[verify:data] ✓ 剧本结构校验通过(${meta.length} 本)`);

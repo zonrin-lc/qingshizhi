@@ -10,7 +10,11 @@
  * - 叙事速度(segDelay,毫秒)→ 订阅制:main.ts 用 onSegDelay 接到 Session.setSegDelay;
  * - 视觉(界面缩放/正文字号)→ applyVisual 写 CSS var(--user-scale / --text-scale)。
  */
-export const APP_VERSION = 'v2.2.0 · H5 版';
+/**
+ * 版本号唯一真源是 prot/package.json,由 vite.config.ts 在构建期注入 __APP_VERSION__
+ * (那边的注释解释了为什么不能手抄第三份 —— ui-core.js 的契约上次就漂过了)。
+ */
+export const APP_VERSION = `v${__APP_VERSION__} · H5 版`;
 
 export interface Settings {
   scale: 'small' | 'default' | 'large';

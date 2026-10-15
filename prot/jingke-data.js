@@ -717,188 +717,188 @@
    * chapters:[起,止]：0 卫赵 / 1 燕市 / 2 田光 / 3 首图 / 4 易水 / 5 咸阳。 */
   var ACTIONS = [
     /* ---- 通用行动（全章可用） ---- */
-    { id: 'JK-ACT-1', name: '著书立说', desc: '闭门著文，以文养名', descHidden: '闭门著文，以文养名', chapters: [0, 5],
+    { id: 'JK-ACT-1', type: '进取', name: '著书立说', desc: '闭门著文，以文养名', descHidden: '闭门著文，以文养名', chapters: [0, 5],
       eff: { attrs: { caixue: 3, shengwang: 1, weiji: 2 }, dev: 0 },
       res: '数月之功，文成一卷。士林传抄，也有人抄给了不想让你出名的人——名是出去了，眼睛也跟着进来了。' },
-    { id: 'JK-ACT-2', name: '置酒高会', desc: '置酒结客（财富-8）', descHidden: '置酒结客（大耗财）', req: { caifu: 8 }, chapters: [0, 5],
+    { id: 'JK-ACT-2', type: '兑换', name: '置酒高会', desc: '置酒结客（财富-8）', descHidden: '置酒结客（大耗财）', req: { caifu: 8 }, chapters: [0, 5],
       eff: { attrs: { caifu: -8, shengwang: 3, junxin: 1, biancai: 1, quanshi: 1 }, dev: 0 },
       res: '一场大宴，宾主尽欢。散场时，多了几个肯替你说话的人，也多了几条能递话的门路——酒钱是肉疼的，人情是值的。' },
-    { id: 'JK-ACT-3', name: '太子府问安', desc: '趋府问安，固宠于上（需入燕）', descHidden: '趋府问安，固宠于上（需入燕）', req: { minChapter: 1 }, chapters: [0, 5],
+    { id: 'JK-ACT-3', type: '进取', name: '太子府问安', desc: '趋府问安，固宠于上（需入燕）', descHidden: '趋府问安，固宠于上（需入燕）', req: { minChapter: 1 }, chapters: [0, 5],
       eff: { attrs: { junxin: 3, weiji: 2, biancai: 1, shengwang: -1 }, dev: 0 },
       res: '你在阶下站了两个时辰，换来三句问话。值。门客们说你谄，你说他们酸——东宫的门路，本就是一阶一阶站出来的。' },
-    { id: 'JK-ACT-4', name: '读书击剑', desc: '白日读书，灯下击剑', descHidden: '白日读书，灯下击剑', chapters: [0, 5],
+    { id: 'JK-ACT-4', type: '守成', name: '读书击剑', desc: '白日读书，灯下击剑', descHidden: '白日读书，灯下击剑', chapters: [0, 5],
       eff: { attrs: { caixue: 2, wuli: 1, tupo: -1, weiji: -1 }, dev: 0 },
       res: '书读进去了，剑也顺了。乱世里难得的整时辰，烛花爆了两回，你都舍不得剪。' },
-    { id: 'JK-ACT-5', name: '散财结客', desc: '厚币招贤（财富-8）', descHidden: '厚币招贤（大耗财）', req: { caifu: 8 }, chapters: [0, 5],
+    { id: 'JK-ACT-5', type: '保身', name: '散财结客', desc: '厚币招贤（财富-8）', descHidden: '厚币招贤（大耗财）', req: { caifu: 8 }, chapters: [0, 5],
       eff: { attrs: { caifu: -8, weiji: -4, shengwang: 2, biancai: 1 }, dev: 0 },
       res: '千金散尽，门下多了几十张嘴，也多了几十双替你看路的眼睛。钱财是流水，人心是堤坝。' },
-    { id: 'JK-ACT-6', name: '称病闭户', desc: '闭门称病，避人锋芒（需入局）', descHidden: '闭门称病，避人锋芒（需入局）', req: { minChapter: 2 }, chapters: [0, 5],
+    { id: 'JK-ACT-6', type: '保身', name: '称病闭户', desc: '闭门称病，避人锋芒（需入局）', descHidden: '闭门称病，避人锋芒（需入局）', req: { minChapter: 2 }, chapters: [0, 5],
       eff: { attrs: { weiji: -5, quanshi: -3, junxin: -2, tupo: 1 }, dev: 0 },
       res: '病假话递出去，馆驿门前清净了几日。探病的人来了几拨，真心难辨——谁先来、谁后到，你都躺在榻上记下了。' },
     /* ---- 通用行动（v2：习武养身，全章可用） ---- */
-    { id: 'JK-ACT-43', name: '习剑强身', desc: '晨起习剑，筋骨与剑俱进', descHidden: '晨起习剑，筋骨与剑俱进', chapters: [0, 5],
+    { id: 'JK-ACT-43', type: '守成', name: '习剑强身', desc: '晨起习剑，筋骨与剑俱进', descHidden: '晨起习剑，筋骨与剑俱进', chapters: [0, 5],
       eff: { attrs: { wuli: 3, tupo: 1, caifu: -1 }, dev: 0 },
       res: '你鸡鸣即起，庭前剑光起落三百回。汗水换了几身衣衫，臂上的力道却一日日攒了下来——剑是旧剑，使剑的人已不是从前那人。' },
-    { id: 'JK-ACT-44', name: '导引养生', desc: '调息导引，养精神于未衰', descHidden: '调息导引，养精神于未衰', chapters: [0, 5],
+    { id: 'JK-ACT-44', type: '守成', name: '导引养生', desc: '调息导引，养精神于未衰', descHidden: '调息导引，养精神于未衰', chapters: [0, 5],
       eff: { attrs: { tupo: 2, weiji: -1 }, dev: 0 },
       res: '你闭户调息，依图导引，吐纳之间气血渐顺。门外的人久不见你露面，揣测便淡了——养的是精神，顺带也养了一份清静。' },
 
     /* ---- 章 0：卫赵漫游 ---- */
-    { id: 'JK-ACT-7', name: '切磋剑术', desc: '与游侠儿试剑', descHidden: '与游侠儿试剑', chapters: [0, 0],
+    { id: 'JK-ACT-7', type: '守成', name: '切磋剑术', desc: '与游侠儿试剑', descHidden: '与游侠儿试剑', chapters: [0, 0],
       eff: { attrs: { caixue: 3, wuli: 2, weiji: 2 }, dev: 0 },
       res: '三场两胜。你的袖口被划破一道，他的名字被你记住一个。收剑时他拱手的手势，比出剑时诚恳。' },
-    { id: 'JK-ACT-8', name: '路见不平', desc: '仗剑解人之厄（财富-3）', descHidden: '仗剑解人之厄（耗财）', req: { caifu: 3 }, chapters: [0, 0],
+    { id: 'JK-ACT-8', type: '兑换', name: '路见不平', desc: '仗剑解人之厄（财富-3）', descHidden: '仗剑解人之厄（耗财）', req: { caifu: 3 }, chapters: [0, 0],
       eff: { attrs: { caifu: -3, shengwang: 3, wuli: 1 }, dev: 0 },
       res: '泼皮散了，老翁要给你磕头。这事当天传遍半座榆次城——侠名这东西，一半是打出来的，一半是说出来的。' },
-    { id: 'JK-ACT-9', name: '贩马于市', desc: '相马贩马，以资川旅', descHidden: '相马贩马，以资川旅', chapters: [0, 0],
+    { id: 'JK-ACT-9', type: '兑换', name: '贩马于市', desc: '相马贩马，以资川旅', descHidden: '相马贩马，以资川旅', chapters: [0, 0],
       eff: { attrs: { caifu: 3, shengwang: -2 }, dev: 0 },
       res: '转手两匹驽马，囊中充裕了些。马市的人笑你：剑客也识钱？你笑笑没接话——剑客的盘缠，也是一刀一刀省出来的。' },
-    { id: 'JK-ACT-10', name: '棋摊观弈', desc: '观棋不语，悟局中势', descHidden: '观棋不语，悟局中势', chapters: [0, 0],
+    { id: 'JK-ACT-10', type: '守成', name: '棋摊观弈', desc: '观棋不语，悟局中势', descHidden: '观棋不语，悟局中势', chapters: [0, 0],
       eff: { attrs: { caixue: 1, moulue: 1, weiji: -1 }, dev: 0 },
       res: '看了一天棋，没下一子。有人问你懂棋吗，你说：懂一点势。那人似懂非懂——天下的棋，也是这么看的。' },
-    { id: 'JK-ACT-11', name: '结交博徒', desc: '折节下交，缓急有援（财富-3）', descHidden: '折节下交，缓急有援（耗财）', req: { caifu: 3 }, chapters: [0, 0],
+    { id: 'JK-ACT-11', type: '兑换', name: '结交博徒', desc: '折节下交，缓急有援（财富-3）', descHidden: '折节下交，缓急有援（耗财）', req: { caifu: 3 }, chapters: [0, 0],
       eff: { attrs: { caifu: -3, shengwang: 2, biancai: 2, quanshi: 1 }, dev: 0 },
       res: '三教九流都认得你了。乱世里，名单就是路，门路就是命。散场时有人拍胸脯：荆兄有事，言语一声。' },
-    { id: 'JK-ACT-12', name: '野寺借宿', desc: '野寺一宿，省资养力（财富-2）', descHidden: '野寺一宿，省资养力（微耗财）', req: { caifu: 2 }, chapters: [0, 0],
+    { id: 'JK-ACT-12', type: '保身', name: '野寺借宿', desc: '野寺一宿，省资养力（财富-2）', descHidden: '野寺一宿，省资养力（微耗财）', req: { caifu: 2 }, chapters: [0, 0],
       eff: { attrs: { caifu: -2, weiji: -3, tupo: 1 }, dev: 0 },
       res: '佛前一盏灯，身外一场雨。你在蒲团上睡到自然醒，醒来时雨停了，剑还在手边——这样的日子，过一天少一天。' },
-    { id: 'JK-ACT-45', name: '市上较艺', desc: '市上较艺，名起亦招忌', descHidden: '市上较艺，名起亦招忌', chapters: [0, 0],
+    { id: 'JK-ACT-45', type: '守成', name: '市上较艺', desc: '市上较艺，名起亦招忌', descHidden: '市上较艺，名起亦招忌', chapters: [0, 0],
       eff: { attrs: { wuli: 2, shengwang: 1, weiji: 1 }, dev: 0 },
       res: '你在市肆的空场上较艺演武，围观的人越聚越多。喝彩声传遍了半座城，也传进了几双不好惹的眼睛里——乡野的武名，一半是敬，一半是忌。' },
-    { id: 'JK-ACT-46', name: '风餐野宿', desc: '风餐露宿，筋骨换脚程', descHidden: '风餐露宿，筋骨换脚程', chapters: [0, 0],
+    { id: 'JK-ACT-46', type: '守成', name: '风餐野宿', desc: '风餐露宿，筋骨换脚程', descHidden: '风餐露宿，筋骨换脚程', chapters: [0, 0],
       eff: { attrs: { tupo: 2, caifu: 1 }, dev: 0 },
       res: '你在野寺与檐下宿了一路，替人负米赶车，肩头的茧厚了一层，囊中的钱也多了几枚。游侠的脚程与身板，都是这么熬出来的。' },
 
     /* ---- 章 1：燕市 ---- */
-    { id: 'JK-ACT-13', name: '听筑消夜', desc: '燕市听筑，且放胸怀', descHidden: '燕市听筑，且放胸怀', chapters: [1, 1],
+    { id: 'JK-ACT-13', type: '保身', name: '听筑消夜', desc: '燕市听筑，且放胸怀', descHidden: '燕市听筑，且放胸怀', chapters: [1, 1],
       eff: { attrs: { weiji: -3, tupo: 1, biancai: 1 }, dev: 0 },
       res: '筑声一起，满座皆醉。你听得忘了添酒，曲终人散，还在原地坐了一刻。有人问你曲中何意，你随口答了三句，满座又静了一回。' },
-    { id: 'JK-ACT-14', name: '与屠沽饮', desc: '与狗屠辈共饮（财富-3）', descHidden: '与狗屠辈共饮（耗财）', req: { caifu: 3 }, chapters: [1, 1],
+    { id: 'JK-ACT-14', type: '兑换', name: '与屠沽饮', desc: '与狗屠辈共饮（财富-3）', descHidden: '与狗屠辈共饮（耗财）', req: { caifu: 3 }, chapters: [1, 1],
       eff: { attrs: { caifu: -3, shengwang: 2, biancai: 1 }, dev: 0 },
       res: '狗屠的话糙，理不糙。三碗下肚，燕市没有你不知道的事——市井的耳朵，比朝堂的更灵。' },
-    { id: 'JK-ACT-15', name: '授剑糊口', desc: '教童子剑，以技易粟', descHidden: '教童子剑，以技易粟', chapters: [1, 1],
+    { id: 'JK-ACT-15', type: '兑换', name: '授剑糊口', desc: '教童子剑，以技易粟', descHidden: '教童子剑，以技易粟', chapters: [1, 1],
       eff: { attrs: { caifu: 3, weiji: 2, wuli: 1 }, dev: 0 },
       res: '束脩不多，够吃半月。孩子们喊你师父，你摆摆手：不敢当。他们练剑的架势歪歪扭扭，眼睛却很亮。' },
-    { id: 'JK-ACT-16', name: '探太子宫', desc: '打听东宫动静（声望≥30 才有人搭话）', descHidden: '打听东宫动静（声望不足则无人搭话）', req: { shengwang: 30 }, chapters: [1, 1],
+    { id: 'JK-ACT-16', type: '守成', name: '探太子宫', desc: '打听东宫动静（声望≥30 才有人搭话）', descHidden: '打听东宫动静（声望不足则无人搭话）', req: { shengwang: 30 }, chapters: [1, 1],
       eff: { attrs: { caixue: 1, moulue: 1, weiji: -1 }, dev: 0 },
       res: '太子宫每日进出多少人、哪辆车是太子丹的，你默默记下了。记这些不为别的——乱世里，门朝哪边开都要先看清。' },
-    { id: 'JK-ACT-17', name: '修书故里', desc: '寄书卫中故人', descHidden: '寄书卫中故人', chapters: [1, 1],
+    { id: 'JK-ACT-17', type: '保身', name: '修书故里', desc: '寄书卫中故人', descHidden: '寄书卫中故人', chapters: [1, 1],
       eff: { attrs: { weiji: -2, caixue: 1 }, dev: 0 },
       res: '信走了半月，回了一行字：家中都好，勿念。你把信折好收起——一行字，比信纸还薄，却压得住乡愁。' },
-    { id: 'JK-ACT-18', name: '燕市豪宴', desc: '张宴三日，扬名立万（财富-6）', descHidden: '张宴三日，扬名立万（颇耗财）', req: { caifu: 6 }, chapters: [1, 1],
+    { id: 'JK-ACT-18', type: '兑换', name: '燕市豪宴', desc: '张宴三日，扬名立万（财富-6）', descHidden: '张宴三日，扬名立万（颇耗财）', req: { caifu: 6 }, chapters: [1, 1],
       eff: { attrs: { caifu: -6, shengwang: 3, biancai: 1 }, dev: 0 },
       res: '三日流水席，燕市尽知卫客之名。也有人暗中记下了你的阔绰——名与祸，常常是一同请进门的。' },
-    { id: 'JK-ACT-47', name: '晨剑于郊', desc: '城郊练剑，剑气欺霜', descHidden: '城郊练剑，剑气欺霜', chapters: [1, 1],
+    { id: 'JK-ACT-47', type: '守成', name: '晨剑于郊', desc: '城郊练剑，剑气欺霜', descHidden: '城郊练剑，剑气欺霜', chapters: [1, 1],
       eff: { attrs: { wuli: 2, tupo: 1 }, dev: 0 },
       res: '霜还没化，你已在城郊走完了第三路剑。早起拾粪的老农看你舞到兴处，放下粪叉看了一袋烟的工夫。' },
-    { id: 'JK-ACT-48', name: '屠沽帮佣', desc: '肉案帮佣，气力换钱', descHidden: '肉案帮佣，气力换钱', chapters: [1, 1],
+    { id: 'JK-ACT-48', type: '守成', name: '屠沽帮佣', desc: '肉案帮佣，气力换钱', descHidden: '肉案帮佣，气力换钱', chapters: [1, 1],
       eff: { attrs: { tupo: 2, caifu: 1 }, dev: 0 },
       res: '你替狗屠抬了半月的肉案子，气力换来几吊钱。狗屠过意不去，多切了一斤肉送你——市井的交情，都在斤两里。' },
 
     /* ---- 章 2：易水畔 ---- */
-    { id: 'JK-ACT-19', name: '谒田光墓', desc: '一爵还酹，以答知己', descHidden: '一爵还酹，以答知己', chapters: [2, 2],
+    { id: 'JK-ACT-19', type: '进取', name: '谒田光墓', desc: '一爵还酹，以答知己', descHidden: '一爵还酹，以答知己', chapters: [2, 2],
       eff: { attrs: { shengwang: 2, weiji: -1, biancai: 1 }, dev: 0 },
       res: '你浇了三次酒。风过处，坟前的草朝着秦国的方向倒伏。老人听不见，但你还是把近日的事，一五一十说了一遍——这一席话，说得比在哪个宴席上都清楚。' },
-    { id: 'JK-ACT-20', name: '周旋宾客', desc: '与太子门下宾客往来', descHidden: '与太子门下宾客往来', chapters: [2, 2],
+    { id: 'JK-ACT-20', type: '进取', name: '周旋宾客', desc: '与太子门下宾客往来', descHidden: '与太子门下宾客往来', chapters: [2, 2],
       eff: { attrs: { junxin: 2, weiji: 2, biancai: 1, quanshi: 1, zhengji: 1 }, dev: 0 },
       res: '太子宫的宾客各有心思。你记下谁可交、谁须防。宴席散后，名单在心里又过了一遍——东宫的人脉，一条一条都连上了你的线。' },
-    { id: 'JK-ACT-21', name: '密探秦讯', desc: '打探秦廷消息', descHidden: '打探秦廷消息', chapters: [2, 2],
+    { id: 'JK-ACT-21', type: '进取', name: '密探秦讯', desc: '打探秦廷消息', descHidden: '打探秦廷消息', chapters: [2, 2],
       eff: { attrs: { caixue: 2, moulue: 1 }, zg: 3, dev: 0 },
       res: '咸阳来的每一条消息你都听了三遍。听得多了，秦廷也听见了你——消息是双向的路，你的脚步声也在路上。' },
-    { id: 'JK-ACT-22', name: '督造行装', desc: '检点行装器物（财富-3）', descHidden: '检点行装器物（耗财）', req: { caifu: 3 }, chapters: [2, 2],
+    { id: 'JK-ACT-22', type: '兑换', name: '督造行装', desc: '检点行装器物（财富-3）', descHidden: '检点行装器物（耗财）', req: { caifu: 3 }, chapters: [2, 2],
       eff: { attrs: { caifu: -3, weiji: -2, moulue: 1, zhengji: 1 }, dev: 0 },
       res: '函匣、图轴、车轫、干粮，逐项过手。错漏止于此夜——临行前的错漏，出了燕国就是性命。' },
-    { id: 'JK-ACT-23', name: '变卖剑饰', desc: '鬻剑上之饰以充川资', descHidden: '鬻剑上之饰以充川资', chapters: [2, 2],
+    { id: 'JK-ACT-23', type: '兑换', name: '变卖剑饰', desc: '鬻剑上之饰以充川资', descHidden: '鬻剑上之饰以充川资', chapters: [2, 2],
       eff: { attrs: { caifu: 3, shengwang: -2 }, dev: 0 },
       res: '剑饰卖尽，剑还在。懂行的人看你，像看一个落魄的人。落魄就落魄吧——剑在，人就在。' },
-    { id: 'JK-ACT-24', name: '纵马易水', desc: '驰马易水之滨', descHidden: '驰马易水之滨', chapters: [2, 2],
+    { id: 'JK-ACT-24', type: '保身', name: '纵马易水', desc: '驰马易水之滨', descHidden: '驰马易水之滨', chapters: [2, 2],
       eff: { attrs: { weiji: -3, tupo: 1 }, dev: 0 },
       res: '马跑得极快，风把胸口吹得透亮。易水的水，比想象中冷。你在岸边勒马站了很久，没有人来催。' },
-    { id: 'JK-ACT-49', name: '为太子画策', desc: '入幕画策，为燕谋退路', descHidden: '入幕画策，为燕谋退路', chapters: [2, 2],
+    { id: 'JK-ACT-49', type: '进取', name: '为太子画策', desc: '入幕画策，为燕谋退路', descHidden: '入幕画策，为燕谋退路', chapters: [2, 2],
       eff: { attrs: { zhengji: 2, moulue: 1, weiji: 2 }, dev: 0 },
       res: '你为⟦太子丹⟧谋划辽东、代北的退路与蓟城的守备，一条条写在简上。太子看完沉默良久，说：燕国欠你一策。看得见的筹策多了，看不见的眼睛也多了。' },
-    { id: 'JK-ACT-50', name: '闭门演剑', desc: '闭门演剑，朝夕揣摩', descHidden: '闭门演剑，朝夕揣摩', chapters: [2, 2],
+    { id: 'JK-ACT-50', type: '守成', name: '闭门演剑', desc: '闭门演剑，朝夕揣摩', descHidden: '闭门演剑，朝夕揣摩', chapters: [2, 2],
       eff: { attrs: { wuli: 2, tupo: 1, weiji: 1 }, dev: 0 },
       res: '你在院中反复走同一路剑，起手、转折、收势，各自拆了百遍。门客问练的什么剑，你答：防身的。剑光映在墙上，像一个说不出口的名字。' },
 
     /* ---- 章 3：首级与图 ---- */
-    { id: 'JK-ACT-25', name: '抚樊旧部', desc: '安抚樊於期从亡之士', descHidden: '安抚樊於期从亡之士', chapters: [3, 3],
+    { id: 'JK-ACT-25', type: '保身', name: '抚樊旧部', desc: '安抚樊於期从亡之士', descHidden: '安抚樊於期从亡之士', chapters: [3, 3],
       eff: { attrs: { weiji: -3, shengwang: 1, biancai: 1 }, dev: 0 },
       res: '那些秦人红着眼眶散了。你答应他们：仇，有人替他们记。记下仇的人，自己心里也多了一道口子。' },
-    { id: 'JK-ACT-26', name: '验看函首', desc: '亲验函匣封识', descHidden: '亲验函匣封识', chapters: [3, 3],
+    { id: 'JK-ACT-26', type: '保身', name: '验看函首', desc: '亲验函匣封识', descHidden: '亲验函匣封识', chapters: [3, 3],
       eff: { attrs: { weiji: -1 }, dev: 0 },
       res: '封识完好后你才合匣。这件事上，错一处就是死。匣盖合上的声音很轻，你听得很重。' },
-    { id: 'JK-ACT-27', name: '复核地形', desc: '督亢山川默记于心（才学≥45 方能成图）', descHidden: '督亢山川默记于心（才学不足则难成图）', req: { caixue: 45 }, chapters: [3, 3],
+    { id: 'JK-ACT-27', type: '守成', name: '复核地形', desc: '督亢山川默记于心（才学≥45 方能成图）', descHidden: '督亢山川默记于心（才学不足则难成图）', req: { caixue: 45 }, chapters: [3, 3],
       eff: { attrs: { caixue: 2, moulue: 1, tupo: -1 }, dev: 0 },
       res: '合上眼，督亢的城郭河渠都在你脑子里展开。哪条渠先画，哪座城后展，你比画图的吏员还熟。' },
-    { id: 'JK-ACT-28', name: '试毒验匕', desc: '验淬毒之效', descHidden: '验淬毒之效', chapters: [3, 3],
+    { id: 'JK-ACT-28', type: '进取', name: '试毒验匕', desc: '验淬毒之效', descHidden: '验淬毒之效', chapters: [3, 3],
       eff: { attrs: { caixue: 1, weiji: 3 }, dev: 0 },
       res: '血濡缕，无不立死。你把刀刃上的血擦净，沉默了很久——死物尚且如此，何况人。' },
-    { id: 'JK-ACT-29', name: '贿赂少府', desc: '打点少府胥吏（财富-5）', descHidden: '打点少府胥吏（颇耗财）', req: { caifu: 5 }, chapters: [3, 3],
+    { id: 'JK-ACT-29', type: '保身', name: '贿赂少府', desc: '打点少府胥吏（财富-5）', descHidden: '打点少府胥吏（颇耗财）', req: { caifu: 5 }, chapters: [3, 3],
       eff: { attrs: { caifu: -5, weiji: -3 }, dev: 0 },
       res: '少府的册子上，你的名字被挪到了"不必细查"那一页。那一页的纸，比别的页都贵。' },
-    { id: 'JK-ACT-30', name: '杜门谢客', desc: '闭门不见外客', descHidden: '闭门不见外客', chapters: [3, 3],
+    { id: 'JK-ACT-30', type: '保身', name: '杜门谢客', desc: '闭门不见外客', descHidden: '闭门不见外客', chapters: [3, 3],
       eff: { attrs: { weiji: -3, shengwang: -2, tupo: 1 }, dev: 0 },
       res: '门一关，是非就进不来了。敲门声响了三次，你没应。第四次没有再来——清净，有时候是等出来的。' },
-    { id: 'JK-ACT-51', name: '佐理使务', desc: '统筹使团庶务，事事躬亲', descHidden: '统筹使团庶务，事事躬亲', chapters: [3, 3],
+    { id: 'JK-ACT-51', type: '进取', name: '佐理使务', desc: '统筹使团庶务，事事躬亲', descHidden: '统筹使团庶务，事事躬亲', chapters: [3, 3],
       eff: { attrs: { zhengji: 2, weiji: 2, moulue: 1 }, dev: 0 },
       res: '函匣的封识、图轴的装裱、币帛的数目、车从的编排，你逐项过目，亲手登记。使团上下只知有位较真的上宾——差事办得越细，留在册上的名字就越多。' },
-    { id: 'JK-ACT-52', name: '燕邸授剑', desc: '贵邸授剑，束脩充使费', descHidden: '贵邸授剑，束脩充使费', chapters: [3, 3],
+    { id: 'JK-ACT-52', type: '守成', name: '燕邸授剑', desc: '贵邸授剑，束脩充使费', descHidden: '贵邸授剑，束脩充使费', chapters: [3, 3],
       eff: { attrs: { caifu: 3, wuli: 1 }, dev: 0 },
       res: '燕邸的贵介子弟慕名来学剑，束脩颇为丰厚。你教得敷衍，他们学得认真——使团的用度，就这么一剑一剑教了出来。' },
 
     /* ---- 章 4：易水 ---- */
-    { id: 'JK-ACT-31', name: '整束行装', desc: '最后的检点', descHidden: '最后的检点', chapters: [4, 4],
+    { id: 'JK-ACT-31', type: '保身', name: '整束行装', desc: '最后的检点', descHidden: '最后的检点', chapters: [4, 4],
       eff: { attrs: { weiji: -2 }, dev: 0 },
       res: '行囊不过一肩，心事却有千钧。你掂了掂，都带上。最后放进去的，是一小包燕市的土。' },
-    { id: 'JK-ACT-32', name: '筑前话别', desc: '与渐离对坐', descHidden: '与渐离对坐', chapters: [4, 4],
+    { id: 'JK-ACT-32', type: '保身', name: '筑前话别', desc: '与渐离对坐', descHidden: '与渐离对坐', chapters: [4, 4],
       eff: { attrs: { weiji: -2, biancai: 1 }, dev: 0 },
       res: '该交代的你都说得清清楚楚，唯独没提明天。散场时他说：歌我都记着呢。你点头——记着就好，总得有人记着。' },
-    { id: 'JK-ACT-33', name: '夜渡易水', desc: '趁夜暗渡（财富-3）', descHidden: '趁夜暗渡（耗财）', req: { caifu: 3 }, chapters: [4, 4],
+    { id: 'JK-ACT-33', type: '保身', name: '夜渡易水', desc: '趁夜暗渡（财富-3）', descHidden: '趁夜暗渡（耗财）', req: { caifu: 3 }, chapters: [4, 4],
       eff: { attrs: { caifu: -3, weiji: -3, tupo: 1 }, dev: 0 },
       res: '船家不问来路。水到中流，你回头看了一眼北岸——灯火稀稀落落，像一局没下完的棋。' },
-    { id: 'JK-ACT-34', name: '焚尽书信', desc: '往来尺素尽付一炬', descHidden: '往来尺素尽付一炬', chapters: [4, 4],
+    { id: 'JK-ACT-34', type: '保身', name: '焚尽书信', desc: '往来尺素尽付一炬', descHidden: '往来尺素尽付一炬', chapters: [4, 4],
       eff: { attrs: { weiji: -3, shengwang: -3 }, dev: 0 },
       res: '火光里你忽然想：这些字本来都是清白，如今却要当罪证来烧。纸灰扬起又落下，你一片都没留。' },
-    { id: 'JK-ACT-35', name: '饯行众客', desc: '白衣之饯（财富-4）', descHidden: '白衣之饯（耗财）', req: { caifu: 4 }, chapters: [4, 4],
+    { id: 'JK-ACT-35', type: '兑换', name: '饯行众客', desc: '白衣之饯（财富-4）', descHidden: '白衣之饯（耗财）', req: { caifu: 4 }, chapters: [4, 4],
       eff: { attrs: { caifu: -4, shengwang: 3, biancai: 1 }, dev: 0 },
       res: '你举爵致辞，满岸鸦雀无声。来送你的人比想象的多。酒过三巡，没有人笑得出来。白衣白得晃眼，像提前下的一场雪。' },
-    { id: 'JK-ACT-36', name: '默祷田光', desc: '默念遗命，以定心神', descHidden: '默念遗命，以定心神', chapters: [4, 4],
+    { id: 'JK-ACT-36', type: '保身', name: '默祷田光', desc: '默念遗命，以定心神', descHidden: '默念遗命，以定心神', chapters: [4, 4],
       eff: { attrs: { weiji: -3 }, dev: 0 },
       res: '田光按剑的样子，你想了一遍，又压下去一遍。压不下去的那一遍，就让它留着——留着才有力气。' },
-    { id: 'JK-ACT-53', name: '寒水试剑', desc: '易水之滨，临行试刃', descHidden: '易水之滨，临行试刃', chapters: [4, 4],
+    { id: 'JK-ACT-53', type: '守成', name: '寒水试剑', desc: '易水之滨，临行试刃', descHidden: '易水之滨，临行试刃', chapters: [4, 4],
       eff: { attrs: { wuli: 2, tupo: 1 }, dev: 0 },
       res: '你在⟦易水⟧边上把剑走完了最后三遍。水风寒得刺骨，剑意却越走越顺——过了这条水，这柄剑就不是用来试的了。' },
-    { id: 'JK-ACT-54', name: '鬻车充行', desc: '鬻车于市，充西行之用', descHidden: '鬻车于市，充西行之用', chapters: [4, 4],
+    { id: 'JK-ACT-54', type: '兑换', name: '鬻车充行', desc: '鬻车于市，充西行之用', descHidden: '鬻车于市，充西行之用', chapters: [4, 4],
       eff: { attrs: { caifu: 3, shengwang: -1 }, dev: 0 },
       res: '随行的车马在市口卖了，换成金饼贴身收好。人言燕使寒酸至此——你数着金饼没有接话：西行千里，轻便比体面值钱。' },
 
     /* ---- 章 5：咸阳 ---- */
-    { id: 'JK-ACT-37', name: '再贿蒙府', desc: '门路再上一层（财富-5）', descHidden: '门路再上一层（颇耗财）', req: { caifu: 5 }, chapters: [5, 5],
+    { id: 'JK-ACT-37', type: '兑换', name: '再贿蒙府', desc: '门路再上一层（财富-5）', descHidden: '门路再上一层（颇耗财）', req: { caifu: 5 }, chapters: [5, 5],
       eff: { attrs: { caifu: -5, junxin: 1, quanshi: 2 }, dev: 0 },
       res: '蒙府的门房见你，腰弯得比上次更低了一寸。金子能买的不是忠诚，是腰弯的角度——弯到某个角度，门路就成了你的门路。' },
-    { id: 'JK-ACT-38', name: '观察宫卫', desc: '记下宫城换防', descHidden: '记下宫城换防', chapters: [5, 5],
+    { id: 'JK-ACT-38', type: '进取', name: '观察宫卫', desc: '记下宫城换防', descHidden: '记下宫城换防', chapters: [5, 5],
       eff: { attrs: { caixue: 2, moulue: 1, weiji: 2 }, dev: 0 },
       res: '卫率几时换岗、哪道门最松，你都在心里排了一遍。排完才发现，手心全是汗。' },
-    { id: 'JK-ACT-39', name: '使馆深居', desc: '深居简出，养精蓄锐', descHidden: '深居简出，养精蓄锐', chapters: [5, 5],
+    { id: 'JK-ACT-39', type: '保身', name: '使馆深居', desc: '深居简出，养精蓄锐', descHidden: '深居简出，养精蓄锐', chapters: [5, 5],
       eff: { attrs: { weiji: -3, tupo: 1 }, dev: 0 },
       res: '馆门三日不出。秦人的眼睛找不到焦点，渐渐散了。第四天开门，阳光刺眼得像殿上的金。' },
-    { id: 'JK-ACT-40', name: '演练辞令', desc: '对烛自陈，字字磨洗', descHidden: '对烛自陈，字字磨洗', chapters: [5, 5],
+    { id: 'JK-ACT-40', type: '守成', name: '演练辞令', desc: '对烛自陈，字字磨洗', descHidden: '对烛自陈，字字磨洗', chapters: [5, 5],
       eff: { attrs: { caixue: 3, biancai: 2, tupo: -1, zhengji: 1 }, dev: 0 },
       res: '要说的话在舌头上过了百遍。到时候，一个字都不能错——错一个字，错的就不是话，是命。' },
-    { id: 'JK-ACT-41', name: '收买宦者', desc: '结纳宫中耳目（财富-6）', descHidden: '结纳宫中耳目（颇耗财）', req: { caifu: 6 }, chapters: [5, 5],
+    { id: 'JK-ACT-41', type: '保身', name: '收买宦者', desc: '结纳宫中耳目（财富-6）', descHidden: '结纳宫中耳目（颇耗财）', req: { caifu: 6 }, chapters: [5, 5],
       eff: { attrs: { caifu: -6 }, zg: -4, dev: 0 },
       res: '金子进宫墙的缝隙，话从缝隙里递回来。宫里那一双眼睛，替你眯了一眯——宦者的笑比金子还假，但消息是真的。' },
-    { id: 'JK-ACT-42', name: '夜查匕首', desc: '枕下之匕，夜夜亲验', descHidden: '枕下之匕，夜夜亲验', chapters: [5, 5],
+    { id: 'JK-ACT-42', type: '守成', name: '夜查匕首', desc: '枕下之匕，夜夜亲验', descHidden: '枕下之匕，夜夜亲验', chapters: [5, 5],
       eff: { attrs: { weiji: -1, caixue: 1, wuli: 1 }, dev: 0 },
       res: '刃口映着烛火，像一线将冻的河。你把它放回最顺手的位置——顺手到闭眼也能摸到，它现在是你的一部分。' },
-    { id: 'JK-ACT-55', name: '殿前演礼', desc: '觐见仪程，步步预演', descHidden: '觐见仪程，步步预演', chapters: [5, 5],
+    { id: 'JK-ACT-55', type: '守成', name: '殿前演礼', desc: '觐见仪程，步步预演', descHidden: '觐见仪程，步步预演', chapters: [5, 5],
       eff: { attrs: { biancai: 2, caixue: 1, weiji: 1 }, dev: 0 },
       res: '拜起、趋步、献图、奏对，你在客舍里对着屏风走了十几遍。秦国最讲究这些——仪程上错半步，殿上的话就轮不到你说了。同舍的副使看你念念有词，只当你怯场。' },
-    { id: 'JK-ACT-56', name: '分藏金帛', desc: '分藏金帛，以备不虞', descHidden: '分藏金帛，以备不虞', chapters: [5, 5],
+    { id: 'JK-ACT-56', type: '兑换', name: '分藏金帛', desc: '分藏金帛，以备不虞', descHidden: '分藏金帛，以备不虞', chapters: [5, 5],
       eff: { attrs: { caifu: 2, shengwang: -1 }, dev: 0 },
       res: '馆中的金帛悄悄分藏到了几处。咸阳的耳目不是没有察觉，报上去的措辞是"燕客多疑"——多疑就多疑，西行的人，本就该先想好退路。' },
-        { id: 'JK-ACT-57', name: '榆次再论剑', desc: '榆次酒肆，盖聂复会——当年的怒目，化得开，化不开', descHidden: '榆次酒肆，盖聂复会——当年的怒目，化得开，化不开', chapters: [0, 0],
+        { id: 'JK-ACT-57', type: '抉择', name: '榆次再论剑', desc: '榆次酒肆，盖聂复会——当年的怒目，化得开，化不开', descHidden: '榆次酒肆，盖聂复会——当年的怒目，化得开，化不开', chapters: [0, 0],
       choice: {
         segs: [
           '再入榆次，你特意从当年的酒肆门前过。幌子换了新的，酒旗还在风里摆，像等一个故人。',
@@ -915,7 +915,7 @@
             res: '你没有进店，只在门口站了站，便走了。有些旧事，问起来是酒，不问是河。你走过榆次的长街，忽然想：盖聂这个人，你记住了；至于他记不记得你——那已经不重要了。风从店门口吹来，带着酒气，你把衣领拢了拢。' }
         ]
       } },
-        { id: 'JK-ACT-58', name: '狗屠击筑', desc: '燕市狗屠与高渐离击筑相和——入席，还是独饮', descHidden: '燕市狗屠与高渐离击筑相和——入席，还是独饮', chapters: [0, 0],
+        { id: 'JK-ACT-58', type: '抉择', name: '狗屠击筑', desc: '燕市狗屠与高渐离击筑相和——入席，还是独饮', descHidden: '燕市狗屠与高渐离击筑相和——入席，还是独饮', chapters: [0, 0],
       choice: {
         segs: [
           '燕市狗屠的刀剁在案板上，高渐离的筑声落在刀声里——一刚一柔，竟合得天衣无缝，像天生就该一处。',
@@ -932,7 +932,7 @@
             res: '你摘下佩剑押在案上：这剑，换三坛好酒。狗屠哈哈大笑，亲自去搬。那一夜，燕市的灯火为你亮了很久。你抱着酒坛走出门，忽然想：用剑换酒，这买卖，这辈子做过不少次——可每一次，都值。' }
         ]
       } },
-        { id: 'JK-ACT-59', name: '燕市负剑人', desc: '道逢负剑客，问剑、问路、问名姓——一言不合，便是生死', descHidden: '道逢负剑客，问剑、问路、问名姓——一言不合，便是生死', chapters: [1, 1],
+        { id: 'JK-ACT-59', type: '抉择', name: '燕市负剑人', desc: '道逢负剑客，问剑、问路、问名姓——一言不合，便是生死', descHidden: '道逢负剑客，问剑、问路、问名姓——一言不合，便是生死', chapters: [1, 1],
       choice: {
         segs: [
           '燕市桥头，一个负剑的游侠拦住你的去路：“听说卫人庆卿，剑术通神。”他说“神”字时，嘴角带着笑——那种笑，是来找茬的。',
@@ -949,7 +949,7 @@
             res: '你看了看天色：“明日酉时，桥西柳树下。”他点头，大步去了。那一夜你磨剑到三更——磨剑的时候，你忽然想：答应下来的这一场，比桥上的这一场，难对付得多。你看着刃上的光，忽然笑了：也好，就看看，这燕市的剑，到底有几斤几两。' }
         ]
       } },
-        { id: 'JK-ACT-60', name: '高门投刺', desc: '燕宫高门，名刺递了三天三夜——进，还是不进，是个学问', descHidden: '燕宫高门，名刺递了三天三夜——进，还是不进，是个学问', chapters: [1, 1],
+        { id: 'JK-ACT-60', type: '抉择', name: '高门投刺', desc: '燕宫高门，名刺递了三天三夜——进，还是不进，是个学问', descHidden: '燕宫高门，名刺递了三天三夜——进，还是不进，是个学问', chapters: [1, 1],
       choice: {
         segs: [
           '燕宫的门，比燕市的酒肆难进得多。名刺递进去，回音像掉进井里，连个响都听不见。',
@@ -966,7 +966,7 @@
             res: '你收起名刺，转身走了。燕宫的门，终究不是为燕市的人开的——你对自己说。走出巷口，你忽然停下，回头看了一眼那高墙，墙上的青苔还湿着。你想：这门，总会有人来开的，只是开门的，不一定是你。' }
         ]
       } },
-        { id: 'JK-ACT-61', name: '易水观潮', desc: '易水岸边，老渔翁独钓——一竿一线，问的是天下的深浅', descHidden: '易水岸边，老渔翁独钓——一竿一线，问的是天下的深浅', chapters: [1, 2],
+        { id: 'JK-ACT-61', type: '抉择', name: '易水观潮', desc: '易水岸边，老渔翁独钓——一竿一线，问的是天下的深浅', descHidden: '易水岸边，老渔翁独钓——一竿一线，问的是天下的深浅', chapters: [1, 2],
       choice: {
         segs: [
           '易水岸边，老渔翁独钓。竿是枯竹，线是麻线，浮子却定得稳稳的——像一尊入定的佛。',
@@ -983,7 +983,7 @@
             res: '你问明了渡口，拱手谢过，涉水而去。河水漫过膝盖，凉得醒人。你走到对岸，回头望，老渔翁还坐在原地，像一尊入定的佛。你忽然想：这世上的渡口，从来不止一个——可你能过的，只有一个。' }
         ]
       } },
-        { id: 'JK-ACT-62', name: '宫门夜禁', desc: '入夜宫门落锁，你却被唤回——是福是祸，全在一念', descHidden: '入夜宫门落锁，你却被唤回——是福是祸，全在一念', chapters: [1, 2],
+        { id: 'JK-ACT-62', type: '抉择', name: '宫门夜禁', desc: '入夜宫门落锁，你却被唤回——是福是祸，全在一念', descHidden: '入夜宫门落锁，你却被唤回——是福是祸，全在一念', chapters: [1, 2],
       choice: {
         segs: [
           '暮鼓三声，宫门落锁。你正要走，门吏却追出来：“先生慢走——太子有请。”声音不高，像怕惊动什么。',
@@ -1000,7 +1000,7 @@
             res: '你站在宫门口，想了很久，终究没有进去——转身向城门走去。城门已闭，你从水关绕出，沿着易水走了半夜。天亮时你在一棵老树下歇脚，忽然想：这一走，燕宫的灯、太子的许诺，都留在身后了。你摸了摸怀里的剑，剑还在——你忽然安心了。' }
         ]
       } },
-        { id: 'JK-ACT-63', name: '千金买骨', desc: '太子宫中悬金问士——千金买的是骨，还是名，你得分清', descHidden: '太子宫中悬金问士——千金买的是骨，还是名，你得分清', chapters: [2, 2],
+        { id: 'JK-ACT-63', type: '抉择', name: '千金买骨', desc: '太子宫中悬金问士——千金买的是骨，还是名，你得分清', descHidden: '太子宫中悬金问士——千金买的是骨，还是名，你得分清', chapters: [2, 2],
       choice: {
         segs: [
           '太子宫中悬金问士：能为燕国画策者，千金谢。榜文挂了三天，来看的多，敢揭的少——金子烫手，命更烫手。',
@@ -1017,7 +1017,7 @@
             res: '你嗤笑一声：“千金买策？燕国要的，从来不是策。”转身走了。榜前的人你看了一眼——那张榜文，从此没有人再揭。你走在街上，听见风声，忽然想：这一句讥讽，比千金还重——重得连你自己，都有些后悔说了。' }
         ]
       } },
-        { id: 'JK-ACT-64', name: '夜读兵书', desc: '灯下摊开一卷残破的《司马法》——读与不读，都是一夜', descHidden: '灯下摊开一卷残破的《司马法》——读与不读，都是一夜', chapters: [2, 2],
+        { id: 'JK-ACT-64', type: '抉择', name: '夜读兵书', desc: '灯下摊开一卷残破的《司马法》——读与不读，都是一夜', descHidden: '灯下摊开一卷残破的《司马法》——读与不读，都是一夜', chapters: [2, 2],
       choice: {
         segs: [
           '灯下摊开一卷残破的《司马法》——纸页泛黄，边角被虫蛀出细密的小孔，像岁月咬过的牙印。',
@@ -1034,7 +1034,7 @@
             res: '你合上卷，吹了灯。书还摊在案上，等明天再读——明天永远有。你躺下，听着窗外的风声，忽然想：有些书，不读也没关系；可有些书，不读，就再也读不上了。你翻了个身，把那卷《司马法》压在了枕下，像压着一个还没拆开的秘密。' }
         ]
       } },
-        { id: 'JK-ACT-65', name: '督亢农人', desc: '督亢田埂上，老农问你北去何干——地里的实话，比书上的难答', descHidden: '督亢田埂上，老农问你北去何干——地里的实话，比书上的难答', chapters: [2, 2],
+        { id: 'JK-ACT-65', type: '抉择', name: '督亢农人', desc: '督亢田埂上，老农问你北去何干——地里的实话，比书上的难答', descHidden: '督亢田埂上，老农问你北去何干——地里的实话，比书上的难答', chapters: [2, 2],
       choice: {
         segs: [
           '督亢的田埂上，一个老农拦住你的马：“客人北去？替太子办事？”他问得随意，眼睛却一直看着你的马——看马，也看马背上的人。',
@@ -1051,7 +1051,7 @@
             res: '你下马，抚了抚他的田垄，留下一袋金：“麦子还会长的。”老农看着那袋金，没有接，只问了一句：“客，燕国会亡么？”你牵着马走了，没有回答——你怕一开口，连最后这点底气，也要散了。' }
         ]
       } },
-        { id: 'JK-ACT-66', name: '蒙府夜宴', desc: '蒙嘉府中夜宴，杯盏之间，刀光与酒光一样亮', descHidden: '蒙嘉府中夜宴，杯盏之间，刀光与酒光一样亮', chapters: [3, 3],
+        { id: 'JK-ACT-66', type: '抉择', name: '蒙府夜宴', desc: '蒙嘉府中夜宴，杯盏之间，刀光与酒光一样亮', descHidden: '蒙嘉府中夜宴，杯盏之间，刀光与酒光一样亮', chapters: [3, 3],
       choice: {
         segs: [
           '蒙嘉府中夜宴，你以燕使身份在座。堂上灯火通明，酒气蒸腾，秦国的权贵们谈笑风生——谈的却都是军报。',
@@ -1068,7 +1068,7 @@
             res: '你掷杯于地，满堂皆惊：“燕国，不是你们嘴里的笑话！”说完，你转身就走。身后先是一静，继而有人冷笑。你走出蒙府，夜风扑面，忽然想：这一摔，摔的是气性，也是机会——门房的千金，怕是白花了。你握着拳，在夜里站了很久。' }
         ]
       } },
-        { id: 'JK-ACT-67', name: '咸阳故人', desc: '咸阳街头，撞见旧日游侠——他乡遇故，是缘，也是劫', descHidden: '咸阳街头，撞见旧日游侠——他乡遇故，是缘，也是劫', chapters: [3, 4],
+        { id: 'JK-ACT-67', type: '抉择', name: '咸阳故人', desc: '咸阳街头，撞见旧日游侠——他乡遇故，是缘，也是劫', descHidden: '咸阳街头，撞见旧日游侠——他乡遇故，是缘，也是劫', chapters: [3, 4],
       choice: {
         segs: [
           '咸阳街头，一个扛着旧剑的背影，让你心头一跳——那是五年前在邯郸共饮过的游侠，姓赵，人称"赵二"。',
@@ -1085,7 +1085,7 @@
             res: '你低下头，让过身去，错开了那一瞬的目光。赵二追了两步，又停住，终究没有喊出来。你走出巷口，忽然想：不是不肯认——是这咸阳城里，认一个故人，就要多担一份凶险。你回望了一眼，那身影已经消失在人群里。你忽然觉得，这一低头，比拔剑还难。' }
         ]
       } },
-        { id: 'JK-ACT-68', name: '殿前老兵', desc: '咸阳宫外，扫阶老兵看了你一眼——那一眼，比宫门还深', descHidden: '咸阳宫外，扫阶老兵看了你一眼——那一眼，比宫门还深', chapters: [4, 4],
+        { id: 'JK-ACT-68', type: '抉择', name: '殿前老兵', desc: '咸阳宫外，扫阶老兵看了你一眼——那一眼，比宫门还深', descHidden: '咸阳宫外，扫阶老兵看了你一眼——那一眼，比宫门还深', chapters: [4, 4],
       choice: {
         segs: [
           '咸阳宫外，一个扫阶的老兵正在扫地。他的背有些驼，扫帚却很稳，一下，一下，像在数着什么。',

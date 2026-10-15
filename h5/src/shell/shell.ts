@@ -70,8 +70,8 @@ export function buildShell(mount: HTMLElement): Shell {
   mount.append(viewport);
 
   // ---------- 竖屏引导 ----------
-  // 竖屏下棋盘被压成 16:9,放不下带边框的卷轴(见 art.css 的说明),
-  // 所以竖屏不渲染对局,直接提示转屏。
+  // 全游戏强制横屏(2026-10-14 用户拍板):竖屏下 16:9 的棋盘放不下带边框的
+  // 卷轴,菜单/选择/对局/设置一律盖住,提示转屏。见 art.css 竖屏引导一节。
   const hint = el('div', 'rotate-hint');
   hint.append(
     el('div', 'rotate-hint__icon'),
@@ -94,10 +94,19 @@ export function setDeco(deco: HTMLElement, on: boolean): void {
   deco.hidden = !on;
 }
 
-/** 返回按钮挂回调 */
+/**
+ * 返回按钮挂回调(幂等)。
+ *
+ * 顶栏返回钮是常驻 DOM,而每开一局都会重新 wiring —— 直接 addEventListener
+ * 会叠加,第 N 局点一次返回就触发 N 次回调。这里先摘旧回调再挂新的。
+ */
+const BACK_CB = Symbol('qingshi.back');
 export function wireBack(shell: Shell, fn: () => void): void {
-  const b = shell.bar.querySelector('.topbtn--back');
-  b?.addEventListener('click', fn);
+  const b = shell.bar.querySelector('.topbtn--back') as (HTMLElement & { [BACK_CB]?: () => void }) | null;
+  if (!b) return;
+  if (b[BACK_CB]) b.removeEventListener('click', b[BACK_CB]);
+  b[BACK_CB] = fn;
+  b.addEventListener('click', fn);
 }
 
 /**

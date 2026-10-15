@@ -56,8 +56,9 @@
   --r-lg: 0.75rem;
 
   /* ---------- 字体栈 ----------
-     楷体用于叙事/标题(古籍感),宋体作正文兜底,无衬线作 UI。
-     刻意不内嵌霞鹜文楷:该字体 1.39MB,首屏体积预算留给 P6 瘦身时再议。
+     全游戏统一霞鹜文楷(2026-10-14 用户拍板):内嵌子集 1.39MB,
+     经 @font-face 加载,失败时逐级回退系统楷体。
+     宋体/无衬线栈保留作变量,不再作为默认正文。
 
      ⚠ 顺序有讲究:STKaiti(华文楷体)必须排在 KaiTi 之后。
      STKaiti 的笔画本身是斜的,放在前面会让全站正文变成一种仿手写斜体,
@@ -78,6 +79,13 @@
   /* 逻辑视口尺寸(px),由 scale.ts 写入,供 vmin 类单位之外的精确布局使用 */
   --vw: 1280px;
   --vh: 720px;
+}
+
+/* ---------- 内嵌字体:霞鹜文楷(全游戏统一,2026-10-14) ---------- */
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('/fonts/qingshi-kai.ttf') format('truetype');
+  font-display: swap;
 }
 
 /* ---------- reset ---------- */
@@ -104,7 +112,7 @@ body {
   overflow: hidden;
   background: var(--paper-app);
   color: var(--ink);
-  font-family: var(--font-song);
+  font-family: var(--font-kai);
   /* 关掉移动端的点击高亮与选中,避免点卡片时出现蓝块 */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;

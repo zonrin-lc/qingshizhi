@@ -1026,7 +1026,7 @@ function expect(name, actual, wantId, wantVariant) {
     && key.roundsLeft === E.KEY_CARD_ROUNDS && key.inserted === false
     && acts.length > 0 && acts.length <= 4
     && acts.every(o => o.type === 'action' && o.action && typeof o.locked === 'boolean' && typeof o.usedCount === 'number' && typeof o.diminishing === 'boolean');
-  if (structOk) { pass++; console.log('✔ offer 结构：1 关键卡（' + key.eventId + '「' + key.title + '」倒计时 ' + key.roundsLeft + '）+ ' + acts.length + ' 行动卡（≤3 常规 + 至多 1 强制抉择卡）'); }
+  if (structOk) { pass++; console.log('✔ offer 结构：1 关键卡（' + key.eventId + '「' + key.title + '」倒计时 ' + key.roundsLeft + '）+ ' + acts.length + ' 行动卡（≤2 常规 + 至多 1 强制抉择卡 + 染病时治病卡）'); }
   else { fail++; console.log('✘ offer 结构异常：' + JSON.stringify(offer.map(o => o.type))); }
   // chapters 过滤：章 0 offer 内行动均覆盖章 0，且不含他章专属（如 ACT-13 兰陵）
   const inCh0 = acts.every(o => o.action.chapters[0] <= 0 && 0 <= o.action.chapters[1]);
@@ -1613,7 +1613,8 @@ function expect(name, actual, wantId, wantVariant) {
   const offer = g.getOffer();
   const ci = offer.findIndex(o => o.action && o.action.id === '__cure__');
   const poolCards = offer.slice(1).filter(o => o.action && o.action.id !== '__cure__');
-  const offered = ci > 0 && offer[ci].action.name === '求医问药' && !offer[ci].locked && poolCards.length === 3;
+  // H5 对局页改版后行动池发牌 3→2，另可附 1 张次级抉择卡（不占池）：非治病行动卡为 2~3 张
+  const offered = ci > 0 && offer[ci].action.name === '求医问药' && !offer[ci].locked && poolCards.length >= 2 && poolCards.length <= 3;
   const c0 = g.attrs.caifu, t0 = g.attrs.tupo, rl0 = g.keyRoundsLeft;
   const r = g.playCard(ci);
   const cured = r && r.id === '__cure__' && g.ill === null
@@ -1621,7 +1622,7 @@ function expect(name, actual, wantId, wantVariant) {
     && g.keyRoundsLeft === rl0 - 1 && g.phase === 'round'
     && r.changes.some(c => c.k === 'caifu' && c.delta === -3) && r.changes.some(c => c.k === 'tupo' && c.delta === 5);
   const gone = g.getOffer().every(o => !(o.action && o.action.id === '__cure__')); // 愈后重发牌不再带治病卡
-  if (offered && cured && gone) { pass++; console.log('✔ 治病卡：染病后 getOffer 可见「求医问药」（3 池卡之外）；财富 ' + c0 + '→' + g.attrs.caifu + '、体魄+5、清病、倒计时 ' + rl0 + '→' + g.keyRoundsLeft + '，愈后停发'); }
+  if (offered && cured && gone) { pass++; console.log('✔ 治病卡：染病后 getOffer 可见「求医问药」（2~3 张行动/抉择卡之外）；财富 ' + c0 + '→' + g.attrs.caifu + '、体魄+5、清病、倒计时 ' + rl0 + '→' + g.keyRoundsLeft + '，愈后停发'); }
   else { fail++; console.log('✘ 治病卡异常：' + JSON.stringify({ offered, cured, gone, ill: g.ill })); }
 }
 

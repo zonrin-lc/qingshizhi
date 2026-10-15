@@ -297,7 +297,7 @@ function report(title, checks) {
  * 不是坏了,是正在渐显,得先点正文区把它跳过去。
  * 这正是玩家的真实操作,不为了测试去开后门。
  *
- * 优先级:浮层 → 选项卡 → 行动牌 → 主按钮 → 点正文跳渐显。
+ * 优先级:浮层 → 选项卡(底部/文本区内联) → 行动牌 → 主按钮 → 点正文跳渐显。
  * 不按 phase 分支 —— 章末结算这类新相位出现时就不用回头改一遍。
  */
 const STEP_SNIPPET = `
@@ -319,6 +319,14 @@ const STEP_SNIPPET = `
       if (act) { act.click(); return 'card'; }
       const btn = foot.querySelector('.btn--primary');
       if (btn) { btn.click(); return 'primary'; }
+    }
+    // 偶遇/随机事件:选项与「继续」内联在文本区,不在底部(2026-10-14)
+    const main = document.querySelector('.stage__main');
+    if (main && !isRevealing()) {
+      const tap = main.querySelector('.card--tappable');
+      if (tap) { tap.click(); return 'inline-option'; }
+      const btn = main.querySelector('.btn--primary');
+      if (btn) { btn.click(); return 'inline-primary'; }
     }
     if (isRevealing() && tapMain()) return 'skip-reveal';
     return 'idle';

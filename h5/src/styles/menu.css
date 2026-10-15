@@ -1,7 +1,7 @@
 /* ============================================================================
  * 主菜单(封存 Lua 版 home.lua renderMenu 的 H5 复刻)
  *
- * 整页水墨山水底;左 56% 竖排书法标题(星火常驻),右 44% 米白纱帘菜单。
+ * 整页水墨山水底;左 56% 组合主 logo(花纹 + 竖排书法 + 朱印),右 44% 米白纱帘菜单。
  * 帘的半透明底色 rgb(233,222,198,0.80) 与 Lua 的 {233,222,198,205} 一致。
  * ==========================================================================*/
 
@@ -12,7 +12,7 @@
   overflow: hidden;
 }
 
-/* ---------- 左:书法标题 + 星火 ---------- */
+/* ---------- 左:组合主 logo ---------- */
 .menu__titlewrap {
   position: absolute;
   top: 0;
@@ -27,23 +27,30 @@
 }
 .menu__titlebox {
   position: relative;
-  /* 标题素材 399×839;Lua 里 264×556 逻辑像素 ≈ 77% 屏高 */
-  height: 77%;
-  aspect-ratio: 399 / 839;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 书法素材 399×839(高 ≈ 2.103 宽);盒高 = 花纹 0.55w + 间距 0.08w + 书法 2.103w ≈ 2.73w */
+  height: 72%;
+  aspect-ratio: 100 / 273;
+}
+.menu__logoicon {
+  width: 55%;
+  margin-bottom: 8%;
+  /* 花纹本身是印章红,压低一点不抢书法 */
+  opacity: 0.92;
 }
 .menu__title {
-  position: absolute;
-  inset: 0;
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   object-fit: contain;
 }
-.menu__sparks {
+.menu__seal {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+  width: 24%;
+  right: -6%;
+  bottom: 0.5%;
 }
 
 /* ---------- 右:纱帘菜单 ---------- */
@@ -90,6 +97,8 @@
   flex-direction: column;
   align-items: center;
   padding: 0.65rem 1.6rem;
+  /* 触控兜底:小缩放档下 rem 收缩,菜单项不能小于可点的指触高度 */
+  min-height: 40px;
   background: none;
   border: 0;
   cursor: pointer;

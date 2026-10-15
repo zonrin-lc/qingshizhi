@@ -79,8 +79,12 @@
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
   background: var(--paper-card);
-  cursor: default;
+  cursor: pointer;
   color: var(--ink-soft);
+  transition: border-color 0.15s ease;
+}
+.stab:hover {
+  border-color: var(--gold);
 }
 .stab.is-on {
   border-color: var(--gold);
@@ -162,6 +166,52 @@
   letter-spacing: 0.1em;
   border-image-width: 20px 24px;
   border-image-slice: 38 44 38 44 fill;
+}
+
+/* ---------- 过滤为空 ---------- */
+.saves__empty {
+  text-align: center;
+  font-size: var(--fs-note);
+  padding: var(--sp-sm) 0;
+}
+
+/* ---------- 删除二次确认浮层 ---------- */
+/* fixed 而非 absolute:.saves 自身可滚动,absolute 会跟着内容滚走 */
+.saves__confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(42, 37, 29, 0.35);
+}
+.saves__confirmbox {
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-lg) var(--sp-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  box-shadow: 0 1rem 2.4rem rgba(42, 37, 29, 0.3);
+}
+.saves__confirmtitle {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--ink-heavy);
+  letter-spacing: 0.2em;
+}
+.saves__confirmtext {
+  font-size: var(--fs-ui);
+  color: var(--ink-soft);
+}
+.saves__confirmrow {
+  display: flex;
+  gap: var(--sp-lg);
+  margin-top: var(--sp-sm);
+  justify-content: center;
 }
 
 /* ---------- 窄屏 ---------- */
