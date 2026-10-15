@@ -14,6 +14,7 @@
 | [devlog-day10.md](devlog-day10.md) | DAY 10 | 新增抉择卡玩法(60 张);揪出四个既有 bug;存档改原子写;26,213 行全量审查 |
 | [devlog-day11.md](devlog-day11.md) | DAY 11 | 立绘 13→72 张补齐;全量审校重做 19 张;对局页 v2 落地;配音与音乐上线 |
 | [devlog-day12.md](devlog-day12.md) | DAY 12 | 配音全量覆盖 1927 条 + 五首主题曲;封存 Lua 版,转向 H5(规则引擎原样复用) |
+| [devlog-day13.md](devlog-day13.md) | DAY 13 | H5 一天重建六页面 + 罗盘;四条资产管线(图 131MB→WebP / BGM 41MB / 配音 249MB);七套浏览器验收 |
 | [devlog-material-overturns.md](devlog-material-overturns.md) | 附 | 投稿物料翻车记录(非日更) |
 
 ## 阅读线索
