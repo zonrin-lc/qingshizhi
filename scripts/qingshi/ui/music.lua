@@ -28,8 +28,8 @@ local TRACKS = {
   lisi = {
     inst = "audio/bgm_lisi_inst.ogg",
     vocal = "audio/bgm_lisi_vocal.ogg",
-    durInst = 203.59,
-    durVocal = 236.95,
+    durInst = 196.98,
+    durVocal = 247.21,
   },
   jingke = {
     inst = "audio/bgm_jingke_inst.ogg",
