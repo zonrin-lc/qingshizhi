@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 档案页(存档) · 效果图
+ *
+ * 需求:左侧人物立绘,右侧该人物的存档记录;切换立绘即切换人物。
+ *
+ * 结构:
+ *   左栏(340px)  大立绘 + 人物名牌 + 五个人物缩略图(切换)
+ *   右栏(自适应) 该人物的存档槽位 + 暂存区
+ *
+ * 设计要点:
+ *   - 立绘是 373×560 的完整人物图(自带水墨背景),所以左栏做成"画框"而非抠图浮层
+ *   - 未选中的四个人物压暗,让当前人物的立绘成为左栏唯一亮点
+ *   - 右栏顶部给出该人物的进度摘要(结局/章数),切人时这块跟着变
+ *   - 存档行分三态:有档 / 空档 / 暂存,视觉权重依次递减
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;--zhu-hi:#9e3422;--gold:#8a6a34;--gold-hi:#c4a05a;
+  --line:#c6b492;--line-soft:#d6c8ae;--paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2e2820;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/assets/image/menu_bg_center_20261016112729.png') center/cover no-repeat,#e9dfc9}
+/* 纸色柔光:整页压一层,保证正文可读。
+   必须给 z-index —— 它和 .body 同为绝对定位,不加的话会按 DOM 顺序盖在内容之上,
+   表现为整页发白、立绘和文字都像蒙了一层雾。 */
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(120% 90% at 50% 40%,rgba(250,245,233,.86),rgba(250,245,233,.62) 70%,rgba(250,245,233,.5) 100%)}
+
+/* ---------- 顶栏 ---------- */
+.top{position:absolute;top:18px;left:0;right:0;z-index:4;display:flex;align-items:center;padding:0 26px}
+.top__back{width:60px;height:60px;flex:0 0 auto;
+  background:url('/workspace/h5/src/assets/lua/back-btn.webp') center/contain no-repeat}
+.top__mid{position:absolute;left:50%;transform:translateX(-50%);text-align:center}
+.top__t{font-family:var(--disp);font-size:28px;letter-spacing:.44em;color:var(--ink-heavy);text-indent:.44em}
+.top__rule{margin:7px auto 0;width:230px;height:8px;
+  background:linear-gradient(90deg,transparent,var(--gold) 22%,var(--gold) 78%,transparent) center/100% 1px no-repeat}
+.top__rule::after{content:'';display:block;width:7px;height:7px;margin:-4px auto 0;background:var(--gold);transform:rotate(45deg)}
+.top__hint{position:absolute;right:26px;top:22px;font-size:10.5px;letter-spacing:.14em;color:var(--ink-dim);text-align:right;line-height:1.8}
+
+/* ---------- 主体 ---------- */
+.body{position:absolute;top:96px;left:0;right:0;bottom:14px;z-index:3;display:flex;gap:20px;padding:0 26px}
+
+/* ============ 左:人物 ============ */
+.role{flex:0 0 322px;display:flex;flex-direction:column;gap:10px;min-height:0}
+
+/* 立绘框 */
+.frame{position:relative;flex:1 1 auto;min-height:0;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line);box-shadow:0 10px 26px rgba(70,54,32,.2);background:#e6dcc6}
+.frame__img{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+/* 底部渐隐,给名牌让位 */
+.frame__veil{position:absolute;left:0;right:0;bottom:0;height:52%;
+  background:linear-gradient(0deg,rgba(28,24,18,.82),rgba(28,24,18,.34) 46%,rgba(28,24,18,0))}
+/* 左上角:局名小签 */
+.frame__tag{position:absolute;left:12px;top:12px;padding:4px 11px;border-radius:999px;
+  font-size:10.5px;letter-spacing:.14em;color:#f7f0e0;background:rgba(28,24,18,.5);
+  border:1px solid rgba(247,240,224,.28);backdrop-filter:blur(3px)}
+/* 名牌 */
+.plate{position:absolute;left:0;right:0;bottom:0;padding:16px 18px}
+.plate__name{font-family:var(--disp);font-size:30px;color:#fdf7ea;letter-spacing:.16em;
+  text-shadow:0 2px 10px rgba(0,0,0,.45)}
+.plate__sub{margin-top:5px;font-size:11.5px;color:rgba(253,247,234,.78);letter-spacing:.14em}
+.plate__stat{display:flex;gap:16px;margin-top:11px}
+.plate__stat i{font-style:normal;font-size:10.5px;color:rgba(253,247,234,.72);letter-spacing:.1em}
+.plate__stat b{font-family:var(--disp);font-weight:400;font-size:15px;color:var(--gold-hi);margin-right:4px}
+
+/* 人物切换 */
+.picker{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.pk{position:relative;aspect-ratio:3/4;border-radius:7px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--line-soft);background:#e6dcc6;padding:0;transition:transform .16s ease,box-shadow .16s ease}
+.pk img{width:100%;height:100%;object-fit:cover;object-position:center 16%;display:block;
+  filter:grayscale(.72) brightness(.82);transition:filter .18s ease}
+.pk__n{position:absolute;left:0;right:0;bottom:0;padding:3px 0 4px;text-align:center;
+  font-size:10px;letter-spacing:.1em;color:rgba(253,247,234,.9);
+  background:linear-gradient(0deg,rgba(28,24,18,.8),rgba(28,24,18,0))}
+.pk:hover img{filter:grayscale(.3) brightness(.95)}
+.pk.is-on{border-color:var(--zhu);box-shadow:0 0 0 2px rgba(176,67,47,.32),0 6px 14px rgba(70,54,32,.24)}
+.pk.is-on img{filter:none}
+.pk.is-on .pk__n{color:#fff;background:linear-gradient(0deg,rgba(158,52,34,.92),rgba(158,52,34,0))}
+/* 无档人物:右下角小点,不写字 */
+.pk__dot{position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;
+  background:rgba(247,240,224,.5)}
+.pk.is-on .pk__dot{background:var(--gold-hi)}
+
+/* ============ 右:存档 ============ */
+.saves{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:9px;min-height:0}
+
+/* 当前人物的摘要条 */
+.chead{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:11px 16px;
+  background:rgba(255,255,255,.58);border:1px solid var(--line-soft);border-radius:10px}
+.chead__seal{width:36px;height:36px;border-radius:7px;background:var(--zhu);color:#f7f0e0;
+  display:grid;place-items:center;font-family:var(--disp);font-size:15px;flex:0 0 auto}
+.chead__name{font-family:var(--disp);font-size:15.5px;color:var(--ink-heavy);letter-spacing:.1em}
+.chead__sub{font-size:10.5px;color:var(--ink-soft);letter-spacing:.06em;margin-top:3px}
+.chead__spacer{flex:1 1 auto}
+.chead__k{font-size:10px;letter-spacing:.2em;color:var(--ink-dim)}
+.chead__v{font-family:var(--disp);font-size:16px;color:var(--ink-strong);margin-top:2px}
+.chead__v em{font-style:normal;font-size:10px;color:var(--ink-dim)}
+.chead__col{text-align:right}
+
+/* 槽位列表 */
+.slots{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.slot{flex:0 0 auto;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:13px;
+  padding:9px 14px;border-radius:9px;background:rgba(255,255,255,.66);
+  border:1px solid var(--line-soft);position:relative}
+.slot__no{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;
+  font-family:var(--disp);font-size:15px;color:var(--ink-soft);
+  background:rgba(198,180,146,.24);border:1px solid var(--line-soft)}
+.slot__t{font-size:13px;color:var(--ink-heavy);letter-spacing:.06em}
+.slot__ch{font-size:11px;color:var(--ink-soft);letter-spacing:.08em;margin-top:3px}
+.slot__meta{font-size:10px;color:var(--ink-dim);letter-spacing:.04em;margin-top:3px}
+.slot__acts{display:flex;gap:8px}
+.sbtn{padding:6px 15px;border-radius:6px;border:1px solid var(--line);cursor:pointer;
+  font-family:var(--kai);font-size:11.5px;letter-spacing:.18em;color:var(--ink);
+  background:rgba(255,255,255,.7);transition:filter .15s ease}
+.sbtn--go{background:linear-gradient(180deg,#a8762f,var(--gold));border-color:transparent;color:#fdf7ea;
+  box-shadow:0 3px 9px rgba(120,86,34,.28)}
+.sbtn:hover{filter:brightness(1.06)}
+/* 空档:虚线 + 无按钮,权重最低 */
+.slot--empty{background:rgba(246,240,228,.4);border:1px dashed var(--line)}
+.slot--empty .slot__no{background:transparent;border-color:var(--line);color:var(--ink-dim)}
+.slot--empty .slot__t{color:var(--ink-dim);letter-spacing:.3em;font-size:12px}
+
+/* 暂存区 */
+.temp{flex:0 0 auto;margin-top:3px}
+.temp__t{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.26em;color:var(--ink-soft);margin-bottom:7px}
+.temp__t::after{content:'';flex:1 1 auto;height:1px;background:var(--line-soft)}
+.temp__t em{font-style:normal;font-size:9.5px;letter-spacing:.1em;color:var(--ink-dim)}
+.trow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+  padding:8px 13px;border-radius:8px;background:rgba(255,255,255,.5);border:1px solid var(--line-soft);
+  margin-bottom:6px}
+.trow__b{padding:2px 8px;border-radius:4px;font-size:9.5px;letter-spacing:.1em;
+  color:#f7f0e0;background:var(--ink-soft)}
+.trow__t{font-size:12px;color:var(--ink-strong);letter-spacing:.05em}
+.trow__m{font-size:9.5px;color:var(--ink-dim);margin-top:2px;letter-spacing:.04em}
+</style></head>
+<body>
+<div class="stage">
+
+  <div class="top">
+    <div class="top__back"></div>
+    <div class="top__mid">
+      <div class="top__t">档 案</div>
+      <div class="top__rule"></div>
+    </div>
+    <div class="top__hint">存档为章首快照,读取后回到该章开头<br>硬核难度不可存档</div>
+  </div>
+
+  <div class="body">
+    <!-- ===== 左:人物 ===== -->
+    <aside class="role">
+      <div class="frame">
+        <img class="frame__img" src="/workspace/h5/src/assets/char/jingke.webp" alt="荆轲">
+        <div class="frame__veil"></div>
+        <div class="frame__tag">图 穷 之 局</div>
+        <div class="plate">
+          <div class="plate__name">荆 轲</div>
+          <div class="plate__sub">约前 232 — 前 227 · 六年 · 6 章</div>
+          <div class="plate__stat">
+            <span><i><b>2</b>个存档</i></span>
+            <span><i><b>3</b>种结局</i></span>
+            <span><i><b>序章</b>最远</i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="picker">
+        <button class="pk" type="button">
+          <img src="/workspace/h5/src/assets/char/lisi.webp" alt="李斯"><span class="pk__n">李斯</span><span class="pk__dot"></span>
+        </button>
+        <button class="pk is-on" type="button">
+          <img src="/workspace/h5/src/assets/char/jingke.webp" alt="荆轲"><span class="pk__n">荆轲</span><span class="pk__dot"></span>
+        </button>
+        <button class="pk" type="button">
+          <img src="/workspace/h5/src/assets/char/hanxin.webp" alt="韩信"><span class="pk__n">韩信</span><span class="pk__dot"></span>
+        </button>
+        <button class="pk" type="button">
+          <img src="/workspace/h5/src/assets/char/xiangyu.webp" alt="项羽"><span class="pk__n">项羽</span><span class="pk__dot"></span>
+        </button>
+        <button class="pk" type="button">
+          <img src="/workspace/h5/src/assets/char/chensheng.webp" alt="陈胜"><span class="pk__n">陈胜</span><span class="pk__dot"></span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== 右:存档 ===== -->
+    <section class="saves">
+      <div class="chead">
+        <div class="chead__seal">荆</div>
+        <div>
+          <div class="chead__name">荆轲 · 图穷之局</div>
+          <div class="chead__sub">风萧萧兮易水寒 · 进阶向</div>
+        </div>
+        <div class="chead__spacer"></div>
+        <div class="chead__col">
+          <div class="chead__k">存 档</div>
+          <div class="chead__v">2 <em>/ 6</em></div>
+        </div>
+        <div class="chead__col">
+          <div class="chead__k">最 远</div>
+          <div class="chead__v">第二章</div>
+        </div>
+      </div>
+
+      <div class="slots">
+        <div class="slot">
+          <div class="slot__no">1</div>
+          <div>
+            <div class="slot__t">荆轲 · 图穷之局 · 普通</div>
+            <div class="slot__ch">第二章 · 田光之荐</div>
+            <div class="slot__meta">年龄 34 · 本章可回溯 1 次 · 2026-10-16 20:45</div>
+          </div>
+          <div class="slot__acts">
+            <button class="sbtn sbtn--go" type="button">读 取</button>
+            <button class="sbtn" type="button">删 除</button>
+          </div>
+        </div>
+
+        <div class="slot">
+          <div class="slot__no">2</div>
+          <div>
+            <div class="slot__t">荆轲 · 图穷之局 · 普通</div>
+            <div class="slot__ch">序章 · 剑与棋</div>
+            <div class="slot__meta">年龄 30 · 本章可回溯 1 次 · 2026-10-15 22:40</div>
+          </div>
+          <div class="slot__acts">
+            <button class="sbtn sbtn--go" type="button">读 取</button>
+            <button class="sbtn" type="button">删 除</button>
+          </div>
+        </div>
+
+        <div class="slot slot--empty">
+          <div class="slot__no">3</div>
+          <div class="slot__t">空 档</div>
+        </div>
+        <div class="slot slot--empty">
+          <div class="slot__no">4</div>
+          <div class="slot__t">空 档</div>
+        </div>
+        <div class="slot slot--empty">
+          <div class="slot__no">5</div>
+          <div class="slot__t">空 档</div>
+        </div>
+      </div>
+
+      <div class="temp">
+        <div class="temp__t">暂 存 <em>对局中直接关闭页面时自动暂存,每个剧本保留最近 1 条</em></div>
+        <div class="trow">
+          <span class="trow__b">暂</span>
+          <div>
+            <div class="trow__t">荆轲 · 图穷之局 · 普通 · 序章 剑与棋</div>
+            <div class="trow__m">年龄 30 · 本章可回溯 1 次 · 2026-10-15 22:37</div>
+          </div>
+          <div class="slot__acts">
+            <button class="sbtn sbtn--go" type="button">读 取</button>
+            <button class="sbtn" type="button">删 除</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</body></html>
