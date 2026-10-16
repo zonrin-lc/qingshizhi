@@ -9,6 +9,8 @@ const SCENARIOS = ["lisi", "jingke", "chensheng", "hanxin", "xiangyu"];
 const BATCH = parseInt(process.argv[2] || "14", 10);
 const OUT = ".tmp/voice";
 
+const FULL = process.env.QINGSHI_VOICE_FULL === "1";   // 1=全量重录包(不跳过已有音频)
+
 const clean = (s) => String(s).replace(/⟦|⟧/g, "");
 
 const items = [];
@@ -24,7 +26,7 @@ function push(scen, chap, kind, ev, idx, text) {
         : kind === "card"
           ? `${scen}_card_${ev}_s${idx}`
           : `${scen}_end_${ev}${idx ? "__" + idx : ""}`;
-  if (fs.existsSync(`assets/audio/voice/${key}.ogg`)) return;   // 已生成,跳过
+  if (!FULL && fs.existsSync(`assets/audio/voice/${key}.ogg`)) return;   // 已生成,跳过
   items.push({ key, scen, chap, kind, ev, idx, text: clean(text) });
 }
 

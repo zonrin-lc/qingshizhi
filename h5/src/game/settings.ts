@@ -25,11 +25,19 @@ export interface Settings {
   voiceGain: number;
   music: boolean;
   musicGain: number;
+  /**
+   * 音效开关与音量。当前版本游戏内还没有音效播放点(BGM 与剧情朗读之外
+   * 没有第三条音频通道),这两项先持久化占位 —— 用户已在设置页看到它们,
+   * 等音效真的接进来时直接读这两个键,不必再迁移存档。
+   */
+  sfx: boolean;
+  sfxGain: number;
 }
 
 export const DEFAULTS: Settings = {
   scale: 'default', segDelay: 650, textScale: 'normal',
   voice: true, voiceGain: 1.0, music: true, musicGain: 0.6,
+  sfx: true, sfxGain: 0.6,
 };
 
 /** 选项表与 Lua home.lua 的 *_OPTS 一一对应 */
@@ -62,6 +70,7 @@ export const MUSIC_GAIN_OPTS = [
   { value: 0.6, label: '标准' },
   { value: 0.9, label: '响' },
 ] as const;
+export const SFX_GAIN_OPTS = MUSIC_GAIN_OPTS;
 
 const KEY = 'qingshi.settings.v1';
 
@@ -79,6 +88,8 @@ export function loadSettings(): Settings {
       voiceGain: o.voiceGain ?? DEFAULTS.voiceGain,
       music: o.music ?? DEFAULTS.music,
       musicGain: o.musicGain ?? DEFAULTS.musicGain,
+      sfx: o.sfx ?? DEFAULTS.sfx,
+      sfxGain: o.sfxGain ?? DEFAULTS.sfxGain,
     };
   } catch {
     return { ...DEFAULTS };

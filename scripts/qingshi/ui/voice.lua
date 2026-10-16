@@ -92,11 +92,6 @@ function M.Stop()
   if source_ then source_:Stop() end
 end
 
--- 「朗读会话是否进行中」:含段间停顿(供 BGM 压低判定,避免段间音量抖动)
-function M.IsPlaying()
-  return not stopped_
-end
-
 -- 由 Shell.Update 每帧调用:当前段播完,先等段间停顿,再续播下一段
 function M.Update(timeStep)
   if stopped_ then return end

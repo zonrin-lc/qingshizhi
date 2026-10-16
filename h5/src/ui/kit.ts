@@ -3,8 +3,9 @@
  *
  * 对齐 Lua 版 theme.lua 的设计语言,但用 DOM 重写:
  * 色值/字号阶全部走 CSS 令牌(base.css),这里只负责构造与拼装。
- * P2 阶段不引入图片资源(美术在 P3),故组件保持无边框装饰的朴素形态。
+ * 美术资源自 P3 起引入(2026-10-16 起含带图组件:全站统一罗盘返回钮 backBtn)。
  */
+import bgBack from '../assets/lua/back-btn.webp';
 
 /** 建元素:tag.className / textContent */
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -110,4 +111,21 @@ export function meter(pct: number, color?: string): HTMLElement {
   if (color) fill.style.background = color;
   track.append(fill);
   return track;
+}
+/**
+ * 全站统一的罗盘返回钮(2026-10-16 拍板):复用选择页同款图与位置(top 3vh / left 3vw),
+ * 样式见 base.css .pageback。绝对定位,须挂在各页根节点上(勿挂进本身带 top 偏移的
+ * 容器,如 .seltop,否则双重偏移)。onBack 省略时只建按钮,回调由调用方后挂(见 wireBack)。
+ */
+export function backBtn(onBack?: () => void, title = '返回'): HTMLButtonElement {
+  const b = el('button', 'pageback') as HTMLButtonElement;
+  b.type = 'button';
+  b.title = title;
+  const img = el('img', 'pageback__img') as HTMLImageElement;
+  img.src = bgBack;
+  img.alt = '返回';
+  img.draggable = false;
+  b.append(img);
+  if (onBack) b.addEventListener('click', onBack);
+  return b;
 }

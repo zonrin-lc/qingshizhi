@@ -302,11 +302,13 @@ function Theme.Divider(text, o)
   }
 end
 
--- ---------- 印章(朱框方印,竖排单/双字) ----------
+-- ---------- 印章(朱框方印,单字大字号;双字如「甲上」自动缩小) ----------
 function Theme.Seal(text, o)
   o = o or {}
   local C = Theme.COLOR
   local sz = o.size or 46
+  local nChar = utf8.len(text or '') or 1
+  local fs = o.fs or math.floor(sz * (nChar > 1 and 0.34 or 0.5))
   return UI.Panel {
     width = sz, height = sz, borderRadius = 6,
     backgroundColor = o.fill and C.zhu or { 176, 67, 47, 22 },
@@ -315,7 +317,7 @@ function Theme.Seal(text, o)
     pointerEvents = "none",
     children = {
       UI.Label {
-        text = text or '', fontSize = o.fs or (sz * 0.5),
+        text = text or '', fontSize = fs,
         fontColor = o.fill and C.card or C.zhu, fontWeight = "bold",
         fontFamily = Theme.FONT_KAI, textAlign = "center",
       },

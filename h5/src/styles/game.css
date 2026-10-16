@@ -9,15 +9,13 @@
 .stage__bar {
   gap: var(--sp-md);
 }
-/* 左右两按钮不变形:定宽牌匾,收缩只发生在中部标题区 */
-.topbtn--back {
-  flex: 0 0 auto;
-}
-/* 中部标题区高度固定:章节名 + 金线两行,长题省略号截断不撑高 */
+/* 中部标题区高度固定:章节名 + 金线两行,长题省略号截断不撑高。
+ * 返回钮已脱出顶栏流(全站共享 .pageback 罗盘钮),左补一个回溯钮宽度(9.6rem+gap),标题才保持真居中。 */
 .stage__head {
   flex: 1 1 auto;
   min-width: 0;
   height: 4.4rem;
+  margin-left: calc(9.6rem + var(--sp-md));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -49,7 +47,7 @@
   line-height: 1.3;
 }
 /* 对局页章题/事件题对齐效果图:居中放大楷体,下接菱形金线(.rule)。
- * 限定非窄卷轴,章末结算/结局页版式本次不动。 */
+ * 限定非窄卷轴;章末结算/结局页的标题改用全站统一的 .page-title/.page-rule(2026-10-16 拍板)。 */
 .stage__main:not(.stage__main--narrow) .chapter__sub {
   text-align: center;
 }
@@ -121,10 +119,16 @@
 }
 
 /* ---------- 决策区 ---------- */
+/* foot 收进 cols 两行网格的第一列(与文本区同轨):宽度天然 = 文本区宽度,
+ * 原来「右缘让出 30%」的对齐计算不再需要(2026-10-15)。 */
 .stage__foot {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
+  /* 卡片宽高比锁 2:1(2026-10-15 拍板不拉伸):高度由比例推出,
+   * 不能再 stretch——stretch 会把高度撑成行高,比例约束失效 */
+  align-items: center;
   justify-content: center;
   gap: var(--sp-sm);
   overflow-y: auto;
@@ -132,6 +136,44 @@
      否则会在棋盘底部压出一条与背景割裂的米色带。 */
   background: transparent;
   border-top: 0;
+  padding: var(--sp-sm) var(--sp-lg) var(--sp-md);
+}
+
+/* 选项卡统一 2:1 + 阴影 + 翻面入场(2026-10-15 拍板):
+ * 行动卡卡面底图本身就是 1200×600(2:1),锁定比例后贴图零形变;
+ * min-height 旧下限(6rem)在小宽度下会顶破比例,一并放开。 */
+.stage__foot .card {
+  aspect-ratio: 2 / 1;
+  min-height: 0;
+  overflow: hidden;
+  /* 2026-10-16 加深:双层投影,远层大模糊给浮起感,近层小阴影定边缘 */
+  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
+  animation: card-flip-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+.stage__foot .card:nth-child(2) { animation-delay: 0.06s; }
+.stage__foot .card:nth-child(3) { animation-delay: 0.12s; }
+.stage__foot .card:nth-child(4) { animation-delay: 0.18s; }
+.stage__foot .card:nth-child(5) { animation-delay: 0.24s; }
+/* 从背面翻到正面:起帧侧立(背面朝人),依次翻开 */
+@keyframes card-flip-in {
+  from {
+    transform: perspective(72rem) rotateY(-88deg);
+    opacity: 0.15;
+    filter: brightness(0.82);
+  }
+  to {
+    transform: perspective(72rem) rotateY(0deg);
+    opacity: 1;
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage__foot .card { animation: none; }
+}
+/* min-height 旧下限(6rem,行动卡/卡背规则里设定)在小宽度下会顶破 2:1,脚区一律放开 */
+.stage__foot .card.card--action,
+.stage__foot .card.card--back {
+  min-height: 0;
 }
 
 .card {
@@ -141,13 +183,6 @@
   padding: var(--sp-xs) var(--sp-md);
   border-style: solid;
   transition: transform 0.15s ease, filter 0.15s ease;
-}
-/* 决策区在棋盘底部,卡片整体上移一点,别贴着屏幕边缘。
- * 右缘让出 30%:与 .stage__cols 的 3fr 右栏同宽,使选项区与中部文本区等宽
- * (2026-10-14 用户拍板)。cols 左右各有 sp-lg 内边距后,内容宽 = 100% - 2·sp-lg,
- * 精确对齐右内边距 = 30% + 0.4·sp-lg。 */
-.stage__foot {
-  padding: var(--sp-sm) calc(30% + 0.4 * var(--sp-lg)) var(--sp-md) var(--sp-lg);
 }
 .card--tappable {
   cursor: pointer;
@@ -231,7 +266,7 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%;
-  box-shadow: 0 2px 6px rgba(42, 37, 29, 0.16);
+  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
 }
 .card.card--action.t-jin,
 .card.card--action.t-shou,
@@ -250,7 +285,7 @@
 .card.card--action.card--tappable:hover,
 .card.card--action.card--tappable:focus-visible {
   filter: brightness(1.06) saturate(1.05);
-  box-shadow: 0 0.35rem 0.75rem rgba(42, 37, 29, 0.22);
+  box-shadow: 0 0.5rem 1.1rem rgba(42, 37, 29, 0.34), 0 2px 5px rgba(42, 37, 29, 0.24);
 }
 /* 正文让开左侧角签 */
 .card.card--action .card__body {
@@ -284,6 +319,43 @@
 .card__badge.t-xu   { color: #6aa8c4; }
 .card__lock {
   font-size: var(--fs-cap);
+}
+/* 卡背占位(2026-10-15 拍板):选项区常驻,本轮无可选时铺 4 张背面;
+   卡背与卡面共用通用边框(assets/image/cards 交付说明),叠两层背景 */
+.card.card--back {
+  border-image: none;
+  border: 0;
+  min-height: 6rem;
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: 5px;
+  background-color: var(--paper-card);
+  background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-back.webp');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%, cover;
+  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
+  cursor: default;
+}
+
+/* 选定后翻回背面(2026-10-16 拍板):未选中的即刻翻,选中的(.is-chosen)留到下回合发牌前翻。
+ * 伪 3D 两阶段:is-flipped 侧立(0.22s)→ JS 半程加 is-back 换卡背贴图再落回(0.26s),不换 DOM。 */
+.stage__foot .card.is-flipped {
+  pointer-events: none;
+  transform: perspective(72rem) rotateY(88deg);
+  transition: transform 0.22s ease-in;
+}
+.stage__foot .card.is-flipped.is-back {
+  transform: perspective(72rem) rotateY(0deg);
+  transition: transform 0.26s ease-out;
+  /* 与 card--back 同口径:通用边框 + 卡背 */
+  background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-back.webp');
+  background-size: 100% 100%, cover;
+}
+.stage__foot .card.is-flipped.is-back > * {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage__foot .card.is-flipped { transition: none; }
 }
 .thaw {
   flex: 1 1 100%;
@@ -465,10 +537,13 @@
 }
 
 /* ---------- 右栏 ----------
- * 宽度由 .stage__cols 的 7fr 3fr 决定,不再定宽 13rem;
- * grid 行 stretch 使其高度与叙事区一致、下缘对齐决策区顶。 */
+ * 宽度默认由 .stage__cols 的 7fr 3fr 决定,不再定宽 13rem;
+ * 纵跨文本行与选项行两行,下缘与选项卡行下缘对齐(2026-10-15 拍板)。 */
 .stage__side {
+  grid-column: 2;
+  grid-row: 1 / 3;
   min-width: 0;
+  min-height: 0;
   padding: var(--sp-sm) var(--sp-md);
   border-left: 1px solid var(--line);
   background: var(--paper);
@@ -481,24 +556,41 @@
   color: var(--gold);
 }
 
-/* ---------- 主/右 两栏 ----------
- * 文本区 : 属性区 = 7 : 3(2026-10-14 用户拍板)。
- * grid 默认同行 stretch,属性区自然延伸到与决策区顶边相接。
+/* ---------- 主/右/选项 三格 ----------
+ * 文本区 : 属性区 = 7 : 3(2026-10-14 用户拍板);选项区与文本区同列同宽。
+ * foot 已收进 cols(shell.ts):两行网格,属性区纵跨两行、下缘对齐选项行(2026-10-15)。
  * 左右内边距 sp-lg:卷轴左缘与顶栏返回按钮左缘对齐(顶栏 padding 亦是 sp-lg);
  * 上下 sp-md:中部区域与顶栏、底部决策区之间留出间距(2026-10-14 用户拍板)。 */
 .stage__cols {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 7fr 3fr;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   padding: var(--sp-md) var(--sp-lg);
 }
 .stage__main {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
-  overflow-y: auto;
+  min-height: 0;
+  /* 卷轴本体不滚动:正文在 .prose-body 内滚,立绘列原地不动(2026-10-15 拍板) */
+  overflow: hidden;
   /* 四边同距:正文与立绘之间由 flex gap(sp-lg)分隔,
    * 文本区与画卷内缘(轴杆内沿的金线)也保持同样的边距(2026-10-14 拍板) */
   padding: var(--sp-lg);
+}
+/* 宽屏(≥16:9)下画轴按底图原生比例渲染,高度不变、宽度由比例推出
+ * (2026-10-15 拍板「按现在的高度不变,恢复到不变形」):
+ * 列轨保持 7fr/3fr 不动(属性区=右三成,auto 轨会被选项卡的 max-content 撑爆);
+ * 卷轴只在 7fr 轨内按原生比例居中,与下方居中的选项卡视觉对齐。
+ * 低于 16:9 的方屏(4:3/16:10)宽度不足,退回拉伸填充(轨内 100% 宽)。 */
+@media (min-width: 881px) and (min-aspect-ratio: 16/9) {
+  .stage__main:not(.stage__main--narrow) {
+    aspect-ratio: 1071 / 643;
+    justify-self: center;
+    max-width: 100%;
+  }
 }
 
 /* ---------- 顶栏回溯按钮 ---------- */
@@ -540,6 +632,8 @@
   }
   .stage__head {
     height: 3.2rem;
+    /* 窄屏回溯钮缩到 6rem(art.css),居中补偿同步收窄 */
+    margin-left: calc(6rem + var(--sp-md));
   }
   .stage__side {
     flex: 0 0 auto;
@@ -585,6 +679,13 @@
     flex: 1 1 8rem;
     min-width: 7.5rem;
     padding: var(--sp-xs) var(--sp-sm);
+  }
+  /* 2:1 比例下窄屏卡高仅 ~3.75rem,次要信息藏掉防裁剪(标题与徽章保留) */
+  .stage__foot .card .card__desc,
+  .stage__foot .card .card__risk,
+  .stage__foot .card .card__warn,
+  .stage__foot .card .card__lock {
+    display: none;
   }
   .overlay__box {
     padding: var(--sp-md);
@@ -661,11 +762,16 @@
 .sec.is-collapsed .sec__body {
   display: none;
 }
-.sec__body .card {
-  margin-top: var(--sp-xs);
+/* 剧情走向按钮(继续)与选择卡:跟在剧情文本下面、居中(2026-10-15 拍板)。
+ * card 是 div 天然块级,限宽后 auto 外边距居中;btn 是 inline-block,需转块级。 */
+.sec__body > .card {
+  width: fit-content;
+  max-width: min(26rem, 100%);
+  margin: var(--sp-xs) auto 0;
 }
-.sec__body .btn {
-  margin-top: var(--sp-sm);
+.sec__body > .btn {
+  display: block;
+  margin: var(--sp-sm) auto 0;
 }
 
 /* 题签内联:落定后追加的「——所选」后缀与属性胶囊(2026-10-14 拍板) */
@@ -696,29 +802,30 @@
   font-size: var(--fs-cap);
 }
 
-/* 滚动条:细条古铜,跟画卷配色走(替换浏览器默认灰条) */
-.stage__main,
+/* 滚动条:细条古铜,跟画卷配色走(替换浏览器默认灰条);
+   文本区滚动容器是 .prose-body(2026-10-15 起 main 不再滚动) */
+.prose-body,
 .stage__side,
 .stage__foot,
 .overlay__box {
   scrollbar-width: thin;
   scrollbar-color: var(--gold) transparent;
 }
-.stage__main::-webkit-scrollbar,
+.prose-body::-webkit-scrollbar,
 .stage__side::-webkit-scrollbar,
 .stage__foot::-webkit-scrollbar,
 .overlay__box::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.stage__main::-webkit-scrollbar-thumb,
+.prose-body::-webkit-scrollbar-thumb,
 .stage__side::-webkit-scrollbar-thumb,
 .stage__foot::-webkit-scrollbar-thumb,
 .overlay__box::-webkit-scrollbar-thumb {
   background: var(--gold);
   border-radius: 3px;
 }
-.stage__main::-webkit-scrollbar-track,
+.prose-body::-webkit-scrollbar-track,
 .stage__side::-webkit-scrollbar-track,
 .stage__foot::-webkit-scrollbar-track,
 .overlay__box::-webkit-scrollbar-track {
@@ -761,4 +868,24 @@
 }
 .flychg.is-down {
   color: var(--zhu);
+}
+/* ---------- 险招摇骰动画 ---------- */
+@keyframes dice-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-2px) rotate(-2deg); }
+  75% { transform: translateX(2px) rotate(2deg); }
+}
+@keyframes dice-land {
+  0% { transform: scale(1.25); opacity: 0.4; }
+  60% { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.dice-rolling {
+  display: inline-block;
+  animation: dice-shake 0.18s linear infinite;
+  letter-spacing: 0.08em;
+}
+.dice-land {
+  display: inline-block;
+  animation: dice-land 0.32s ease-out;
 }

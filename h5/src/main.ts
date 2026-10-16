@@ -12,7 +12,9 @@ import './styles/game.css';
 import './styles/art.css';
 import './styles/menu.css';
 import './styles/select.css';
+import './styles/teaser.css';
 import './styles/save.css';
+import './styles/gallery.css';
 import './styles/settings.css';
 
 import engine from '@engine';
@@ -28,9 +30,14 @@ import { renderSelectPage, type SelectPage } from './ui/select';
 import { renderSettingsPage, syncFromStorage } from './ui/settings';
 import { applyVisual, broadcastSettings, loadSettings, onSegDelay } from './game/settings';
 import { renderSavePage } from './ui/savepage';
-import { getAuto, listSlots, load as loadSlot, loadPayload, save as writeSlot, saveAuto } from './game/saves';
+import { renderGalleryPage, type GalleryPage } from './ui/gallery';
+import {
+  AUTO_MAX, autoCount, fmtRound, getLatestAuto, listStash, listAutos, loadPayload, saveAuto, stashSave,
+  whyCannotSave, type Slot,
+} from './game/saves';
 import { injectCollection } from './game/collection';
-import { lbl } from './ui/kit';
+import { initTapCloud, requestExit as requestAppExit } from './game/tapcloud';
+import { btn, el, lbl } from './ui/kit';
 
 /** 引擎导出面自检 */
 function checkEngineSurface(): string[] {
@@ -105,9 +112,10 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   let session: Session | null = null;
   /** 当前对局的剧本 key,存档页高亮用 */
   let curKey = '';
-  /** 菜单/选择页句柄:两者都有 rAF 循环(菜单入场/罗盘/漩涡),离开时必须停 */
+  /** 选择页句柄:有 rAF 循环(罗盘/漩涡),离开时必须停 */
   let menuPage: MenuPage | null = null;
   let selectPage: SelectPage | null = null;
+  let galleryPage: GalleryPage | null = null;
   /**
    * 导航代数:每次页面切换 +1。异步入局(等数据分片下载)落地前比对,
    * 代数变了说明玩家已经去了别的页面,迟到的 resolve 不许再把人拽进对局。
@@ -126,6 +134,8 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     menuPage = null;
     selectPage?.destroy();
     selectPage = null;
+    galleryPage?.destroy();
+    galleryPage = null;
     shell.stage.querySelector('.saves')?.remove();
     shell.stage.querySelector('.settings')?.remove();
   };
@@ -136,16 +146,81 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     hidePages();
   };
 
-  /** 退出对局时自动存档:所有离开路径都汇聚到 goMenu/goSelect,挂一处就够 */
-  const autosaveIfPlaying = (): void => {
+  /** 收掉对局会话(不写档)。所有离开路径最终都汇聚到 goMenu/goSelect。 */
+  const disposeSession = (): void => {
     if (!session) return;
-    if (session.game.phase !== 'ending') {
-      saveAuto(session.game, curKey, session.game.d.SCENARIO.name);
-    }
-    // 结局的自动档在 renderEnding 时已清(对齐 Lua),这里只需收尾会话
     session.dispose();
     session = null;
   };
+
+  /**
+   * 对局页点「返回」(2026-10-15 二次拍板):先问是否存档,再退出。
+   * - 存档语义(v2.2.0)是「当前这一刻的完整进度」(精确到经营轮次),文案必须如实说;
+   * - 该剧本自动档满 AUTO_MAX 条时,同一个确认框里直接写明将覆盖最早一条,
+   *   点「存 档 退 出」即视为确认覆盖,不再二次打断;
+   * - 结局已落定 / 硬核 / noSave / 尚未入章的局没有可存的东西,不问直接退。
+   */
+  const requestExit = (): void => {
+    const s0 = session;
+    if (!s0) { goSelect(); return; }
+    const g = s0.game;
+    if (g.phase === 'ending' || whyCannotSave(g)) {
+      disposeSession();
+      goSelect();
+      return;
+    }
+    const full = autoCount(curKey) >= AUTO_MAX;
+    shell.stage.querySelector('.saves__confirm')?.remove();
+    const ov = el('div', 'saves__confirm');
+    const box = el('div', 'saves__confirmbox');
+    box.append(
+      lbl('离 开 对 局？', 'saves__confirmtitle u-kai'),
+      lbl('是否把进度存档？存档记录当前这一刻的进度(含本章经营轮次),读取后从此处继续。', 'saves__confirmtext'),
+      ...(full
+        ? [lbl(`「${g.d.SCENARIO.name}」的存档已满 ${AUTO_MAX} 条,存档将覆盖最早的一条。`, 'saves__confirmtext u-zhu')]
+        : []),
+    );
+    const row = el('div', 'saves__confirmrow');
+    row.append(
+      btn(full ? '覆 盖 并 退 出' : '存 档 退 出', {
+        variant: 'primary',
+        onClick: () => {
+          const r = saveAuto(g, curKey, g.d.SCENARIO.name, { overwriteOldest: full, roundNo: s0.roundNo });
+          toast(r.reason);
+          ov.remove();
+          disposeSession();
+          goSelect();
+        },
+      }),
+      btn('不 存 退 出', {
+        variant: 'ghost',
+        onClick: () => {
+          ov.remove();
+          disposeSession();
+          goSelect();
+        },
+      }),
+      btn('再 玩 一 会', { variant: 'ghost', onClick: () => ov.remove() }),
+    );
+    box.append(row);
+    ov.append(box);
+    // 点遮罩空白处视为取消(留在对局)
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) ov.remove();
+    });
+    shell.stage.append(ov);
+  };
+
+  /**
+   * 直接关页/刷新的暂存(2026-10-15 拍板;同日调整:点「返回」只写自动档,
+   * 暂存只剩这条防丢路径):pagehide 是关页场景下最可靠的钩子
+   * (beforeunload 在移动端常被跳过)。页面已在销毁,只做写存储这一件事。
+   * 与 autosaveIfPlaying 不会双写:那条路径先把 session 置空,这里看到 null 就跳过。
+   */
+  window.addEventListener('pagehide', () => {
+    if (!session || session.game.phase === 'ending') return;
+    stashSave(session.game, curKey, session.game.d.SCENARIO.name, session.roundNo);
+  });
 
   /** 提示条:存档结果等需要告知玩家的短消息 */
   let toastTimer = 0;
@@ -162,34 +237,34 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     toastTimer = window.setTimeout(() => { if (t) t.hidden = true; }, 2600);
   };
 
-  /** 继续旅程:只有一个自动档直接进;有手动档则去存档页挑 */
+  /** 继续旅程:读全部剧本里最新的一条自动档;没有自动档则去存档页挑 */
   const continueJourney = (): void => {
-    const a = getAuto();
+    const a = getLatestAuto();
     if (a && getScenario(a.scenKey)) {
       const tk = navToken;
       void (async () => {
         const g = await buildFrom(a);
         if (tk !== navToken) return; // 等数据期间玩家已去别的页面
         if (!g) { toast('自动存档已失效,无法继续'); return; }
-        mountGame(a.scenKey, a.diffKey, g, true);
-        toast(`已继续「${a.chapterTitle}」章首`);
+        mountGame(a.scenKey, a.diffKey, g, true, a.roundNo ?? 0);
+        toast(`已继续「${a.chapterTitle}」${fmtRound(a.roundNo)}`);
       })();
       return;
     }
     goSaves();
   };
 
-  const hasSaves = (): boolean => Boolean(getAuto()) || listSlots().some(Boolean);
+  const hasSaves = (): boolean => Boolean(getLatestAuto()) || listStash().length > 0;
 
   // ---------- 主菜单 ----------
   const goMenu = (): void => {
     navToken += 1;
-    autosaveIfPlaying();
+    disposeSession();
     hideGame();
     hidePages();
-    // 菜单与选择页不放音乐:idle 曲子 1.38 MB,拿首屏带宽换不划算;
-    // 菜单也正好该安静 —— 玩家在端详这卷书。
-    bgm.stop();
+    // 进游戏就播 idle 曲;首次加载若被自动播放策略拦下,
+    // audio.ts 会挂一次性手势监听,玩家点任何一下即补播。
+    bgm.idle();
     voice.stop();
     setBg(shell.stage, 'menu');
     setDeco(shell.deco, false);
@@ -197,7 +272,16 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
       onStart: () => goSelect(),
       onContinue: () => continueJourney(),
       onSaves: () => goSaves(),
+      onGallery: () => goGallery(),
       onSettings: () => goSettings(),
+      onExit: () => {
+        bgm.stop();
+        voice.stop();
+        // 真退出(2026-10-16 拍板):容器杀进程 / 浏览器关页;环境拒绝时落幕页兜底
+        // (别名 requestAppExit:本文件 163 行的 requestExit 是对局页「返回」确认流)
+        requestAppExit();
+      },
+      onExitBack: () => bgm.idle(),
       hasSaves,
     });
   };
@@ -205,10 +289,10 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   // ---------- 选择页 ----------
   const goSelect = (): void => {
     navToken += 1;
-    autosaveIfPlaying();
+    disposeSession();
     hideGame();
     hidePages();
-    bgm.stop();
+    bgm.idle();
     voice.stop();
     setBg(shell.stage, 'select');
     setDeco(shell.deco, false);
@@ -233,6 +317,16 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     });
   };
 
+  /** 青史图鉴页(结局达成一览) */
+  const goGallery = (): void => {
+    navToken += 1;
+    hideGame();
+    hidePages();
+    setBg(shell.stage, 'save');
+    setDeco(shell.deco, false);
+    galleryPage = renderGalleryPage(shell.stage, () => goMenu());
+  };
+
   /** 存档页 */
   const goSaves = (): void => {
     navToken += 1;
@@ -242,36 +336,19 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     setDeco(shell.deco, false);
     renderSavePage(shell.stage, {
       currentKey: curKey,
-      // 所有入口(主菜单/继续旅程)都已先经 autosaveIfPlaying 结算并清掉 session,
-      // 到这里对局必然已不在 —— 返回就是回主菜单。不存在「带着对局返回」的路径。
+      // 所有入口都已先经 disposeSession 结算并清掉 session,到这里对局必然已不在
+      // —— 返回就是回主菜单。不存在「带着对局返回」的路径。
       onBack: () => goMenu(),
-      // 同理,没有进行中的对局就没有可存的东西,不把「存入」做成点了才报错
-      // 的死按钮;将来若从对局中开存档页,在这里接上 session 即可。
-      // (捕获到局部常量:闭包被调用时外层 session 可能已变)
-      onSave: (() => {
-        const s0 = session;
-        if (!s0) return undefined;
-        return (slot: number) => {
-          const r = writeSlot(s0.game, curKey, s0.game.d.SCENARIO.name, slot);
-          toast(r.reason);
-          if (r.ok) goSaves(); // 重画以刷新计数
-        };
-      })(),
-      onLoad: (slot, s) => {
+      // 自动档与暂存的读取同口径:payload 已在手上,不再回存储找
+      onLoad: (s: Slot) => {
         if (!getScenario(s.scenKey)) { toast('该存档对应的剧本数据已缺失'); return; }
         const tk = navToken;
         void (async () => {
-          const data = await loadScenario(s.scenKey);
+          const g = await buildFrom(s);
           if (tk !== navToken) return; // 等数据期间玩家已离开存档页
-          if (!data) { toast('剧本数据加载失败'); return; }
-          const g = new engine.Game(data as never, s.diffKey);
-          injectCollection(g); // 读档也并入跨局累计;importSave 内部会与存档快照合并
-          if (loadSlot(slot, g)) {
-            goGame(s.scenKey, s.diffKey, g); // 直接沿用已导入的 g
-            toast(`已读取「${s.chapterTitle}」章首`);
-          } else {
-            toast('存档校验未通过,已拒收');
-          }
+          if (!g) { toast('存档校验未通过,已拒收'); return; }
+          goGame(s.scenKey, s.diffKey, g, s.roundNo ?? 0);
+          toast(`已读取「${s.chapterTitle}」${fmtRound(s.roundNo)}`);
         })();
       },
     });
@@ -288,11 +365,11 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     return loadPayload(s.payload, g) ? g : undefined;
   };
 
-  const goGame = (key: string, diff: DiffKey, preloaded?: Game): void => {
+  const goGame = (key: string, diff: DiffKey, preloaded?: Game, roundNo = 0): void => {
     navToken += 1;
     const meta = getScenario(key);
     if (!meta) return;
-    if (preloaded) { mountGame(key, diff, preloaded, true); return; }
+    if (preloaded) { mountGame(key, diff, preloaded, true, roundNo); return; }
     // 正常入局:数据分片可能还没下(选了剧本卡才预热,也可能被清了缓存)
     const tk = navToken;
     void (async () => {
@@ -305,16 +382,16 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     })();
   };
 
-  const mountGame = (key: string, _diff: DiffKey, g: Game, fromSave = false): void => {
+  const mountGame = (key: string, _diff: DiffKey, g: Game, fromSave = false, roundNo = 0): void => {
     navToken += 1;
     // 防御:若旧会话还在(理论上所有出口都会先 dispose),先收掉再放行,
     // 否则常驻壳上会叠出两个回溯按钮、两份 pointerdown 监听
     if (session) { session.dispose(); session = null; }
     showGame();
     curKey = key;
-    // 「入局」那一下 click 就是用户手势,正好满足浏览器的自动播放策略,
-    // 所以音乐从这一刻起播,而不是在页面加载时(那样会被拒)。
-    bgm.play(key, false);
+    // 「入局」那一下 click 就是用户手势,自动播放策略必然放行;
+    // 进剧本后 inst/vocal 双轨轮播,先播无人声。
+    bgm.play(key);
     setDeco(shell.deco, true);
     session = new Session(
       g,
@@ -330,19 +407,27 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
       origTop();
       renderSide(shell.side, session!.sideContent());
     };
-    wireBack(shell, () => goSelect());
+    wireBack(shell, () => requestExit());
     if (fromSave) {
-      // 读档/继续进来:引擎已在 importSave 里把 phase 摆到 intro,直接渲染章首即可
-      session.renderIntro();
+      // 读档/继续进来:引擎 importSave 已把状态摆回存档那一刻(v2.2.0 轮次存档,
+      // 旧版章首档落在 intro),按相位渲染回同一位置,经营轮数随槽位写回
+      session.resume(roundNo);
     } else {
       session.start();
     }
     (window as unknown as Record<string, unknown>).__QS__ = {
       session, game: g, shell, goMenu, goSelect, goSaves,
       // 存档相关,供 tests/save.cjs 驱动真实流程(而不是另开一条测试专用通道)
-      saveGame: (slot: number) => writeSlot(g, key, g.d.SCENARIO.name, slot),
-      loadSlot: (slot: number) => loadSlot(slot, g),
-      listSlots,
+      // saveGame 等价「返回 → 存档退出」的写档动作;overwrite 满员时是否覆盖最早
+      saveGame: (overwrite = false) => saveAuto(g, key, g.d.SCENARIO.name, { overwriteOldest: overwrite, roundNo: session?.roundNo ?? 0 }),
+      loadAuto: (idx: number) => {
+        const s = listAutos(key)[idx];
+        return s ? loadPayload(s.payload, g) : false;
+      },
+      listAutos,
+      // 暂存,供 tests/stash.cjs 驱动(2026-10-15)
+      stashGame: () => stashSave(g, key, g.d.SCENARIO.name, session?.roundNo ?? 0),
+      listStash,
     };
   };
 
@@ -352,6 +437,13 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   onSegDelay((ms) => Session.setSegDelay(ms));
   syncFromStorage();
   broadcastSettings(loadSettings());
+
+  // TapTap 云存档:容器内静默登录 + 启动对账(云端新则整包覆写本地)。
+  // 普通浏览器里整个是 no-op。对账若覆写了本地且玩家还停在主菜单,
+  // 重渲一次菜单让「继续旅程」等状态对上(此时还没进对局,重渲无副作用)。
+  void initTapCloud().then((r) => {
+    if (r.changed && menuPage && !session) goMenu();
+  });
 
   goMenu();
 }

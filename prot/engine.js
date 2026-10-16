@@ -15,14 +15,21 @@
 
   function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
-  /* 可复现 PRNG（随机流惰性派生用；与 balance-sim.js 同款 mulberry32） */
-  function mulberry32(a) {
-    return function () {
+  /* 可序列化 PRNG（与 balance-sim.js 同款 mulberry32 序列）。
+   * v2.2.0 轮次存档：内部状态 a 经 _getState/_setState 暴露——存档要精确到回合，
+   * 随机轨迹（发牌/际遇/险招/修正骰点）必须能随档存取，
+   * 否则读档后的随机序列与存档时刻断档（同一局读出两种未来）。 */
+  function makeStateRng(seed) {
+    var a = seed | 0;
+    var f = function () {
       a |= 0; a = a + 0x6D2B79F5 | 0;
       var t = Math.imul(a ^ a >>> 15, 1 | a);
       t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
+    f._getState = function () { return a | 0; };
+    f._setState = function (s) { a = s | 0; };
+    return f;
   }
 
   /* 关键事件卡限时（回合数）：每打出一张行动卡 -1；归零强制进入关键事件抉择页（玩家亲选，见 playCard） */
@@ -39,7 +46,7 @@
     this.d = data;
     this.diffKey = diffKey;
     this.diff = data.DIFFICULTY[diffKey];
-    this.rng = rng || Math.random;
+    this.rng = rng || makeStateRng(Math.floor(Math.random() * 4294967296));
     this._streams = streams || null;   // 按用途注入的随机流（测试用）：{ risk, event, corr, card }
     this._rngStreams = {};             // 惰性派生的随机流缓存（见 _stream）
     this.resetAll();
@@ -48,14 +55,14 @@
   /* 随机流分流（v1.6.0）：按用途拆流，使险招骰点/际遇/修正不再与发牌共享同一随机序列
    * （原先前面抽到什么牌会改变后面骰到什么点数，连续"倒霉"无法归因）。
    * 注入优先（streams[name]）；未注入的流在首次使用时才从主 rng 取一值作种子派生
-   * mulberry32——构造时刻不消耗主流，对既有轨迹扰动最小。
+   * makeStateRng——构造时刻不消耗主流，对既有轨迹扰动最小。
    * card（发牌）不派生：未注入时回退主 rng，发牌轨迹保持不变。 */
   Game.prototype._stream = function (name) {
     if (this._streams && typeof this._streams[name] === 'function') return this._streams[name];
     if (name === 'card') return this.rng;
     var s = this._rngStreams[name];
     if (!s) {
-      s = mulberry32(Math.floor(this.rng() * 4294967296));
+      s = makeStateRng(Math.floor(this.rng() * 4294967296));
       this._rngStreams[name] = s;
     }
     return s;
@@ -86,6 +93,8 @@
     this.pendingEndEvents = [];
     this.currentEndEvent = null;
     this.correction = null;
+    this.summaryView = null;     // 章末结算视图（makeSummary 产出；轮次存档 phase='summary' 恢复用）
+    this._next = null;           // settle 相位待推进的路由（choose/playCard/endEventChoose 结算后）
     this.ending = null;
     this.snapshot = null;
     this.pendingCardId = null;   // 抉择卡(次级关键事件)：进入 choice 阶段时挂起的行动卡 id
@@ -351,6 +360,7 @@
     this.chapterDev = [];
     this._corrShown = null;
     this._backlashDone = false;
+    this.summaryView = null;   // 上一章的结算视图不跨入新章
     this.passedEvents = {};   // 章内进度（GDD 3.3）随章重置
     // 回合制与随机际遇的章内状态（须在起始事件与危机判定之前重置）
     this.offer = null;
@@ -482,6 +492,10 @@
       this.choiceGap = 0;
       for (var ci = 0; ci < pool.length; ci++) { if (pool[ci] === cpick) { pool.splice(ci, 1); break; } }
     }
+    // 常规抽牌排除抉择卡(2026-10-15 用户拍板:选项区不应同时出现两张抉择卡)——
+    // 抉择卡只能经「每两轮强制占一个发牌位」进手;留在常规池里会被同时抽中,
+    // 与强制位的 cpick 同屏。deal() 消耗次数不变(仍抽 n 张),只是池内无 choice。
+    pool = pool.filter(function (a) { return !a.choice; });
     var cure = !!(this.ill && this.d.ILLNESS);
     var reserved = (cpick ? 1 : 0) + (cure ? 1 : 0);
     // 底部固定 4 占位：关键卡不再占位（挪入文本区提示条），行动卡补到 3 张；
@@ -1211,18 +1225,19 @@
     }
     var next = this.d.CHAPTERS[this.chapterIdx + 1] || null;
     this.phase = 'summary';
+    this.summaryView = {
+      chapter: this.chapter().title,
+      devLog: this.chapterDev.slice(),
+      attrDelta: attrDelta,
+      corrTitle: this._corrShown,
+      notes: this.chapter().summaryNotes || [],
+      nextTitle: next ? next.title : null,
+      bandName: this.d.DEV_BANDS[this.devBand()].name,
+      dev: this.dev
+    };
     return {
       type: 'summary',
-      summary: {
-        chapter: this.chapter().title,
-        devLog: this.chapterDev.slice(),
-        attrDelta: attrDelta,
-        corrTitle: this._corrShown,
-        notes: this.chapter().summaryNotes || [],
-        nextTitle: next ? next.title : null,
-        bandName: this.d.DEV_BANDS[this.devBand()].name,
-        dev: this.dev
-      }
+      summary: this.summaryView
     };
   };
 
@@ -1288,6 +1303,7 @@
     this.pendingEndEvents = [];
     this.currentEndEvent = null;
     this.correction = null;
+    this.summaryView = null;
     this._endEventsChecked = false;
     this.chapterDev = [];
     this._corrShown = null;
@@ -1303,20 +1319,65 @@
   };
 
   /* ---------- 跨会话存档（GDD 6.4；引擎只出纯数据方法，存取/localStorage 归 UI 管） ----------
-   * 存档语义 = 章首存档点，与回溯共用 snapshot 结构。*/
+   * v2.2.0 起存档语义改为「当前时刻的完整对局状态」（精确到经营轮次/相位），
+   * 不再只是章首快照。payload 结构：
+   *   { v:2, diffKey, scenKey, chapterIdx, backtracksThisChapter,
+   *     snapshot: <章首快照，保留——章内回溯仍回到章首>,
+   *     live: <当前时刻全量状态，见 makeLiveState> }
+   * 旧档（无 v 字段、只带 snapshot）仍按章首语义导入（见 importSave 旧路径）。*/
 
-  // 剧情/普通难度（有回溯额度）且已有章首快照时导出纯 JSON 对象；硬核或无快照返回 null
+  // 剧情/普通难度（有回溯额度）且已有章首快照时导出纯 JSON 对象；硬核/无快照/终局返回 null
   Game.prototype.exportSave = function () {
     // 单局即一生的剧本（随机命局，SCENARIO.noSave）：契约下沉到引擎，不依赖 UI 拦截
     if (this.d.SCENARIO && this.d.SCENARIO.noSave) return null;
     if (this.diff.backtrack === 0) return null;
     if (!this.snapshot) return null;
+    if (this.phase === 'ending' || this.phase === 'home') return null;   // 终局/未开局没有可存的进度
     var s = JSON.parse(JSON.stringify(this.snapshot));
     // currentRandom 是整只事件对象：序列化只存其 id，恢复时按 id 从事件池重建（见 importSave）
     s.currentRandomId = this.snapshot.currentRandom ? this.snapshot.currentRandom.id : null;
     delete s.currentRandom;
-    return { diffKey: this.diffKey, scenKey: this.d.SCENARIO.id, chapterIdx: this.chapterIdx, snapshot: s,
+    return { v: 2, diffKey: this.diffKey, scenKey: this.d.SCENARIO.id, chapterIdx: this.chapterIdx, snapshot: s,
+             live: this.makeLiveState(),
              backtracksThisChapter: this.backtracksThisChapter };  // 回溯次数随档保存，防跨会话刷新（GDD 6.4 补注）
+  };
+
+  /* 当前时刻的全量对局状态（v2.2.0）：makeSnapshot 的全字段（取当前值，非章首值）
+   * + 回合/相位/章末流程等快照不覆盖的进行中状态 + 随机轨迹。
+   * 与 exportSave 配合使「读档 = 回到存档那一刻」，而不是回到章首。 */
+  Game.prototype.makeLiveState = function () {
+    var s = this.makeSnapshot();   // 当前值的快照口径字段（attrs/dev/flags/once/…/coef）
+    s.currentRandomId = this.currentRandom ? this.currentRandom.id : null;
+    delete s.currentRandom;
+    s.phase = this.phase;
+    s.offer = this.offer ? JSON.parse(JSON.stringify(this.offer)) : null;
+    s.pendingCardId = this.pendingCardId;
+    s.randomCount = this.randomCount;
+    s.chapterDeckIds = (this.chapterDeck || []).map(function (e) { return e.id; });
+    s.skipRandom = this._skipRandom;
+    s.chapterDev = JSON.parse(JSON.stringify(this.chapterDev || []));
+    s.corrShown = this._corrShown;
+    s.backlashDone = this._backlashDone;
+    s.weijiClamp = this._weijiClamp;
+    s.endEventsChecked = this._endEventsChecked;
+    s.chapterStartId = this._chapterStartId;
+    s.xushi = !!this.xushi;
+    s.burned = Object.assign({}, this._burned || {});
+    // settle 相位待推进的路由 / 章末流程 / 修正浮层（皆为纯数据对象）
+    s.next = this._next ? JSON.parse(JSON.stringify(this._next)) : null;
+    s.pendingEndEvents = JSON.parse(JSON.stringify(this.pendingEndEvents || []));
+    s.currentEndEvent = this.currentEndEvent ? JSON.parse(JSON.stringify(this.currentEndEvent)) : null;
+    s.correction = this.correction ? JSON.parse(JSON.stringify(this.correction)) : null;
+    s.summaryView = this.summaryView ? JSON.parse(JSON.stringify(this.summaryView)) : null;
+    // 随机轨迹：主 rng 与已派生流的内部状态（注入的测试流不入档——测试自行注入）
+    var rngState = { main: null, streams: {} };
+    if (this.rng && typeof this.rng._getState === 'function') rngState.main = this.rng._getState();
+    for (var nm in this._rngStreams) {
+      var st = this._rngStreams[nm];
+      if (st && typeof st._getState === 'function') rngState.streams[nm] = st._getState();
+    }
+    s.rng = rngState;
+    return s;
   };
 
   /* id 是否能在当前章解析为事件：本章 events 池或插入事件池（RANDOM / CRISIS）之一。
@@ -1341,34 +1402,21 @@
     return null;
   };
 
-  // 恢复到存档所示章的章首状态；校验失败返回 false
-  Game.prototype.importSave = function (obj) {
-    if (!obj || typeof obj !== 'object') return false;
-    if (obj.diffKey !== this.diffKey) return false;   // 存档与难度绑定（难度系数不同，不可串档）
-    // 剧本身份绑定（v2.0.3 P0）：五剧本属性维度同名（十一维），原校验只看难度，
-    // 跨剧本的档可被导入他本对局——带着别人的 flags 与 eventId 进入不可达内容，并覆写本剧本存档。
-    // 旧档（无 scenKey）按字段缺省放行，兼容 v2.0.1 及更早的存档。
-    if (obj.scenKey != null && obj.scenKey !== this.d.SCENARIO.id) return false;
-    if (typeof obj.chapterIdx !== 'number' || !this.d.CHAPTERS[obj.chapterIdx]) return false;
-    var s = obj.snapshot;
+  /* 存档状态对象的字段校验（v1 章首档与 v2.2.0 轮次档共用同一口径）。
+   * 存档为不可信输入（localStorage）：关键字段类型/范围校验，脏档拒绝导入（v1.6.5 起）。
+   * v2.0.3 P0 补齐的漏检字段（漏检的后果是「脏档导入成功」而非被拒，
+   * SPEC.md「坏档清除回主页」的 UI 清理分支因此永不触发）：
+   *   histScore/peak 曾无校验 → NaN 渗入结局评分（total/grade 静默变 NaN/D）；
+   *   attrs 曾只校验 number+isFinite 不校验范围 → weiji:500 下一回合即刻致死、负值属性污染后续钳制；
+   *   zg 曾无校验 → NaN 落入隐藏 NPC 值；keyChoices/merits/flags/actionUses 曾不校验容器类型。
+   * 调用前须先落 this.chapterIdx（attrMax 与事件可解析性按章判）。 */
+  Game.prototype._validStateFields = function (s) {
     if (!s || !s.attrs || typeof s.attrs !== 'object' || Array.isArray(s.attrs)) return false;
-    // 提前落 chapterIdx：随后的 eventId 可解析性校验需按目标章的事件池判（findEvent 依赖 chapter()）
-    this.chapterIdx = obj.chapterIdx;
-    // 存档为不可信输入（localStorage）：关键字段类型/范围校验，脏档拒绝导入（v1.6.5）
     for (var ak in s.attrs) { if (typeof s.attrs[ak] !== 'number' || !isFinite(s.attrs[ak])) return false; }
     if (s.dev != null && (typeof s.dev !== 'number' || !isFinite(s.dev) || s.dev < 0)) return false;
     if (s.ach != null && !Array.isArray(s.ach)) return false;   // 成就列表：脏档（字符串/对象）拒收
-    var bt = obj.backtracksThisChapter;
-    if (bt == null) bt = 0;
-    if (typeof bt !== 'number' || !isFinite(bt) || Math.floor(bt) !== bt || bt < 0) return false;
-    if (this.diff.backtrack > 0 && bt > this.diff.backtrack) return false;
     if (s.age != null && (typeof s.age !== 'number' || !isFinite(s.age) || s.age < 0)) return false;   // 年龄（v1.8）
     if (s.ill != null && (typeof s.ill !== 'object' || (s.ill.type !== 'minor' && s.ill.type !== 'major'))) return false;   // 疾病（v1.8）
-    // v2.0.3 P0 修复（补齐此前遗漏的字段校验——漏检的后果是「脏档导入成功」而非被拒，
-    // SPEC.md「坏档清除回主页」的 UI 清理分支因此永不触发）：
-    //   histScore/peak 曾无校验 → NaN 渗入结局评分（total/grade 静默变 NaN/D）；
-    //   attrs 曾只校验 number+isFinite 不校验范围 → weiji:500 下一回合即刻致死、负值属性污染后续钳制；
-    //   zg 曾无校验 → NaN 落入隐藏 NPC 值；keyChoices/merits/flags/actionUses 曾不校验容器类型。
     var numOk = function (v) { return typeof v === 'number' && isFinite(v); };
     var numRange = function (v, lo, hi) { return numOk(v) && v >= lo && v <= hi; };
     if (s.histScore != null && !numOk(s.histScore)) return false;
@@ -1383,12 +1431,45 @@
     if (s.choiceGap != null && (!numOk(s.choiceGap) || s.choiceGap < 0)) return false;
     if (s.passed != null && (typeof s.passed !== 'object' || Array.isArray(s.passed))) return false;
     if (s.keyRoundsLeft != null && (!numOk(s.keyRoundsLeft) || s.keyRoundsLeft < 0)) return false;
-    var attrs2 = Object.assign({}, s.attrs);        // 不就地改快照对象（exportSave 产物可能被复用）
-    for (var ak2 in attrs2) {
-      var k2 = ak2;
-      if (!this.d.ATTR_NAMES[k2]) return false;                 // 未知属性键 = 跨剧本脏档
-      if (!numRange(attrs2[k2], 0, this.attrMax(k2))) return false;   // 范围须落在本剧本 per-attr 上限内
+    for (var ak2 in s.attrs) {
+      if (!this.d.ATTR_NAMES[ak2]) return false;                 // 未知属性键 = 跨剧本脏档
+      if (!numRange(s.attrs[ak2], 0, this.attrMax(ak2))) return false;   // 范围须落在本剧本 per-attr 上限内
     }
+    return true;
+  };
+
+  /* eventId/pendingEventId 均不可解析时的章起始回退（v1/v2 导入共用）：
+   * 与 enterChapter 同一 startAlt 判定，实在无可用事件才视为坏档。 */
+  Game.prototype._chapterStartFallback = function () {
+    var ch = this.chapter(), start = ch.start;
+    if (ch.startAlt) {
+      for (var sa = 0; sa < ch.startAlt.length; sa++) if (this.check(ch.startAlt[sa].if).ok) { start = ch.startAlt[sa].start; break; }
+    }
+    if (start && this._eventResolvable(start)) return start;
+    return (ch.events[0] && ch.events[0].id) || null;
+  };
+
+  // 恢复到存档所示状态；校验失败返回 false
+  Game.prototype.importSave = function (obj) {
+    if (!obj || typeof obj !== 'object') return false;
+    if (obj.diffKey !== this.diffKey) return false;   // 存档与难度绑定（难度系数不同，不可串档）
+    // 剧本身份绑定（v2.0.3 P0）：五剧本属性维度同名（十一维），原校验只看难度，
+    // 跨剧本的档可被导入他本对局——带着别人的 flags 与 eventId 进入不可达内容，并覆写本剧本存档。
+    // 旧档（无 scenKey）按字段缺省放行，兼容 v2.0.1 及更早的存档。
+    if (obj.scenKey != null && obj.scenKey !== this.d.SCENARIO.id) return false;
+    if (typeof obj.chapterIdx !== 'number' || !this.d.CHAPTERS[obj.chapterIdx]) return false;
+    // v2.2.0 轮次存档：live 在场走「恢复到存档那一刻」路径；旧档（无 v/live）按下方的章首语义
+    if (obj.v === 2 && obj.live != null) return this._importLive(obj);
+    var s = obj.snapshot;
+    // 提前落 chapterIdx：随后的 eventId 可解析性校验需按目标章的事件池判（findEvent 依赖 chapter()）
+    this.chapterIdx = obj.chapterIdx;
+    // 存档为不可信输入（localStorage）：关键字段类型/范围校验，脏档拒绝导入（v1.6.5）
+    if (!this._validStateFields(s)) return false;
+    var bt = obj.backtracksThisChapter;
+    if (bt == null) bt = 0;
+    if (typeof bt !== 'number' || !isFinite(bt) || Math.floor(bt) !== bt || bt < 0) return false;
+    if (this.diff.backtrack > 0 && bt > this.diff.backtrack) return false;
+    var attrs2 = Object.assign({}, s.attrs);        // 不就地改快照对象（exportSave 产物可能被复用）
     for (var ak3 in this.d.ATTR_NAMES) {                        // 缺失维度按 INIT 补齐（否则 _clampA 遇 undefined 得 NaN）
       if (attrs2[ak3] == null) attrs2[ak3] = this._clampA(ak3, this.d.INIT[ak3] != null ? this.d.INIT[ak3] : 0);
     }
@@ -1399,11 +1480,7 @@
     if (evId != null && !this._eventResolvable(evId)) evId = null;
     var pendId = s.pendingEventId != null && this._eventResolvable(s.pendingEventId) ? s.pendingEventId : null;
     if (evId == null && pendId == null) {
-      var ch2 = this.chapter(), start2 = ch2.start;
-      if (ch2.startAlt) {
-        for (var sa = 0; sa < ch2.startAlt.length; sa++) if (this.check(ch2.startAlt[sa].if).ok) { start2 = ch2.startAlt[sa].start; break; }
-      }
-      evId = (start2 && this._eventResolvable(start2)) ? start2 : ((ch2.events[0] && ch2.events[0].id) || null);
+      evId = this._chapterStartFallback();
       if (evId == null) return false;   // 本章无任何可解析事件：确实是坏档
     }
     // 逐项还原章首状态（回溯次数随档恢复；coef 随快照存取——纯时间线状态，
@@ -1468,6 +1545,155 @@
     return true;
   };
 
+  /* v2.2.0 轮次存档导入：恢复到「存档那一刻」的完整对局状态（精确到经营轮次/相位），
+   * 而不是回到章首。obj.snapshot（章首快照）一并恢复——章内回溯仍回到章首。
+   * live 与 snapshot 都是不可信输入，过同一套字段校验；相位与随附视图的一致性不符即拒收。 */
+  Game.prototype._importLive = function (obj) {
+    var live = obj.live;
+    // 提前落 chapterIdx：事件可解析性/属性上限校验按目标章判（findEvent/attrMax 依赖 chapter()）
+    this.chapterIdx = obj.chapterIdx;
+    if (!this._validStateFields(live)) return false;
+    var snap = obj.snapshot;
+    if (snap != null && !this._validStateFields(snap)) return false;
+    var bt = obj.backtracksThisChapter;
+    if (bt == null) bt = 0;
+    if (typeof bt !== 'number' || !isFinite(bt) || Math.floor(bt) !== bt || bt < 0) return false;
+    if (this.diff.backtrack > 0 && bt > this.diff.backtrack) return false;
+    // 相位白名单：home/ending 无可恢复的对局视图，未知相位按坏档拒收
+    var PHASES = { intro: 1, round: 1, event: 1, choice: 1, settle: 1, summary: 1, correction: 1, endEvent: 1 };
+    if (!PHASES[live.phase]) return false;
+    // offer 校验：关键卡占位 / 可解析行动 id / 求医卡（__cure__）
+    var self = this;
+    var actionOk = function (id) { return id === '__cure__' || !!self._actions[id]; };
+    var offer = null;
+    if (live.offer != null) {
+      if (!Array.isArray(live.offer)) return false;
+      offer = [];
+      for (var oi = 0; oi < live.offer.length; oi++) {
+        var oe = live.offer[oi];
+        if (!oe || typeof oe !== 'object') return false;
+        if (oe.type === 'key') offer.push({ type: 'key' });
+        else if (oe.type === 'action' && typeof oe.id === 'string' && actionOk(oe.id)) offer.push({ type: 'action', id: oe.id });
+        else return false;
+      }
+    }
+    // 相位与随附状态的一致性：缺了对应对象就没有可恢复的页面
+    if (live.phase === 'round' && !offer) return false;
+    if (live.phase === 'choice' && (!offer || typeof live.pendingCardId !== 'string' || !actionOk(live.pendingCardId))) return false;
+    if (live.phase === 'summary' && (!live.summaryView || typeof live.summaryView !== 'object' || Array.isArray(live.summaryView))) return false;
+    if (live.phase === 'correction' && (!live.correction || typeof live.correction !== 'object' || Array.isArray(live.correction))) return false;
+    if (live.phase === 'endEvent' && (!live.currentEndEvent || typeof live.currentEndEvent !== 'object' || Array.isArray(live.currentEndEvent))) return false;
+    // eventId 可解析性：与 v1 同一「回退不硬拒」口径（BACKLASH 等临时构造事件不在池中）
+    var evId = live.eventId;
+    if (evId != null && !this._eventResolvable(evId)) evId = null;
+    var pendId = live.pendingEventId != null && this._eventResolvable(live.pendingEventId) ? live.pendingEventId : null;
+    if (evId == null && pendId == null) {
+      evId = this._chapterStartFallback();
+      if (evId == null) return false;
+    }
+    // 逐项还原（快照口径字段与 v1 相同，只是取的是「当前时刻」的值而非章首值）
+    var attrs2 = Object.assign({}, live.attrs);
+    for (var ak3 in this.d.ATTR_NAMES) {                        // 缺失维度按 INIT 补齐
+      if (attrs2[ak3] == null) attrs2[ak3] = this._clampA(ak3, this.d.INIT[ak3] != null ? this.d.INIT[ak3] : 0);
+    }
+    this.attrs = attrs2;
+    this.dev = live.dev || 0;
+    this.flags = Object.assign({}, live.flags || {});
+    this._once = this._readOnce(live);
+    this.histScore = live.histScore || 0;
+    this.merits = (live.merits || []).slice();
+    // 成就保留语义与 v1 相同（快照 ∪ 已有），跨局累计不被读档截断
+    var keepAch = this.ach.slice();
+    this.ach = (live.ach || []).slice();
+    keepAch.forEach(function (a) { if (this.ach.indexOf(a) < 0) this.ach.push(a); }, this);
+    this.keyChoices = (live.keyChoices || []).slice();
+    this.peak = Object.assign({ quanshi: 0, junxin: 0 }, live.peak || {});
+    this.zg = live.zg != null ? live.zg : ((this.d.HIDDEN && this.d.HIDDEN.init != null) ? this.d.HIDDEN.init : 30);
+    this.eventId = evId;
+    this.pendingEventId = pendId;
+    this._crisisPlotPending = !!live.crisisPlotPending;
+    this.keyRoundsLeft = live.keyRoundsLeft != null ? live.keyRoundsLeft : this.keyCardRounds;
+    this.actionUses = Object.assign({}, live.actionUses || {});
+    this.choiceUsed = Object.assign({}, live.choiceUsed || {});
+    this.choiceGap = live.choiceGap != null ? live.choiceGap : 1;
+    this.passedEvents = Object.assign({}, live.passed || {});
+    this.age = live.age != null ? live.age : ((this.d.AGE && this.d.AGE.init != null) ? this.d.AGE.init : null);
+    this.ill = live.ill ? Object.assign({}, live.ill) : null;
+    this.introNotes = (live.introNotes || []).slice();
+    this.coef = (typeof live.coef === 'number' && isFinite(live.coef)) ? live.coef : 1;
+    // —— 进行中状态（v2.2.0 新增，v1 章首档一律重置的那些） ——
+    this.offer = offer;
+    this.pendingCardId = live.phase === 'choice' ? live.pendingCardId : null;
+    this._chapterStartId = (typeof live.chapterStartId === 'string') ? live.chapterStartId : (pendId || evId || null);
+    // 插入事件按 id 重建；查不到则回退到被插入的剧本事件并清空插入状态（同 v1 口径）
+    var rid = live.currentRandomId || null;
+    var rev = rid ? this._findInsertEvent(rid) : null;
+    if (rid && !rev) { this.eventId = this.pendingEventId || this.eventId; this.pendingEventId = null; }
+    this.currentRandom = rev;
+    this.backtracksThisChapter = bt;
+    this.randomCount = (typeof live.randomCount === 'number' && isFinite(live.randomCount) && live.randomCount >= 0) ? Math.floor(live.randomCount) : 0;
+    // 际遇牌堆按 id 从本章全集重建（未知/重复 id 丢弃；缺 ids 时按全集恢复）
+    var fullDeck = this._buildChapterDeck(this.chapterIdx);
+    if (Array.isArray(live.chapterDeckIds)) {
+      var deck = [];
+      live.chapterDeckIds.forEach(function (id) {
+        for (var di = 0; di < fullDeck.length; di++) if (fullDeck[di].id === id && deck.indexOf(fullDeck[di]) < 0) { deck.push(fullDeck[di]); break; }
+      });
+      this.chapterDeck = deck;
+    } else {
+      this.chapterDeck = fullDeck;
+    }
+    this._skipRandom = !!live.skipRandom;
+    this.chapterDev = Array.isArray(live.chapterDev) ? JSON.parse(JSON.stringify(live.chapterDev)) : [];
+    this._corrShown = typeof live.corrShown === 'string' ? live.corrShown : null;
+    this._backlashDone = !!live.backlashDone;
+    this._weijiClamp = (typeof live.weijiClamp === 'number' && isFinite(live.weijiClamp)) ? live.weijiClamp : 0;
+    this._endEventsChecked = !!live.endEventsChecked;
+    this._newAch = [];
+    this.xushi = !!live.xushi;
+    this._burned = (live.burned && typeof live.burned === 'object' && !Array.isArray(live.burned)) ? Object.assign({}, live.burned) : {};
+    this._next = (live.next && typeof live.next === 'object') ? JSON.parse(JSON.stringify(live.next)) : null;
+    this.pendingEndEvents = Array.isArray(live.pendingEndEvents) ? JSON.parse(JSON.stringify(live.pendingEndEvents)) : [];
+    this.currentEndEvent = (live.currentEndEvent && typeof live.currentEndEvent === 'object') ? JSON.parse(JSON.stringify(live.currentEndEvent)) : null;
+    this.correction = (live.correction && typeof live.correction === 'object') ? JSON.parse(JSON.stringify(live.correction)) : null;
+    this.summaryView = (live.summaryView && typeof live.summaryView === 'object') ? JSON.parse(JSON.stringify(live.summaryView)) : null;
+    this.ending = null;
+    // 随机轨迹恢复（v2.2.0）：主 rng 与已派生流的内部状态随档复原，
+    // 读档后的发牌/际遇/险招/修正骰点接续存档时刻的序列。
+    // 注入的测试流（无 _setState）跳过——测试自行注入，轨迹由测试自持。
+    var rs = live.rng;
+    if (rs && typeof rs === 'object') {
+      if (typeof rs.main === 'number' && isFinite(rs.main) && this.rng && typeof this.rng._setState === 'function') this.rng._setState(rs.main);
+      if (rs.streams && typeof rs.streams === 'object') {
+        for (var nm in rs.streams) {
+          var sv2 = rs.streams[nm];
+          if (typeof sv2 !== 'number' || !isFinite(sv2)) continue;
+          var f = makeStateRng(0);
+          f._setState(sv2);
+          this._rngStreams[nm] = f;
+        }
+      }
+    }
+    // 章首快照恢复：章内回溯仍回到本章开头。快照缺失时以当前状态重拍（回溯点 = 读档点）；
+    // 快照里的事件 id 同样须可解析，否则回溯会把 eventId 摆进死局
+    if (snap) {
+      var snapRestore = JSON.parse(JSON.stringify(snap));
+      for (var ak4 in this.d.ATTR_NAMES) {
+        if (snapRestore.attrs[ak4] == null) snapRestore.attrs[ak4] = this._clampA(ak4, this.d.INIT[ak4] != null ? this.d.INIT[ak4] : 0);
+      }
+      if (snapRestore.eventId != null && !this._eventResolvable(snapRestore.eventId)) snapRestore.eventId = evId;
+      if (snapRestore.pendingEventId != null && !this._eventResolvable(snapRestore.pendingEventId)) snapRestore.pendingEventId = null;
+      var srid = snapRestore.currentRandomId || null;
+      snapRestore.currentRandom = srid ? this._findInsertEvent(srid) : null;
+      delete snapRestore.currentRandomId;
+      this.snapshot = snapRestore;
+    } else {
+      this.snapshot = this.makeSnapshot();
+    }
+    this.phase = live.phase;
+    return true;
+  };
+
   /* ---------- 结局 ---------- */
   Game.prototype.finishEnding = function (id, variant) {
     this._newAch = [];
@@ -1526,7 +1752,11 @@
     var total = raw * this.diff.coef * (def.nitian ? 1.15 : 1) * (this.coef || 1);
     total = Math.round(total);
     if (!isFinite(total)) total = 0;   // v2.0.6：脏状态（脏档/脏数据）不得让评分变 NaN
-    var grade = total >= 85 ? 'S' : total >= 70 ? 'A' : total >= 55 ? 'B' : total >= 40 ? 'C' : 'D';
+    // 评级:甲/乙/丙各分上中下,丁兜底,共十级(95/90/85/80/70/60/50/40/30;顶部5分一档,中下部10分一档)
+    var grade = total >= 95 ? '甲上' : total >= 90 ? '甲' : total >= 85 ? '甲下'
+      : total >= 80 ? '乙上' : total >= 70 ? '乙' : total >= 60 ? '乙下'
+      : total >= 50 ? '丙上' : total >= 40 ? '丙' : total >= 30 ? '丙下'
+      : '丁';
     var devC = this.dev;
     var epilogue;
     if (devC <= 20) epilogue = '你完整复刻了他的一生，包括他的错误。史书翻到今天，仍写着你的名字与骂名。历史给了你所有提示，你决定照抄一遍——这也是一种玩法。';

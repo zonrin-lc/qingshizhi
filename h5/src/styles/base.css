@@ -56,8 +56,10 @@
   --r-lg: 0.75rem;
 
   /* ---------- 字体栈 ----------
-     全游戏统一霞鹜文楷(2026-10-14 用户拍板):内嵌子集 1.39MB,
+     全游戏统一霞鹜文楷(2026-10-14 用户拍板):内嵌子集(4892 码位,
+     口径 = 当前全部文本 + GB2312 一级字表/符号 + ASCII,约 2.1MB),
      经 @font-face 加载,失败时逐级回退系统楷体。
+     子集由 tools/build-font.py 生成;verify:font(prebuild)保证 0 缺字。
      宋体/无衬线栈保留作变量,不再作为默认正文。
 
      ⚠ 顺序有讲究:STKaiti(华文楷体)必须排在 KaiTi 之后。
@@ -240,4 +242,56 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+/* ---------- 页标题 + 标题下分隔线 ----------
+ * 所有带标题的页面统一照存档页版式(2026-10-16 拍板):
+ * 居中楷体大字(宽字距,text-indent 抵消末字距保持视觉居中)+ rule-line.webp 分隔线。 */
+.page-title {
+  font-family: var(--font-kai);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--ink-heavy);
+  letter-spacing: 0.6em;
+  text-indent: 0.6em;
+  text-align: center;
+}
+.page-rule {
+  height: 1.4rem;
+  width: min(26rem, 70%);
+  margin: var(--sp-xs) auto;
+  background: url('../assets/deco/rule-line.webp') center / 100% 100% no-repeat;
+}
+@media (max-width: 880px) {
+  .page-title {
+    font-size: 1.2rem;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+  }
+}
+
+/* ---------- 全站统一返回钮(罗盘,2026-10-16 拍板) ----------
+ * 所有页面的「返回」导航统一用 kit.backBtn 工厂:罗盘图 10vh 见方,
+ * 固定 top 3vh / left 3vw(对齐选择页原始位置)。绝对定位,挂在各页根节点上。
+ * z-index 4:必须压过选择页 .seltop(z-index 3)——它 left:0/right:0 整幅横贯,
+ * 左侧空区会盖住罗盘吃掉点击。 */
+.pageback {
+  position: absolute;
+  top: 3vh;
+  left: 3vw;
+  z-index: 4;
+  width: 10vh;
+  height: 10vh;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.16s ease;
+}
+.pageback:hover {
+  transform: scale(1.05);
+}
+.pageback__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }

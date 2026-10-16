@@ -33,29 +33,11 @@
   overflow-y: auto;
 }
 
-/* ---------- 标题 ---------- */
+/* ---------- 标题 ----------
+ * 标题与分隔线样式已统一为 base.css 的 .page-title / .page-rule(2026-10-16 拍板) */
 .saves__head {
   position: relative;
   text-align: center;
-}
-.saves__head .topbtn--back {
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-.saves__title {
-  font-family: var(--font-kai);
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--ink-heavy);
-  letter-spacing: 0.6em;
-  text-indent: 0.6em;
-}
-.saves__rule {
-  height: 1.4rem;
-  width: min(26rem, 70%);
-  margin: var(--sp-xs) auto;
-  background: url('../assets/deco/rule-line.webp') center / 100% 100% no-repeat;
 }
 .saves__hint {
   font-size: var(--fs-cap);
@@ -175,6 +157,35 @@
   padding: var(--sp-sm) 0;
 }
 
+/* ---------- 暂存区(2026-10-15):与槽位同版式,标题分隔 ---------- */
+.saves__stash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  max-width: 46rem;
+  margin: var(--sp-md) auto 0;
+  width: 100%;
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--sp-sm);
+}
+.saves__stash .saves__stashtitle {
+  font-size: var(--fs-title);
+  color: var(--ink-strong);
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+.saves__stash .saves__hint {
+  text-align: center;
+  margin-bottom: var(--sp-xs);
+}
+.slot--stash {
+  border-style: dashed;
+}
+.slot--stash .slot__idx {
+  font-size: var(--fs-ui);
+  color: var(--qing);
+}
+
 /* ---------- 删除二次确认浮层 ---------- */
 /* fixed 而非 absolute:.saves 自身可滚动,absolute 会跟着内容滚走 */
 .saves__confirm {
@@ -214,15 +225,12 @@
   justify-content: center;
 }
 
-/* ---------- 窄屏 ---------- */
+/* ---------- 窄屏 ----------
+ * (.page-title 的窄屏字号在 base.css 里统一收口) */
 @media (max-width: 880px) {
   .saves {
     padding: var(--sp-sm);
     gap: var(--sp-sm);
-  }
-  .saves__title {
-    font-size: 1.2rem;
-    letter-spacing: 0.3em;
   }
   .saves__hint {
     display: none;

@@ -5,7 +5,8 @@
  * 1. 不可存档(exportSave 返回 null —— 硬核不许回退)
  * 2. 回溯不可用(顶栏回溯按钮压暗,不计次数)
  * 3. 隐藏数值(hideAttrs:属性只显示状态词,不显示数字)
- * 外加:章首写自动档对硬核必须安静跳过(localStorage 不该出现 auto)。
+ * 外加:不可存的局点「返回」不弹存档确认框,直接退到选择页;
+ * 章首不再静默写档(2026-10-15 起对所有难度如此),自动档必须为空。
  */
 'use strict';
 
@@ -37,13 +38,19 @@ const DRIVER = `(async () => {
   out.backText = (q('.backbtn') || {}).textContent || '';
   out.exportNull = g.exportSave() === null;
 
-  // 章首自动档应被安静跳过
-  const saves = JSON.parse(localStorage.getItem('qingshi.saves.v1') || '{}');
-  out.noAuto = !saves.auto;
-
   // hideAttrs:右栏属性行显示状态词而不是裸数字
   const kvText = qa('.stage__side .kv').map(n => n.textContent.replace(/\\s+/g, ''));
   out.sideWords = kvText.length > 0 && kvText.every(t => !/\\d/.test(t));
+
+  // 章首不再静默写档(2026-10-15 起对所有难度如此);硬核整局不可存,自动档应为空
+  const autos = JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}');
+  out.noAuto = Object.values(autos).every((l) => !Array.isArray(l) || l.length === 0);
+
+  // 硬核点「返回」:没有可存的东西,不弹存档确认框,直接退到选择页
+  q('.pageback').click();
+  await sleep(250);
+  out.exitNoPrompt = !q('.saves__confirm');
+  out.backToSelect = !!q('.seltop');
   return out;
 })()`;
 
@@ -56,8 +63,10 @@ withPage(
       ['对局以硬核建立', out.diffKey === 'hardcore'],
       ['回溯按钮压暗且不计数', out.backLocked === true && !/\\d/.test(out.backText || '')],
       ['硬核不可存档(exportSave 为 null)', out.exportNull === true],
-      ['章首自动档安静跳过', out.noAuto === true],
+      ['自动档为空(硬核不可存)', out.noAuto === true],
       ['属性隐藏数值(只显示状态词)', out.sideWords === true],
+      ['返回不弹存档确认框', out.exitNoPrompt === true],
+      ['返回直接退到选择页', out.backToSelect === true],
       ['控制台无错误', consoleErrors().length === 0],
     ]);
     if (!ok) console.log('明细: ' + JSON.stringify(out));

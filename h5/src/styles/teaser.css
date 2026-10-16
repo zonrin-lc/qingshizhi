@@ -1,0 +1,233 @@
+/* ============================================================================
+ * 朝代预告页(未开卷朝代:汉/唐/宋/明)
+ *
+ * 设计稿:h5/design/dynasty-teaser.html(2026-10-16);素材:h5/src/assets/teaser/
+ * (teaser-card 卡底 / step-* 进度节点三态)。
+ * 尺寸一律走 vh,跟随 1280×720 基准缩放。
+ * ==========================================================================*/
+
+.teaser {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 5vh 1vw 2vh;
+}
+.teaser::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- ① 题头:朝代大字 + 年代/英文 + 金线 ---------- */
+.teaser__head {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.2vh;
+}
+.teaser__glyph {
+  font-family: var(--font-song);
+  font-weight: 900;
+  font-size: 11.5vh;
+  line-height: 0.86;
+  color: var(--ink-heavy);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.5);
+}
+.teaser__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9vh;
+  padding-bottom: 1vh;
+}
+.teaser__era {
+  font-size: 1.9vh;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+  font-weight: 700;
+}
+.teaser__en {
+  font-size: 1.3vh;
+  letter-spacing: 0.36em;
+  color: var(--ink-dim);
+}
+.teaser__hline {
+  flex: 1 1 auto;
+  height: 1px;
+  margin-bottom: 2vh;
+  background: linear-gradient(90deg, #c6b492 0%, rgba(198, 180, 146, 0) 100%);
+}
+
+/* ---------- ② 定位句(朱色高亮段) ---------- */
+.teaser__lede {
+  margin-top: 1.8vh;
+  font-family: var(--font-kai);
+  font-size: 2vh;
+  line-height: 1.9;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+.teaser__hi {
+  color: inherit;
+  font-weight: 400;
+}
+
+/* ---------- ③ 时代关键词(胶囊) ---------- */
+.teaser__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1vh;
+  margin-top: 1.8vh;
+}
+.teaser__tag {
+  font-family: var(--font-kai);
+  font-size: 1.6vh;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  padding: 0.5vh 1.4vh;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid #d6c8ae;
+  border-radius: 999px;
+}
+
+/* ---------- ④ 开卷进度(四节点三态图) ---------- */
+.teaser__prog {
+  position: relative;
+  margin-top: 2.6vh;
+  padding: 1.6vh 2.4vh 1.8vh;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid #d6c8ae;
+  border-radius: 1.2vh;
+}
+.teaser__phead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.3vh;
+}
+.teaser__pk {
+  font-size: 1.6vh;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+}
+.teaser__pv {
+  font-size: 1.4vh;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+}
+.teaser__steps {
+  display: flex;
+  align-items: center;
+}
+.teaser__step {
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+  flex: 0 0 auto;
+}
+.teaser__dot {
+  width: 2.4vh;
+  height: 2.4vh;
+  display: block;
+}
+.teaser__st {
+  font-size: 1.6vh;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.teaser__step.is-done .teaser__st {
+  color: var(--ink-soft);
+}
+.teaser__step.is-now .teaser__st {
+  color: #9e3422;
+  font-weight: 700;
+}
+.teaser__bar {
+  flex: 1 1 auto;
+  height: 1px;
+  background: #d6c8ae;
+  margin: 0 1.6vh;
+}
+
+/* ---------- ⑤ 即将登场(题签分隔线 + 剧本占位卡) ---------- */
+.teaser__soon {
+  margin-top: 2.6vh;
+}
+.teaser__stitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5vh;
+}
+.teaser__stxt {
+  font-size: 1.6vh;
+  letter-spacing: 0.28em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.teaser__snote {
+  font-size: 1.4vh;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.teaser__cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.4vh;
+}
+.teaser__cards--x4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+/* 占位卡:teaser-card.png(480×320 宣纸底+淡墨远山+金线框),按 3:2 等比不变形,剧名/年代居中压底板 */
+.teaser__tcard {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  background: center / 100% 100% no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.teaser__tbody {
+  text-align: center;
+}
+.teaser__tname {
+  font-family: var(--font-song);
+  font-weight: 900;
+  font-size: 2.3vh;
+  letter-spacing: 0.08em;
+  color: var(--ink-strong);
+}
+.teaser__tera {
+  margin-top: 0.2vh;
+  font-size: 1.35vh;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+}
+
+/* ---------- ⑥ 底注 ---------- */
+.teaser__foot {
+  margin-top: 2vh;
+  padding-top: 1.3vh;
+  border-top: 1px solid #d6c8ae;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.4vh;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+.teaser__fhint {
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+}
+.teaser__fdot {
+  width: 0.7vh;
+  height: 0.7vh;
+  border-radius: 50%;
+  background: var(--gold);
+}

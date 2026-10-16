@@ -175,10 +175,38 @@ function M.attach(Shell)
 
   -- ---------- 结算浮层 ----------
 
-  function S.showSettle(title, text, changes, devDelta, achNew, bandName, cb)
+  -- 险招掷骰动画(v1 摇骰):结算层标题先快速翻滚假骰点,约 0.9 秒后落定真实结果。
+  -- 纯视觉,不走引擎流;硬核难度隐去数字只摇 🎲(对齐 hideAttrs 数值口径)。
+  local function startDiceAnim(finalText)
+    local hide = g().diff.hideAttrs
+    local prev = S.tickWidgets
+    local t, nextFlip = 0, 0
+    local wrapper
+    wrapper = function(dt)
+      if prev then prev(dt) end
+      if not env.settleLayer:IsVisible() then
+        if S.tickWidgets == wrapper then S.tickWidgets = prev end
+        return
+      end
+      t = t + dt
+      if t >= 0.9 then
+        env.sTitle:SetText(finalText)
+        if S.tickWidgets == wrapper then S.tickWidgets = prev end
+        return
+      end
+      if t >= nextFlip then
+        nextFlip = t + 0.07
+        env.sTitle:SetText(hide and '🎲 掷骰 …' or string.format('🎲 掷骰 %d …', math.random(1, 100)))
+      end
+    end
+    S.tickWidgets = wrapper
+  end
+
+  function S.showSettle(title, text, changes, devDelta, achNew, bandName, cb, risk)
     S.renderTop()
     env.sTitle:SetText(title or '')
     env.sTitle:SetVisible((title or '') ~= '')
+    if risk then startDiceAnim(title or '') end
     T.destroyChildren(env.sText)
     env.sText:AddChild(T.richSeg(text or '', {}))
     T.destroyChildren(env.sList)
@@ -202,8 +230,7 @@ function M.attach(Shell)
     if devDelta then
       env.sList:AddChild(T.lbl { t = '偏离 +' .. tostring(devDelta), size = T.FS.ui, color = C.warn })
     end
-    env.sAch:SetVisible(achNew ~= nil)
-    if achNew then env.sAch:SetText('成就解锁 ｜ ' .. achNew) end
+    env.sAch:SetVisible(false)  -- 成就功能整体隐藏(数据与解锁逻辑保留)
     env.sBand:SetVisible(bandName ~= nil)
     if bandName then
       env.sBand:SetText(BAND_WARNS[bandName] or ('史书提示：偏离度已入「' .. bandName .. '」段。'))
@@ -284,7 +311,7 @@ function M.attach(Shell)
     for _, s in ipairs(ch.intro or {}) do items[#items + 1] = segW(s) end
     for _, n in ipairs(g().introNotes or {}) do items[#items + 1] = noteW(n) end
     if fromBt then
-      items[#items + 1] = noteW('【回溯】你回到了本章开头。偏离度与已解锁的成就、图鉴不会重置——做过的事，史书都记着。')
+      items[#items + 1] = noteW('【回溯】你回到了本章开头。偏离度与图鉴不会重置——做过的事，史书都记着。')
     end
     S.scrollMainTop()
     S.renderSide(ch.intro)
@@ -381,7 +408,7 @@ function M.attach(Shell)
         return
       end
       S.handleRoute(gg:proceed())
-    end)
+    end, r.risk)
   end
 
   -- ---------- 抉择卡(次级关键事件) ----------
@@ -542,7 +569,7 @@ function M.attach(Shell)
       if r.forcedEnding then S.handleRoute(gg:proceed()) return end
       if r.forcedKey then M.renderEvent() return end
       S.handleRoute(r.route or { type = 'round' })
-    end)
+    end, r.risk)
   end
 
   function M.doXushi()
@@ -663,7 +690,6 @@ function M.attach(Shell)
     mainAdd(T.lbl { t = en.name, size = T.FS.h2, color = C.inkHeavy, bold = true, align = "center", mb = 4 })
     mainAdd(UI.Row { justifyContent = "center", marginBottom = 12, children = {
       UI.Panel { width = 60, height = 2, backgroundColor = C.gold } } })
-    if en.achNew then mainAdd(T.lbl { t = '成就解锁 ｜ ' .. en.achNew, size = T.FS.note, color = C.gold, mb = 8 }) end
     Voice.Play(Voice.EndingPath(gg.d.SCENARIO.id, en.id, en.variant))
     mainAdd(segW(en.zhuan))
     if en.aliveNote then mainAdd(T.lbl { t = en.aliveNote, size = T.FS.note, color = C.qing, mb = 6 }) end
@@ -798,14 +824,6 @@ function M.attach(Shell)
             children = { UI.Panel { width = tostring(pct) .. '%', height = "100%",
               backgroundColor = a.inverse and C.zhu or C.gold } } },
         } })
-      end
-      env.drawerBody:AddChild(T.lbl { t = '成 就', size = T.FS.note, color = C.warn, mt = 10, mb = 4 })
-      if #gg.ach == 0 then
-        env.drawerBody:AddChild(T.lbl { t = '尚未解锁', size = T.FS.note, color = C.line })
-      else
-        for _, a in ipairs(gg.ach) do
-          env.drawerBody:AddChild(T.lbl { t = '· ' .. tostring(gg.d.ACHIEVEMENTS[a] or a), size = T.FS.note })
-        end
       end
     else
       env.drawerHead:SetText('百 科 图 鉴')

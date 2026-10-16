@@ -22,14 +22,14 @@
 | **回溯=真章首快照**（含牌堆/际遇计数/章首注记/coef/跳过标记） | GDD 6.4（v2.0.5 补全，快照字段见 `makeSnapshot`） | `engine.js` makeSnapshot/backtrack/_buildChapterDeck |
 | **终局不可撤销**（结局页无回溯） | GDD 6.4（v2.0.5 补） | `engine.js` canBacktrack（`phase==='ending'` 拒收）· `js/ui-ending.js` |
 | 随机流（risk/event/corr 独立流，惰性派生，可注入） | GDD 附录 N.2 | `engine.js` _stream |
-| **回溯恢复历史状态，不恢复随机命运**（不存 rng 状态，章首重入不保证相同随机序列——设计原则） | GDD 附录 N.2 / P（本版定稿） | — |
+| **回溯恢复历史状态，不恢复随机命运**（回溯不存 rng 状态，章首重入不保证相同随机序列——设计原则；**跨会话存档自 v2.2.0 起相反**：rng/派生流状态随档存取，读档续接存档时刻的随机序列） | GDD 附录 N.2 / P（本版定稿）· v2.2.0 存档修订 | `engine.js` makeStateRng/makeLiveState/_importLive |
 | **读档不截断成就**（importSave = 快照 ∪ 已有，与 backtrack 同一语义） | GDD 6.4 · 附录 Q.2 | `engine.js` importSave |
 | **存档剧本身份绑定**（`scenKey` 校验，防跨剧本串档；旧档无此字段则放行） | GDD 6.4（v2.0.3 补） | `engine.js` exportSave/importSave |
 | **早退闸**（序章零代价退出须设 notflag 闸；李斯模式已推广至五剧本） | GDD 附录 D #26 · 附录 Q.7 | 五剧本 `*-data.js` 序章早退选项 `req` |
 | 结局评分公式（四维 0–100；**功业 = 权势×0.45 + 政绩×0.15 + 标记**；权重 30/30/20/20；总分允许破 100） | GDD 5.5 评分模型（v2.1.0 修订功业构成与存续权重） | `engine.js` 结局结算（gongye/cuncun/shiping/yingxiang） |
 | 评级（S/A/B/C/D 分数线，v2.1.0 **未动**） | GDD 5.5 评分模型 | 同上 |
 | **政绩经济**（卡侧供给须覆盖多章；每处语义为"建功/安民/治军/置官"） | GDD 附录 T.7 / T.8 + **附录 U.11**（v2.1.0 扩源与门槛可达性校准） | 五剧本 `*-data.js` `ACTIONS[].eff.attrs.zhengji` 与事件 `eff.attrs.zhengji`；`test-sim.js` #66 / 各剧本「政绩经济存在性」断言 |
-| 存档（**章首**存档点；硬核无存档；坏档清除回主页） | GDD 6.4（时点以 6.4 为准，5.4 已同步） | `js/ui-core.js`（`loadGameSave/clearGameSave` **须显式传 scenKey**）· `engine.js` exportSave/importSave |
+| 存档（v2.2.0 起为**当前时刻全量状态**（snapshot 章首快照 + live 轮次/相位/随机轨迹两件套），读档精确续玩；旧 v1 章首档兼容导入；硬核无存档；坏档清除回主页） | GDD 6.4（v2.2.0 时点修订） | `js/ui-core.js`（`loadGameSave/clearGameSave` **须显式传 scenKey**）· `engine.js` exportSave/importSave/_importLive |
 | 三难度（剧情/普通/硬核的数值与信息口径） | GDD 4.4 | 各数据文件 DIFFICULTY |
 | 硬核信息隐藏（属性状态词 / 掷骰只显档位词 / **行动卡说明去数字**） | GDD 4.4 · 附录 O.0（P0-2；卡面口径 v2.0.3 补） | `engine.js` riskTitle/cardDesc · `js/ui-round.js` · `js/*` hideAttrs 分支 |
 | 逆天反噬（偏离≥71 **每章一次**，池内随机；非概率闸门） | GDD 5.2 · 附录 D #7 | `engine.js` maybeRandom |

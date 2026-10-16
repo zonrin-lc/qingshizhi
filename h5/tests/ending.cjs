@@ -18,6 +18,8 @@ const DRIVER = `(async () => {
   const qa = s => [...document.querySelectorAll(s)];
   ${STEP_SNIPPET}
   const g = window.__QS__.game;
+  // 先写一条自动档,结局落地时必须把它清掉(否则通关的局还会从「继续旅程」复活)
+  window.__QS__.saveGame(true);
   let steps = 0;
   const phaseSeen = new Set();
   for (let i = 0; i < 6000; i++) {
@@ -37,13 +39,19 @@ const DRIVER = `(async () => {
     back: qa('.stage__foot .btn--primary').map(b => b.textContent.trim()),
   };
 
-  // 副作用 1:结局落地后自动档必须清掉(对齐 Lua renderEnding → Store.remove),
+  // 副作用 1:结局落地后该剧本的自动档必须清掉(对齐 Lua renderEnding → Store.remove),
   // 否则通关的局还会从「继续旅程」里复活
-  const saves = JSON.parse(localStorage.getItem('qingshi.saves.v1') || '{}');
-  const autoCleared = !saves.auto;
+  const autos = JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}');
+  const autoCleared = !(Array.isArray(autos.lisi) && autos.lisi.length > 0);
 
-  // 副作用 2:跨局收藏必须写回(col_v1 语义),成就/词条跨局累计
+  // 副作用 2:跨局收藏必须写回(col_v1 语义),成就/词条跨局累计;
+  // 结局达成记录(endings)也要落地 —— 图鉴页与结局页进度行都读它
   const col = JSON.parse(localStorage.getItem('qingshi.col.v1.lisi') || 'null');
+  const endKeys = col && col.endings ? Object.keys(col.endings) : [];
+  const endRec = endKeys.length ? col.endings[endKeys[0]] : null;
+
+  // 结局页进度行:「此结局第 N 回达成 · 剧本结局 x/y」
+  const progLine = qa('.txt').map(t => t.textContent).find(t => t.includes('回达成'));
 
   // 返回主页 → 主菜单出现
   const backBtn = qa('.stage__foot .btn--primary')[0];
@@ -51,7 +59,7 @@ const DRIVER = `(async () => {
   await sleep(300);
   const menuBack = !!q('.menu__item--start');
 
-  return { ok: true, steps, phases: [...phaseSeen], dom, autoCleared, col, menuBack };
+  return { ok: true, steps, phases: [...phaseSeen], dom, autoCleared, col, endRec, progLine, menuBack };
 })()`;
 
 withPage(async ({ evaluate, consoleErrors }) => {
@@ -67,6 +75,8 @@ withPage(async ({ evaluate, consoleErrors }) => {
     ['提供「返 回 主 页」', (out.dom?.back ?? []).some((t) => t.includes('返'))],
     ['结局后自动档已清', out.autoCleared === true],
     ['跨局收藏已写回(col_v1)', !!out.col && Array.isArray(out.col.gloss) && Array.isArray(out.col.ach)],
+    ['结局达成记录落地(次数≥1)', !!out.endRec && out.endRec.c >= 1 && typeof out.endRec.n === 'string'],
+    ['结局页有进度行(第 N 回达成 · x/y)', !!out.progLine && /第 \d+ 回达成/.test(out.progLine) && /结局 \d+\/\d+/.test(out.progLine)],
     ['返回主页回到主菜单', out.menuBack === true],
     ['控制台无错误', consoleErrors().length === 0],
   ]);

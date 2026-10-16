@@ -494,7 +494,10 @@ let skipped = 0;
   const sv = JSON.parse(JSON.stringify(g2.exportSave()));
   const g3 = new E.Game(D, 'normal', rngHigh);
   const notesKept = g3.importSave(sv) && (g3.introNotes || []).length === (g2.introNotes || []).length;
-  const old = JSON.parse(JSON.stringify(sv)); delete old.snapshot.introNotes; delete old.snapshot.coef;
+  // 旧档（v1 章首档，无 v/live 字段）缺 introNotes/coef 时按空/1 兜底，不得崩
+  const old = JSON.parse(JSON.stringify(sv));
+  delete old.v; delete old.live;   // 摘掉 v2 字段才是真的旧档形状
+  delete old.snapshot.introNotes; delete old.snapshot.coef;
   const g4 = new E.Game(D, 'normal', rngHigh);
   const oldOk = g4.importSave(old) && Array.isArray(g4.introNotes) && g4.coef === 1;
   if (notesKept && oldOk) pass++;
@@ -817,9 +820,12 @@ let skipped = 0;
   const gap = e2.total - e8.total;   // 存续差 90 × 0.30 = 27（其余四项同）
   if (gap === 27) pass++;
   else { fail++; console.log('✘ 存续权重未生效：E2=' + e2.total + ' E8=' + e8.total + ' 差 ' + gap + '（应 27 = 存续差 90 × 0.30）'); }
-  // 评级分数线未变（回归护栏，v2.1.0 只动权重不动分数线）：
-  // 扫大量构造态，逐个核对 engine 给的 grade 与 GDD 5.5 分数线表一致
-  const expectGrade = t => t >= 85 ? 'S' : t >= 70 ? 'A' : t >= 55 ? 'B' : t >= 40 ? 'C' : 'D';
+  // 评级档位表（甲/乙/丙各分上中下、丁兜底，共十级：95/90/85/80/70/60/50/40/30）：
+  // 扫大量构造态，逐个核对 engine 给的 grade 与档位表一致
+  const expectGrade = t => t >= 95 ? '甲上' : t >= 90 ? '甲' : t >= 85 ? '甲下'
+    : t >= 80 ? '乙上' : t >= 70 ? '乙' : t >= 60 ? '乙下'
+    : t >= 50 ? '丙上' : t >= 40 ? '丙' : t >= 30 ? '丙下'
+    : '丁';
   let bad = [], seen = 0;
   for (const eid of Object.keys(D.ENDINGS)) {
     for (const q of [0, 30, 60, 100]) for (const zj of [0, 40, 100]) for (const dv of [0, 50, 100]) {
@@ -833,7 +839,7 @@ let skipped = 0;
   }
   if (bad.length === 0) pass++;
   else { fail++; console.log('✘ 评级分数线漂移（' + bad.length + '/' + seen + '）：' + bad.slice(0, 6).join(' ')); }
-  console.log('✔ 评分口径契约：权重 30/30/20/20、功业=权势×0.45+政绩×0.15+标记、存续提权生效（E2−E8=27）、评级分数线未变');
+  console.log('✔ 评分口径契约：权重 30/30/20/20、功业=权势×0.45+政绩×0.15+标记、存续提权生效（E2−E8=27）、评级档位表一致');
 }
 
 console.log(`\n结果：${pass} 通过，${fail} 失败` + (skipped ? `，${skipped} 段停用` : ''));

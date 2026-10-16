@@ -26,10 +26,11 @@ const PROBE = `(async () => {
     const cur = secs.filter(s => !s.classList.contains('is-collapsed')).pop() || secs[secs.length - 1];
     return cur ? [...cur.querySelectorAll('.prose')].length : 0;
   };
-  // 偶遇/随机事件的选项现在内联在文本区小节里,底部的也要算(抉择卡仍在底部)。
+  // 偶遇/随机事件与抉择卡的选项都内联在文本区小节里(2026-10-16),底部的也要算。
   // 渐显期间两边都没挂,所以「渐显期间为 0」的负向断言语义不变。
   const opts = () => qa('.stage__main .card--tappable, .stage__foot .card--tappable').length;
-  const cont = () => qa('.stage__foot .btn--primary').length;
+  // 剧情「继 续」跟在文本下面(内联,2026-10-15);章末/结局的主按钮仍在底部
+  const cont = () => qa('.stage__main .sec:not(.is-collapsed) .btn--primary, .stage__foot .btn--primary').length;
   const revealing = () => !!window.__QS__.session.isRevealing;
   const out = {};
 
@@ -53,7 +54,8 @@ const PROBE = `(async () => {
   // 「继续」可能还没挂上(上一段没放完),轮询等它,而不是赌它已经在了
   const t1 = performance.now();
   while (cont() === 0 && performance.now() - t1 < 5000) await sleep(40);
-  if (q('.stage__foot .btn--primary')) q('.stage__foot .btn--primary').click();
+  const contBtn = () => q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+  if (contBtn()) contBtn().click();
 
   // 「继续」之后未必就是事件:引擎有随机事件机制(实测有时插 R-2,
   // 有时直接 0-1,偶尔一步跨到回合),所以不能假定落地相位。

@@ -5,14 +5,14 @@
  *   .viewport
  *     .stage[data-bg]         背景贴图层
  *       .stage__deco          梅枝/竹影装饰(不吃点击)
- *       header.stage__bar      返回 | 标题+金线 | 回溯
- *       .stage__cols
+ *       header.stage__bar      返回(罗盘,绝对定位) | 标题 | 回溯
+ *       .stage__cols           两行网格:文本行 + 选项行
  *         main.stage__main     剧情卷轴(立绘 + 叙事)
- *         aside.stage__side    属性卷轴(雷达 + 条形)
- *       footer.stage__foot     选项区
+ *         aside.stage__side    属性卷轴(雷达 + 条形,纵跨两行)
+ *         footer.stage__foot   选项区(与文本区同宽)
  *       .overlay               浮层
  */
-import { clear, el, lbl } from '../ui/kit';
+import { backBtn, clear, el, lbl } from '../ui/kit';
 
 export type PageBg = 'game' | 'menu' | 'select' | 'save' | 'settings' | 'summary' | 'ending' | '';
 
@@ -42,30 +42,30 @@ export function buildShell(mount: HTMLElement): Shell {
 
   // ---------- 顶栏 ----------
   const bar = el('header', 'stage__bar');
-  const back = el('button', 'topbtn topbtn--back', '返 回');
-  back.type = 'button';
-  back.title = '返回';
+  // 返回钮:全站统一的罗盘按钮(kit.backBtn / .pageback),绝对定位脱出顶栏流,
+  // 不占标题区的布局位。
+  const back = backBtn(undefined, '返回');
   const chapWrap = el('div', 'stage__head');
+  // 标题下的金线分隔去掉(2026-10-15 用户拍板),标题区只留章名
   const chap = el('div', 'stage__chap u-kai u-heavy', '青史志');
-  const rule = el('div', 'stage__rule');
-  chapWrap.append(chap, rule);
+  chapWrap.append(chap);
   const band = el('div', 'stage__band', '');
   bar.append(back, chapWrap, band);
 
-  // ---------- 主体两栏 ----------
+  // ---------- 主体两栏 + 底部选项区 ----------
+  // foot 收进 cols(2026-10-15 拍板):cols 变两行网格,属性区纵跨两行,
+  // 底部与选项卡行下缘对齐;选项区宽度 = 中部文本区宽度,天然一致。
   const cols = el('div', 'stage__cols');
   const main = el('main', 'stage__main panel-scroll');
   const side = el('aside', 'stage__side panel-plain');
-  cols.append(main, side);
-
-  // ---------- 底栏(选项区) ----------
   const foot = el('footer', 'stage__foot');
+  cols.append(main, side, foot);
 
   // ---------- 浮层 ----------
   const overlay = el('div', 'overlay');
   overlay.hidden = true;
 
-  stage.append(bar, cols, foot, overlay);
+  stage.append(bar, cols, overlay);
   viewport.append(stage);
   mount.append(viewport);
 
@@ -102,7 +102,7 @@ export function setDeco(deco: HTMLElement, on: boolean): void {
  */
 const BACK_CB = Symbol('qingshi.back');
 export function wireBack(shell: Shell, fn: () => void): void {
-  const b = shell.bar.querySelector('.topbtn--back') as (HTMLElement & { [BACK_CB]?: () => void }) | null;
+  const b = shell.bar.querySelector('.pageback') as (HTMLElement & { [BACK_CB]?: () => void }) | null;
   if (!b) return;
   if (b[BACK_CB]) b.removeEventListener('click', b[BACK_CB]);
   b[BACK_CB] = fn;

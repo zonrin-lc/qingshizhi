@@ -3,13 +3,10 @@
 -- 设计(与 voice.lua 同构):
 --   · 每个剧本一曲,分「无人声版(inst)」与「有人声版(vocal)」两条音轨。
 --   · 进对局即从头播无人声版;放完一遍接有人声版;有人声版放完再回无人声版,如此循环。
---   · 剧情朗读(Voice)进行时自动压低 BGM,避免人声与朗读抢耳。
 --   · 待机(主菜单/选择页)静音;设置页可开关与调音量。
 --   · 音源类型 SOUND_MUSIC,与朗读的 SOUND_VOICE 音量相互独立。
 --
 -- 生命周期注意:Scene 必须由模块级变量持有,否则会被 GC 回收(见 lua-scripting-guide「局部 Scene」)。
-local Voice = require("qingshi/ui/voice")
-
 local M = {}
 
 -- 模块级持有,勿改局部
@@ -64,7 +61,6 @@ local TRACKS = {
 local enabled_ = true
 local gain_ = 0.6          -- BGM 基准音量(低于朗读 1.0,避免抢耳)
 
-local DUCK = 0.45          -- 朗读进行时的压低系数
 local LEAD = 1.5           -- 人声版临近结尾提前切回伴奏的提前量(秒),避开尾奏留白
 
 -- 运行状态
@@ -85,12 +81,10 @@ local function ensureSource()
   return true
 end
 
--- 应用音量:基准 × 朗读压低。每帧可调(朗读状态随时变化)。
+-- 应用音量:基准 × 开关。
 local function applyGain()
   if not source_ then return end
-  local duck = 1.0
-  if Voice.IsPlaying() then duck = DUCK end
-  source_.gain = enabled_ and (gain_ * duck) or 0
+  source_.gain = enabled_ and gain_ or 0
 end
 
 -- 播放指定音轨(从 0 开始)
@@ -133,7 +127,7 @@ function M.Stop()
   if source_ then source_:Stop() end
 end
 
--- 由 Shell.Update 每帧调用:推进循环点、刷新压低音量
+-- 由 Shell.Update 每帧调用:推进循环点
 function M.Update(dt)
   if not active_ or not source_ then return end
   local tr = trackOf(scen_)
@@ -158,7 +152,6 @@ function M.Update(dt)
       playMode("inst")
     end
   end
-  applyGain()
 end
 
 function M.IsPlaying()

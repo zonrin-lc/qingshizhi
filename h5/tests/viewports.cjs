@@ -48,7 +48,7 @@ ${STEP_SNIPPET}
       }
       const ov = q('.overlay');
       if (ov && !ov.hidden) { q('.overlay .btn--primary').click(); await sleep(4); continue; }
-      if (g.phase === 'intro') { q('.stage__foot .btn--primary')?.click(); await sleep(4); }
+      if (g.phase === 'intro') { (q('.stage__main .btn--primary') || q('.stage__foot .btn--primary'))?.click(); await sleep(4); }
       else if (g.phase === 'event') {
         // 偶遇/随机事件:选项与结算「继续」内联在文本区,不在底部
         const cont = q('.stage__main .btn--primary');

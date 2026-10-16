@@ -5,6 +5,7 @@
  * - 朝代名固定在自己的方位(第 1 项在正上方),**不随盘转**;
  * - 盘面(环带 + 烘焙在顶部的指针)旋转,由指针去指当前选中的那一格;
  * - 中心盘以该朝建筑淡墨剪影为底,叠朝代大字与年代·状态(始终正立);
+ *   中心盘垫在环图之下(环带内缘压住盘边),内容切换等轮盘停稳后淡入;
  * - 拖拽跟手 → 松手惯性 → 欠阻尼弹簧吸附(冲过再回摆)→ 整体归位;
  *   拖拽位移极小视为点击,按点到的方位直接选;中心盘为中枢死区。
  *
@@ -75,6 +76,8 @@ export function createWheel(opts: {
   let accum = 0;
   let k = index;
   let reT = 0;
+  /** 中心盘内容待刷新:等轮盘停稳(归位完成)再淡入切换(2026-10-15 拍板) */
+  let diskDirty = false;
   const reFrom = { base: 0, nameOff: 0 };
 
   // ---------- DOM ----------
@@ -88,7 +91,8 @@ export function createWheel(opts: {
   const diskName = el('div', 'dwheel__dyn');
   const diskEra = el('div', 'dwheel__era');
   disk.append(diskArch, diskName, diskEra);
-  root.append(ring, disk);
+  // 中心盘先入 DOM:垫在环图之下,环带内缘正好压住盘边(2026-10-15 拍板)
+  root.append(disk, ring);
   const nameEls: HTMLElement[] = [];
   for (let i = 0; i < items.length; i += 1) {
     const n = lbl(items[i]!.name, 'dwheel__name');
@@ -116,6 +120,14 @@ export function createWheel(opts: {
     diskEra.textContent = `${cur.era}  ·  ${cur.hasData ? '已开卷' : '准备中'}`;
     const a = opts.arch[cur.name];
     diskArch.style.backgroundImage = a ? `url("${a}")` : 'none';
+  }
+
+  /** 轮盘停稳后调用:换内容并重启淡入动画(类删了再加,动画才重播) */
+  function swapDiskWithFade(): void {
+    paintDisk();
+    disk.classList.remove('is-swap');
+    void disk.offsetWidth;
+    disk.classList.add('is-swap');
   }
 
   function paint(): void {
@@ -151,7 +163,7 @@ export function createWheel(opts: {
     k = i;
     phase = 'point';
     pointVel = 0;
-    paintDisk();
+    diskDirty = true;
     opts.onChange(i);
   }
 
@@ -255,7 +267,7 @@ export function createWheel(opts: {
             base = target;
             if (kk !== index) {
               index = kk;
-              paintDisk();
+              diskDirty = true;
               opts.onChange(kk);
             }
             k = kk;
@@ -284,6 +296,11 @@ export function createWheel(opts: {
           base = 0;
           nameOff = TOP - index * step;
           phase = 'idle';
+          // 轮盘停稳:中心盘此刻才淡入切换到新朝代(2026-10-15 拍板)
+          if (diskDirty) {
+            diskDirty = false;
+            swapDiskWithFade();
+          }
         } else {
           const e = 1 - (1 - reT) ** 3;
           base = reFrom.base * (1 - e);

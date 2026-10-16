@@ -1,8 +1,10 @@
 /* ============================================================================
- * 主菜单(封存 Lua 版 home.lua renderMenu 的 H5 复刻)
+ * 主菜单 · 中轴居中竖向构图(2026-10-16 改版,参照 design/main-menu-v3.html)
  *
- * 整页水墨山水底;左 56% 组合主 logo(花纹 + 竖排书法 + 朱印),右 44% 米白纱帘菜单。
- * 帘的半透明底色 rgb(233,222,198,0.80) 与 Lua 的 {233,222,198,205} 一致。
+ * 整页水墨山水底(湖舟松竹,中轴留白);自上而下:
+ *   中央柔光 → 组合主 logo(花纹 + 竖排书法 + 朱印)→
+ *   存档进度胶囊 → 朱红大按钮「入 局」→ 横排次级项(存档/图鉴/设置/退出)。
+ * 底部一条纸色渐隐带(pagefoot)给入口区做落点。无题签行、无卷脚行。
  * ==========================================================================*/
 
 .menu {
@@ -12,18 +14,41 @@
   overflow: hidden;
 }
 
-/* ---------- 左:组合主 logo ---------- */
+/* ---------- 中央柔光:把标题区再提亮一档,让竖排字压得住背景 ---------- */
+.menu__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(52% 62% at 50% 44%,
+    rgba(250, 245, 233, 0.72), rgba(250, 245, 233, 0.28) 58%, rgba(250, 245, 233, 0) 82%);
+}
+
+/* ---------- 书页底边:入口区落在水墨上会糊,自下而上的纸色渐隐带做落点 ---------- */
+.menu__pagefoot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 29%;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(0deg,
+    rgba(247, 241, 229, 0.96) 0%, rgba(247, 241, 229, 0.9) 34%,
+    rgba(247, 241, 229, 0.5) 66%, rgba(247, 241, 229, 0) 100%);
+}
+
+/* ---------- 组合主 logo(花纹 + 书法 + 朱印),居中偏上 ---------- */
 .menu__titlewrap {
   position: absolute;
-  top: 0;
+  top: 7%;
   left: 0;
-  bottom: 0;
-  width: 56%;
+  right: 0;
+  bottom: 34%;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  will-change: transform, opacity;
+  z-index: 2;
 }
 .menu__titlebox {
   position: relative;
@@ -31,8 +56,9 @@
   flex-direction: column;
   align-items: center;
   /* 书法素材 399×839(高 ≈ 2.103 宽);盒高 = 花纹 0.55w + 间距 0.08w + 书法 2.103w ≈ 2.73w */
-  height: 72%;
+  height: 100%;
   aspect-ratio: 100 / 273;
+  filter: drop-shadow(0 2px 10px rgba(60, 48, 32, 0.16));
 }
 .menu__logoicon {
   width: 55%;
@@ -51,90 +77,165 @@
   width: 24%;
   right: -6%;
   bottom: 0.5%;
+  opacity: 0.95;
+  filter: drop-shadow(0 2px 6px rgba(120, 40, 24, 0.22));
 }
 
-/* ---------- 右:纱帘菜单 ---------- */
-.menu__curtain {
+/* ---------- 入口区 ---------- */
+.menu__entry {
   position: absolute;
-  top: 0;
+  left: 0;
   right: 0;
-  bottom: 0;
-  width: 44%;
-  background: rgba(233, 222, 198, 0.8);
+  bottom: 6.5%;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  will-change: transform;
 }
-.menu__edge {
-  position: absolute;
-  top: 8%;
-  bottom: 8%;
-  right: 44%;
-  width: 1px;
-  background: var(--line);
-  pointer-events: none;
-  will-change: transform;
+
+/* 存档进度胶囊(继续旅程) */
+.menu__resume {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
+  padding: 0.45rem 1.1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
 }
-.menu__sub {
-  font-size: 1.1rem;
-  color: var(--ink-soft);
-  letter-spacing: 0.3em;
+.menu__resume:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.menu__resume-seal {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 5px;
+  background: var(--zhu);
+  color: #f7f0e0;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.menu__resume-t {
+  font-family: var(--font-kai);
+  font-size: 0.78rem;
+  color: var(--ink-strong);
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
-.menu__sub--gap {
-  margin-bottom: 3.2rem;
+.menu__resume-s {
+  font-size: 0.68rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+.menu__resume-go {
+  font-size: 0.72rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  margin-left: 0.2rem;
+}
+.menu__resume.is-off {
+  opacity: 0.55;
+  cursor: default;
 }
 
-.menu__items {
-  display: flex;
-  flex-direction: column;
+/* 朱红主按钮「入 局」:不铺满,像书上的朱批 */
+.menu__enter {
+  position: relative;
+  display: inline-flex;
   align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 3.4rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #b8482f, var(--zhu-hi));
+  box-shadow: 0 8px 22px rgba(140, 50, 30, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: filter 0.16s ease, transform 0.16s ease;
 }
-.menu__item {
+.menu__enter:hover,
+.menu__enter:focus-visible {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+.menu__enter-t {
+  font-family: var(--font-kai);
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #fdf6e8;
+  letter-spacing: 0.42em;
+}
+.menu__enter-k {
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  color: rgba(253, 246, 232, 0.62);
+}
+/* 按钮左右的小菱饰 */
+.menu__enter::before,
+.menu__enter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  background: rgba(253, 246, 232, 0.5);
+  transform: rotate(45deg);
+}
+.menu__enter::before { left: 1.25rem; }
+.menu__enter::after { right: 1.25rem; }
+
+/* 横排次级项:不占竖向空间 */
+.menu__subnav {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 0.65rem 1.6rem;
-  /* 触控兜底:小缩放档下 rem 收缩,菜单项不能小于可点的指触高度 */
-  min-height: 40px;
+  margin-top: 1.25rem;
+}
+.menu__subnav-sep {
+  width: 1px;
+  height: 11px;
+  background: var(--line);
+  margin: 0 1.25rem;
+}
+.menu__item--sub {
   background: none;
   border: 0;
   cursor: pointer;
+  padding: 6px 2px;
+  /* 触控兜底:小缩放档下 rem 收缩,菜单项不能小于可点的指触高度 */
+  min-height: 40px;
+  position: relative;
 }
-.menu__label {
+.menu__item--sub .menu__label {
   font-family: var(--font-kai);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--ink-strong);
-  letter-spacing: 0.35em;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.24em;
   transition: color 0.15s ease;
+  white-space: nowrap;
 }
-.menu__under {
-  width: 0;
-  height: 2px;
-  margin-top: 5px;
-  background: var(--gold);
-  transition: width 0.18s ease;
-}
-.menu__item:hover .menu__label,
-.menu__item:focus-visible .menu__label {
+.menu__item--sub:hover:not(:disabled) .menu__label,
+.menu__item--sub:focus-visible .menu__label {
   color: var(--zhu);
 }
-.menu__item:hover .menu__under,
-.menu__item:focus-visible .menu__under {
-  width: 4rem;
+.menu__item--sub:hover:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 1px;
+  background: var(--zhu);
 }
-.menu__item.is-off {
-  opacity: 0.32;
+.menu__item--sub.is-off {
+  opacity: 0.36;
   cursor: default;
-}
-.menu__ver {
-  margin-top: 2.6rem;
-  font-size: var(--fs-note);
-  color: var(--ink-dim);
-  white-space: nowrap;
 }
 
 /* ---------- 退出确认 ---------- */
@@ -211,28 +312,23 @@
   color: var(--ink-strong);
   letter-spacing: 0.3em;
 }
-.menu.is-farewell .menu__curtain,
 .menu.is-farewell .menu__titlewrap,
-.menu.is-farewell .menu__edge {
+.menu.is-farewell .menu__entry,
+.menu.is-farewell .menu__glow,
+.menu.is-farewell .menu__pagefoot {
   visibility: hidden;
 }
 
-/* ---------- 窄屏:帘铺满,标题压到背景里 ---------- */
+/* ---------- 窄屏:标题收紧,入口区不动 ---------- */
 @media (max-width: 880px) {
   .menu__titlewrap {
-    width: 100%;
-    opacity: 0.25 !important;
-    transform: none !important;
+    top: 5%;
+    bottom: 40%;
   }
-  .menu__curtain {
-    width: 100%;
-    background: rgba(233, 222, 198, 0.86);
-    transform: none !important;
+  .menu__enter-t {
+    font-size: 1.25rem;
   }
-  .menu__edge {
-    display: none;
-  }
-  .menu__label {
-    font-size: 1.2rem;
+  .menu__subnav-sep {
+    margin: 0 0.7rem;
   }
 }

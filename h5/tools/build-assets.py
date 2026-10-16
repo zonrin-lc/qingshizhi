@@ -118,10 +118,14 @@ ASSETS = [
     ("settings", r"设置\水墨竹石装饰.png",                 "decor/bamboo-set.webp",   None,  680,  82),
     ("settings", r"设置\b1af65d6-7474-402f-8a85-b85f24b0c35f.png", "bg/settings.webp", 1920, None, 72),
 
-    # ============ Lua 版主菜单/选择页(repo: 前缀 → 本仓库 assets/) ============
-    # H5 的这两个页面按封存 Lua 版(home.lua)复刻,用 Lua 版那套素材,
-    # 与上面「选择页」组的设计稿素材是两套不同视觉,不要混用。
-    ("lua", r"repo:ui\bg-ink.jpg",              "lua/menu-bg.webp",          1920, None, 74),
+    # ============ Lua 版主菜单/选择页 ============
+    # H5 的这两个页面按封存 Lua 版(home.lua)复刻,主体用 Lua 版那套素材;
+    # 主菜单背景和左右装饰(梅/竹)改用的是「抉择结算浮层」组的设计稿素材
+    # (2026-10-15 用户供图)。梅/竹源图内容偏向画布一侧,使用时按 CSS
+    # scaleX(-1) 镜像贴边,管线里不翻转,保留原图。
+    ("lua", r"抉择结算浮层\background.png",             "lua/menu-bg.webp",        1920, None, 74),
+    ("lua", r"抉择结算浮层\zuo侧红梅枝装饰-改成镜像.png", "lua/menu-deco-mei.webp",  None, 720,  84),
+    ("lua", r"抉择结算浮层\you侧水墨竹装饰-改成镜像.png",  "lua/menu-deco-zhu.webp",  None, 1100, 84),
     ("lua", r"repo:ui\title-calligraphy.png",   "lua/title-calligraphy.webp", None, 900, 92),
     ("lua", r"repo:ui\bg-select.jpg",           "lua/bg-select.webp",        1920, None, 74),
     ("lua", r"repo:ui\parts\wheel_ring.png",    "lua/wheel-ring.webp",       880,  None, 86),

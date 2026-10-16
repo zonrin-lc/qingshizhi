@@ -2,10 +2,12 @@
  * BGM 回归。
  *
  * 这套测试盯的不是「有没有声音」——headless 里听不到,
- * 而是那三件真正会出事的事:
+ * 而是那几件真正会出事的事:
  *   1. URL 对不对(glob 不加 ?url 会烤出未带 hash 的路径,全 404)
  *   2. MIME 对不对(错了是「下到了但不解码」,最容易被误判成 autoplay 问题)
- *   3. 下得多不多(语音版不预载;只下当前剧本的纯音乐)
+ *   3. 播放策略对不对:页面加载即下 idle(进游戏就播);
+ *      入局后下 inst 并后台预载 vocal,双轨轮播(不开单曲循环);
+ *      回选择页切回 idle 循环。
  */
 const fs = require('fs');
 const path = require('path');
@@ -57,7 +59,6 @@ check('无 0 字节产物', distAudio.every((f) => fs.statSync(path.join(AUD, f)
 // 注意:不要断言「inst 一定小于 vocal」。实测 hanxin 的纯音乐版(1496 KB)
 // 反而比语音版(1469 KB)大——混音密度是内容属性,不是缺陷。
 // 预算按实测最差值定:aac 在持续音上会超出 -b:a 目标,64k 实测能到 ~77 kb/s。
-// vocal 版是点播才下的,给它 2 MiB;inst 版另有更紧的预算(见下)。
 check(
   '产物都在预算内(≤2 MiB)',
   distAudio.every((f) => fs.statSync(path.join(AUD, f)).size <= 2 * 1024 * 1024),
@@ -66,7 +67,7 @@ check(
 const instKb = size('lisi-inst', '.webm') / 1024;
 check('入局下载量在预算内(≤1.5 MB)', instKb <= 1536, `lisi-inst ${instKb.toFixed(0)} KB`);
 check(
-  '每首纯音乐版都 ≤1.5 MB(默认只下这些)',
+  '每首纯音乐版都 ≤1.5 MB',
   ['idle', 'lisi-inst', 'jingke-inst', 'hanxin-inst', 'xiangyu-inst', 'chensheng-inst']
     .every((n) => size(n, '.webm') > 0 && size(n, '.webm') <= 1536 * 1024),
 );
@@ -74,8 +75,7 @@ check(
 const buildOk = report('构建产物', checks);
 
 // ---------- 浏览器里的真实请求行为 ----------
-let sawVocal = false;
-withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
+withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors }) => {
   const rows = [];
   // why 只在失败时追加 —— 否则通过的行也挂着「<< 一个音频请求都没有」,
   // 读起来像坏了
@@ -84,7 +84,7 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
   await enterGame();
   await sleep(900);
   const reqs = netLog().filter((r) => AUDIO_RE.test(r.url));
-  sawVocal = reqs.some((r) => logical(r.url).includes('vocal'));
+  const got = [...new Set(reqs.map((r) => logical(r.url)))];
 
   add('入局确实拉了 BGM', reqs.length > 0, '一个音频请求都没有');
   add('音频请求全部 200', reqs.every((r) => r.status === 200),
@@ -96,50 +96,75 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
   add('MIME 正确(浏览器会真的解码)', reqs.every((r) => r.mime === wantMime[extOf(r.url)]),
     reqs.filter((r) => r.mime !== wantMime[extOf(r.url)]).map((r) => `${logical(r.url)}=${r.mime}`).join(', '));
 
-  add('只下 1 个音频(不预载 vocal)', reqs.length === 1,
-    `下了 ${reqs.length} 个: ${reqs.map((r) => logical(r.url)).join(', ')}`);
-  add('下的是当前剧本纯音乐版',
-    reqs.length > 0 && logical(reqs[0].url) === 'lisi-inst',
-    reqs.map((r) => logical(r.url)).join(', '));
+  // 播放策略:加载即下 idle(进游戏就播);入局后 inst 主播 + vocal 后台预载。
+  // 缓存可能让个别文件不出现在网络日志里,所以按「逻辑名子集 + 主播放器状态」双向验。
+  const expectSet = ['idle', 'lisi-inst', 'lisi-vocal'];
+  add('拉取集合 ⊆ {idle, inst, vocal}', got.every((g) => expectSet.includes(g)),
+    `实到: ${got.join(', ')}`);
+  add('入局拉了当前剧本纯音乐版', got.includes('lisi-inst'), `实到: ${got.join(', ')}`);
 
   const probe = await evaluate(`(() => {
     const a = document.createElement('audio');
     return { webm: a.canPlayType('audio/webm; codecs="opus"'), m4a: a.canPlayType('audio/mp4; codecs="mp4a.40.2"') };
   })()`);
   const supportsWebm = probe.webm === 'probably' || probe.webm === 'maybe';
-  add('格式选择符合 canPlayType', supportsWebm ? extOf(reqs[0].url) === 'webm' : extOf(reqs[0].url) === 'm4a',
-    `支持webm=${supportsWebm},实际下 ${extOf(reqs[0].url)}`);
+  const instReq = reqs.find((r) => logical(r.url) === 'lisi-inst');
+  add('格式选择符合 canPlayType', !!instReq && (supportsWebm ? extOf(instReq.url) === 'webm' : extOf(instReq.url) === 'm4a'),
+    `支持webm=${supportsWebm},实际下 ${instReq ? extOf(instReq.url) : '(无)'}`);
 
   const el = await evaluate(`(() => {
     const as = [...document.querySelectorAll('audio')];
-    const a = document.querySelector('audio');
-    if (!a) return { ok: false, why: '没有 audio 元素' };
-    const bg = as.find(x => x.loop);
-    return { ok: true, src: a.getAttribute('src') || '', loop: a.loop, vol: a.volume,
-             paused: a.paused, hasBgm: !!bg, bgmVol: bg ? bg.volume : null };
+    const bg = as.find(x => (x.getAttribute('src') || '').includes('lisi-inst'));
+    if (!bg) return { ok: false, why: '找不到在播 lisi-inst 的 audio 元素',
+                      srcs: as.map(x => (x.getAttribute('src') || '').split('/').pop()) };
+    const pre = as.find(x => x !== bg && (x.getAttribute('src') || '').includes('lisi-vocal'));
+    return { ok: true, src: bg.getAttribute('src') || '', loop: bg.loop, vol: bg.volume,
+             paused: bg.paused, preloading: !!pre };
   })()`);
-  add('audio 元素已挂载且带 src', el.ok && !!el.src, el.why || 'src 为空');
-  add('设为循环播放', el.loop === true);
-  // 音量不该写死一个数:它是设置项驱动的(标准档 0.6,见 game/settings.ts)。
-  // 早先这里断言 <= 0.4,那是在验我自己拍脑袋定的 0.32;设置项进来之后
-  // 正确的断言是「落在设置档位范围内」,而不是某个魔数。
-  add('BGM 音量取自设置档位(0.3/0.6/0.9 之一)',
-    el.hasBgm && [0.3, 0.6, 0.9].some((v) => Math.abs(el.bgmVol - v) < 0.01),
-    `音量 ${el.bgmVol}`);
+  add('主播放器在播当前剧本纯音乐版', el.ok, el.why ? `${el.why}: ${(el.srcs || []).join(', ')}` : '');
+  add('双轨轮播(不开单曲循环)', el.ok && el.loop === false, `loop=${el.loop}`);
+  add('vocal 已在后台预载', el.ok && el.preloading === true);
+  // 音量是设置项驱动的(设置页滑杆,默认 0.6,见 game/settings.ts)。
+  // 滑杆是连续值,断言「落在 (0,1] 的有效区间」,不是某个离散档位。
+  add('BGM 音量取自设置(有效区间)',
+    el.ok && el.vol > 0 && el.vol <= 1,
+    `音量 ${el.vol}`);
 
-  // 回选择页 → 应停声,不切 idle
+  // 回选择页 → 主播放器切回 idle 单曲循环。
+  // idle 多半已命中缓存,不一定有网络请求,所以验元素状态而不是请求数。
   netReset();
   await evaluate('window.__QS__.goSelect()');
   await sleep(800);
-  const back = netLog().filter((r) => AUDIO_RE.test(r.url));
-  add('回选择页停声(不再下曲子)',
-    back.length === 0,
-    back.map((r) => `${logical(r.url)}:${r.status}`).join(', ') || '(无请求)');
+  const back = await evaluate(`(() => {
+    const as = [...document.querySelectorAll('audio')];
+    const bg = as.find(x => (x.getAttribute('src') || '').includes('idle'));
+    if (!bg) return { ok: false, srcs: as.map(x => (x.getAttribute('src') || '').split('/').pop()) };
+    return { ok: true, loop: bg.loop };
+  })()`);
+  add('回选择页切回 idle 循环', back.ok && back.loop === true,
+    back.ok ? `loop=${back.loop}` : (back.srcs || []).join(', '));
 
-  // 整场看下来 vocal 一次都不该出现
-  const all = netLog().filter((r) => AUDIO_RE.test(r.url));
-  add('全程没有拉 vocal', !all.some((r) => logical(r.url).includes('vocal')),
-    all.map((r) => logical(r.url)).join(', '));
+  // 页面不可见必须静音(切标签/关预览面板,标签还活着音乐却在响的回归)。
+  // CDP 没有直接改 visibilityState 的口子,用「新标签挤到前台」的真实路径:
+  // 本页变 hidden → BGM 应暂停;激活回本页 → 应自动续播。
+  const bgEl = `(() => {
+    const bg = [...document.querySelectorAll('audio')].find(x => (x.getAttribute('src') || '').includes('idle'));
+    return { vis: document.visibilityState, paused: bg ? bg.paused : null };
+  })()`;
+  const t2 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+  await cdp.send('Target.activateTarget', { targetId: t2.targetId });
+  await sleep(400);
+  const hid = await evaluate(bgEl);
+  add('页面进后台 → BGM 暂停', hid.vis === 'hidden' && hid.paused === true,
+    `visibilityState=${hid.vis}, paused=${hid.paused}`);
+  const { targetInfos } = await cdp.send('Target.getTargets');
+  const mine = targetInfos.find((t) => (t.url || '').startsWith(url));
+  if (mine) await cdp.send('Target.activateTarget', { targetId: mine.targetId });
+  await cdp.send('Target.closeTarget', { targetId: t2.targetId }).catch(() => {});
+  await sleep(400);
+  const shown = await evaluate(bgEl);
+  add('回前台 → BGM 自动续播', shown.vis === 'visible' && shown.paused === false,
+    `visibilityState=${shown.vis}, paused=${shown.paused}`);
 
   // withPage 把本函数的返回值原样传出 —— 必须显式 return,
   // 否则外层拿到 undefined,整套装明明全绿却以退出码 1 结束。

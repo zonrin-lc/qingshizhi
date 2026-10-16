@@ -1781,5 +1781,125 @@ function expect(name, actual, wantId, wantVariant) {
   if (enterOk && cancelOk && settleOk) { pass++; console.log('✔ 抉择卡全流程：进入挂起/取消不耗轮/选项结算（caifu-5 shengwang+3）+计次+倒计时'); }
   else { fail++; console.log('✘ 抉择卡流程异常：' + JSON.stringify({ enterOk: enterOk, cancelOk: cancelOk, settleOk: settleOk })); }
 }
+/* ---------- 49. 轮次存档（v2.2.0）：exportSave 精确到经营轮次/相位，importSave 回到存档那一刻 ---------- */
+{
+  const firstAction = (g) => {
+    const offer = g.getOffer();
+    for (let i = 1; i < offer.length; i++) if (!offer[i].locked && !offer[i].choice) return i;
+    return -1;
+  };
+
+  // A. 回合相位 round-trip：第 1 轮行动落定、第 2 轮牌已发时存档；读档相位/手牌/倒计时/属性/计次一致
+  {
+    const g = mkGame('normal');            // 不注入主 rng：走引擎自备的可序列化 rng
+    g.randomOn = false; g.start(); g.beginEvents();
+    const ai = firstAction(g);
+    g.playCard(ai);                        // 落定后引擎直接重发牌（_advanceRound），phase 回到 'round'
+    const sv = JSON.parse(JSON.stringify(g.exportSave()));
+    const okShape = sv && sv.v === 2 && sv.live && sv.live.phase === 'round' && sv.snapshot && sv.snapshot.eventId;
+    // 偏离存档点再玩两轮
+    g.playCard(firstAction(g)); g.playCard(firstAction(g));
+    const g2 = mkGame('normal');
+    const ok = okShape && g2.importSave(sv)
+      && g2.phase === 'round'
+      && JSON.stringify(g2.offer) === JSON.stringify(sv.live.offer)
+      && JSON.stringify(g2.attrs) === JSON.stringify(sv.live.attrs)
+      && g2.keyRoundsLeft === sv.live.keyRoundsLeft
+      && JSON.stringify(g2.actionUses) === JSON.stringify(sv.live.actionUses)
+      && g2.eventId === sv.live.eventId;
+    if (ok) { pass++; console.log('✔ 轮次存档：回合相位 round-trip（offer/attrs/倒计时/计次/事件 全一致）'); }
+    else { fail++; console.log('✘ 轮次存档 round-trip 失败：' + JSON.stringify({ okShape: okShape, phase: g2.phase })); }
+  }
+
+  // B. 随机轨迹随档恢复：同一存档读进两个新对局，后续同操作同结果（发牌与结算逐位一致）
+  {
+    const g = mkGame('normal');
+    g.randomOn = false; g.start(); g.beginEvents();
+    g.playCard(firstAction(g));
+    const sv = JSON.parse(JSON.stringify(g.exportSave()));
+    const g1 = mkGame('normal'), g2 = mkGame('normal');
+    g1.importSave(sv); g2.importSave(sv);
+    let same = true;
+    for (let k = 0; k < 3 && same; k++) {
+      const i1 = firstAction(g1), i2 = firstAction(g2);
+      if (i1 !== i2) { same = false; break; }
+      const r1 = g1.playCard(i1), r2 = g2.playCard(i2);
+      if (JSON.stringify(r1) !== JSON.stringify(r2)
+        || JSON.stringify(g1.attrs) !== JSON.stringify(g2.attrs)
+        || JSON.stringify(g1.offer) !== JSON.stringify(g2.offer)) same = false;
+    }
+    if (same) { pass++; console.log('✔ 轮次存档：随机轨迹随档恢复（双读档三轮操作结果逐位一致）'); }
+    else { fail++; console.log('✘ 轮次存档：读档后随机轨迹断档（双读档结果分叉）'); }
+  }
+
+  // C. 抉择相位 round-trip：choice 中存档，读档仍在抉择页，可取消可落定
+  {
+    const g = mkGame('normal', rngHigh);
+    g.randomOn = false; g.start(); g.beginEvents();
+    g.offer = [{ type: 'key' }, { type: 'action', id: 'ACT-65' }];  // 强制发抉择卡（同 #48 手法）
+    g.playCard(1);
+    const sv = JSON.parse(JSON.stringify(g.exportSave()));
+    const g2 = mkGame('normal', rngHigh);
+    const ok = g2.importSave(sv) && g2.phase === 'choice' && g2.pendingCardId === 'ACT-65'
+      && g2.getChoiceCard() && g2.getChoiceCard().options.length === 3
+      && g2.cancelChoice() && g2.phase === 'round';
+    if (ok) { pass++; console.log('✔ 轮次存档：抉择相位 round-trip（读档仍在抉择页，取消回回合）'); }
+    else { fail++; console.log('✘ 轮次存档：抉择相位恢复失败（phase=' + g2.phase + ' card=' + g2.pendingCardId + '）'); }
+  }
+
+  // D. 章末结算相位 round-trip：summary 中存档，读档视图一致且可推进下一章
+  {
+    const g = mkGame('normal', rngHigh);
+    g.randomOn = false; g.start(); g.beginEvents();
+    g.playCard(0); g.choose(1); g.proceed(); // 0-1 驻足细想
+    g.playCard(0); g.choose(1); g.proceed(); // 0-2 辞去吏职 → 0-4
+    g.playCard(0); g.choose(0); g.proceed(); // 0-4 → 章末结算页
+    const sv = JSON.parse(JSON.stringify(g.exportSave()));
+    const g2 = mkGame('normal', rngHigh);
+    const ok = g.phase === 'summary' && g2.importSave(sv) && g2.phase === 'summary'
+      && JSON.stringify(g2.summaryView) === JSON.stringify(g.summaryView)
+      && g2.proceedSummary().type === 'chapter' && g2.chapterIdx === 1 && g2.phase === 'intro';
+    if (ok) { pass++; console.log('✔ 轮次存档：结算相位 round-trip（summaryView 一致，可推进下一章）'); }
+    else { fail++; console.log('✘ 轮次存档：结算相位恢复失败（phase=' + g2.phase + '）'); }
+  }
+
+  // E. 读档后回溯仍回章首：snapshot 随档保留
+  {
+    const g = mkGame('normal', rngHigh);
+    g.randomOn = false; g.start(); g.beginEvents();
+    g.playCard(firstAction(g));
+    const sv = JSON.parse(JSON.stringify(g.exportSave()));
+    const g2 = mkGame('normal', rngHigh);
+    g2.importSave(sv);
+    const ok = g2.backtrack() === true && g2.phase === 'intro'
+      && JSON.stringify(g2.attrs) === JSON.stringify(sv.snapshot.attrs);
+    if (ok) { pass++; console.log('✔ 轮次存档：读档后回溯仍回章首（snapshot 随档保留）'); }
+    else { fail++; console.log('✘ 轮次存档：读档后回溯未回章首'); }
+  }
+
+  // F. v2 脏档拒收：非法相位 / 未知行动卡 / 抉择缺挂起卡 / live 或 snapshot 属性越界
+  {
+    const mkSave = (mut) => {
+      const t = mkGame('normal', rngHigh); t.randomOn = false; t.start(); t.beginEvents();
+      const sv = t.exportSave(); mut(sv); return sv;
+    };
+    const rejects = [
+      ['非法相位', (sv) => { sv.live.phase = 'bogus'; }],
+      ['终局相位不可存', (sv) => { sv.live.phase = 'ending'; }],
+      ['offer 未知行动', (sv) => { sv.live.offer = [{ type: 'action', id: 'ACT-NOPE' }]; }],
+      ['抉择缺挂起卡', (sv) => { sv.live.phase = 'choice'; sv.live.pendingCardId = null; }],
+      ['live 属性越界', (sv) => { sv.live.attrs.weiji = 500; }],
+      ['snapshot 属性越界', (sv) => { sv.snapshot.attrs.weiji = 500; }],
+      ['结算缺视图', (sv) => { sv.live.phase = 'summary'; sv.live.summaryView = null; }]
+    ];
+    let allRej = true;
+    rejects.forEach(([label, mut]) => {
+      const gx = mkGame('normal', rngHigh);
+      if (gx.importSave(mkSave(mut)) !== false) { allRej = false; console.log('✘ v2 脏档未被拒收：' + label); }
+    });
+    if (allRej) { pass++; console.log('✔ 轮次存档：v2 脏档七项全部拒收'); }
+    else { fail++; }
+  }
+}
 console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail > 0 ? 1 : 0);

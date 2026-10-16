@@ -250,10 +250,14 @@ export interface Game {
   flags: Record<string, true | number>;
   /** 当前是否为际遇注入的事件 */
   currentRandom: GameEvent | null;
-  /** 章首快照;exportSave 导出的就是它(存档语义 = 回到本章开头) */
+  /** 章首快照(章内回溯用;v2.2.0 起跨会话存档导出的是 snapshot+live 两件套) */
   snapshot: Record<string, unknown> | null;
   /** 章末事件的进行中状态(endEvent 相位) */
   currentEndEvent: EndEventView | null;
+  /** 历史修正的进行中状态(correction 相位;轮次存档恢复用) */
+  correction: { title: string; segs: string[]; changes?: ChangeView[] } | null;
+  /** 章末结算视图(summary 相位;轮次存档恢复用,避免重算吃掉危机钳制记账) */
+  summaryView: SummaryView | null;
   ending: EndingView | null;
 
   start(): void;

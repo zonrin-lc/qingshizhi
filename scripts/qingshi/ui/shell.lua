@@ -164,7 +164,7 @@ function Shell.Update(timeStep)
   -- 选择页齿轮等常驻自绘控件
   if Shell.tickWidgets then Shell.tickWidgets(timeStep) end
   Voice.Update(timeStep)           -- 朗读:当前段播完,隔一小段停顿后续播下一段
-  Music.Update(timeStep)           -- BGM:无人声/人声两版循环 + 朗读时压低
+  Music.Update(timeStep)           -- BGM:无人声/人声两版循环
   local rv = Shell.revealing
   if not rv then return end
   rv.timer = rv.timer + timeStep
@@ -192,7 +192,7 @@ function Shell.backtrackAsk()
   if not g or not g:canBacktrack() then return end
   Shell.confirm('回溯到本章开头？',
     '· 剩余额度 ' .. (g.diff.backtrack > 0 and tostring(g.diff.backtrack - g.backtracksThisChapter) or '不限') .. ' 次\n'
-      .. '· 本章进度回到开头；偏离度、成就与图鉴不重置\n'
+      .. '· 本章进度回到开头；偏离度与图鉴不重置\n'
       .. '· 蓄势与险招烧毁会被清空',
     function() g:backtrack(); Shell.renderIntro(true) end, '回 溯')
 end

@@ -152,6 +152,9 @@ async function withPage(fn, opts = {}) {
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-extensions',
+      // 合成 click 不算用户手势,不开这个旗标音频全程被 autoplay 策略压着,
+      // 「隐藏暂停/回前台续播」这类真实播放状态就没法验
+      '--autoplay-policy=no-user-gesture-required',
       `--user-data-dir=${profile}`,
       '--window-size=1280,720',
       'about:blank',
@@ -168,6 +171,10 @@ async function withPage(fn, opts = {}) {
       await client.send('Log.enable', {}, sessionId);
       await client.send('Page.enable', {}, sessionId);
       await client.send('Network.enable', {}, sessionId);
+      // 页面脚本运行前注入(tapcloud.cjs 用它预置 window.tap 的 TapTap 容器 mock)
+      if (opts.inject) {
+        await client.send('Page.addScriptToEvaluateOnNewDocument', { source: opts.inject }, sessionId);
+      }
 
       // 网络流水:用来断言「只下了一个音频文件」「没有 404」这类
       // 光看 DOM 看不见的事实。cdp() 把事件缓在 client.events 里,这里现算。

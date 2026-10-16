@@ -1,0 +1,334 @@
+/* ============================================================================
+ * 青史图鉴(2026-10-16 按效果图重排)
+ *
+ * 版式:标题 + 金线;左栏三块九宫格 panel(收集总览环 / 印章收集条 / 筛选),
+ * 右栏按剧本分节的结局卡片。已达成 = gallery-ecard 实线白底;
+ * 未达成 = gallery-lock 虚线浅底,两卡同尺寸,筛选切换不跳动。
+ * 素材全部来自 assets/gallery/(交付透明 PNG,slice 值对着源图量过)。
+ * ==========================================================================*/
+
+.gallery {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  height: 100%;
+  padding: var(--sp-lg) var(--sp-xl);
+  overflow-y: auto;
+}
+
+.gallery__head {
+  position: relative;
+  text-align: center;
+}
+.gallery__hint {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+}
+
+/* ---------- 主体:左栏 | 右栏 ---------- */
+.gallery__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-lg);
+}
+
+.gallery__side {
+  flex: 0 0 15rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+}
+.gallery__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+/* ---------- 左栏 panel:三块共用 gallery-panel 九宫格 ---------- */
+.galpanel {
+  border-image: url('../assets/gallery/gallery-panel.png') 40 fill;
+  border-image-width: 14px;
+  border-style: solid;
+  padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+}
+.galpanel__cap {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+  letter-spacing: 0.3em;
+  padding-bottom: var(--sp-xs);
+  margin-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* ---------- 收集总览环 ----------
+ * ring-track.png 240×240:环带中心半径实测 106px、带宽约 12px,
+ * SVG 弧按同一半径叠加,不为每个百分比出图(素材交付说明)。 */
+.galring {
+  position: relative;
+  width: 7.2rem;
+  height: 7.2rem;
+  margin: 0 auto;
+  background: url('../assets/gallery/ring-track.png') center / 100% 100% no-repeat;
+}
+.galring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* 弧从 12 点位起笔 */
+  transform: rotate(-90deg);
+}
+.galring__arc {
+  fill: none;
+  stroke: var(--gold);
+  /* 240 底图里带宽 12px */
+  stroke-width: 12;
+  stroke-linecap: round;
+  /* 初值 0,数据到齐后由 JS 写 dasharray */
+  stroke-dasharray: 0 666;
+}
+.galring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.galring__pct {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink-heavy);
+}
+.galring__pctcap {
+  font-size: var(--fs-cap);
+}
+
+.galov__big {
+  text-align: center;
+  margin-top: var(--sp-xs);
+}
+.galov__big b {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--ink-heavy);
+}
+.galov__of {
+  font-size: var(--fs-title);
+}
+.galov__caps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-cap);
+  margin-top: 2px;
+}
+
+/* ---------- 印章收集 ---------- */
+.galseal {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  padding: 2px 0;
+}
+.galseal__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+.galseal__name {
+  flex: none;
+  width: 2.2em;
+  font-size: var(--fs-ui);
+  color: var(--ink-strong);
+}
+.galseal__track {
+  flex: 1 1 auto;
+  height: 3px;
+  background: var(--line-soft);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.galseal__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.galseal__num {
+  flex: none;
+  width: 3.2em;
+  text-align: right;
+  font-size: var(--fs-cap);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 筛选 ---------- */
+.galfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+}
+.galfilter__chip {
+  padding: 1px var(--sp-sm);
+  font-size: var(--fs-ui);
+  font-family: var(--font-kai);
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.galfilter__chip:hover {
+  color: var(--ink-strong);
+  border-color: var(--gold);
+}
+.galfilter__chip.is-on {
+  color: var(--zhu);
+  border-color: var(--zhu);
+  font-weight: 700;
+}
+
+/* ---------- 剧本分节 ---------- */
+.galsec__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  padding-bottom: var(--sp-xs);
+  margin-bottom: var(--sp-sm);
+  /* 效果图:剧名下一道金线,左粗右细 */
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.galsec__head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 9rem;
+  height: 2px;
+  background: var(--gold);
+}
+.galsec__name {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-strong);
+}
+.galsec__prog {
+  margin-left: auto;
+  font-size: var(--fs-cap);
+  letter-spacing: 0.08em;
+}
+
+.galsec__entries {
+  display: grid;
+  /* minmax(0,·):已达成卡的赞文是 nowrap 单行,不用 0 会被 min-content 撑爆列宽 */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-sm);
+}
+
+/* ---------- 结局卡 ---------- */
+.galent {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) var(--sp-sm);
+  min-width: 0;
+  min-height: 3.6rem;
+  border-image: url('../assets/gallery/gallery-ecard.png') 30 fill;
+  border-image-width: 10px;
+  border-style: solid;
+}
+.galent.is-unknown {
+  border-image-source: url('../assets/gallery/gallery-lock.png');
+}
+.galent__seal {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+}
+.galent__unk {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-title);
+  color: var(--ink-dim);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+}
+.galent__col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.galent__name {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink-strong);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.galent__name--unk {
+  color: var(--ink-dim);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+.galent__quote {
+  font-size: var(--fs-cap);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 变体卡:从属缩进,左缘让出一档表示挂在本体结局之下 */
+.galent--variant {
+  margin-left: var(--sp-lg);
+}
+.galent__meta {
+  font-size: var(--fs-cap);
+  letter-spacing: 0.04em;
+}
+.galent__grade {
+  flex: none;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: var(--ink-dim);
+}
+.galent__grade.is-s {
+  color: var(--zhu);
+}
+
+/* ---------- 窄屏:左栏落到顶上,条目单列 ---------- */
+@media (max-width: 60rem) {
+  .gallery__body {
+    flex-direction: column;
+  }
+  .gallery__side {
+    flex: none;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .galpanel {
+    flex: 1 1 12rem;
+  }
+  .galsec__entries {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

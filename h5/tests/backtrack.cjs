@@ -35,7 +35,7 @@ const PROBE = `(async () => {
       await sleep(8);
       continue;
     }
-    q('.stage__foot .btn--primary')?.click();
+    (q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary'))?.click();
     await sleep(8);
     if (g.phase !== 'intro') break;
   }
@@ -67,7 +67,8 @@ const PROBE = `(async () => {
       if (cont) { cont.click(); await sleep(8); continue; }
     }
     if (ph === 'intro' || ph === 'summary') {
-      const b = q('.stage__foot .btn--primary'); if (b) { b.click(); await sleep(8); continue; }
+      const b = q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+      if (b) { b.click(); await sleep(8); continue; }
     }
   }
   // 判定放在循环外、且由循环条件每轮把关:

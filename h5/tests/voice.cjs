@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 配音试点回归(李斯 c1)。
  *
  * 这套测试盯的是「预取时机」和「串行」——headless 里听不到声音,
@@ -8,7 +8,6 @@
  *   2. 首句在「继续」之前就已预取好(缓冲窗口只有几百毫秒,来不及现拉)
  *   3. 请求是串行的,不会一次并发 41 条把连接池打满
  *   4. 换相位会掐断上一段,回选择页也掐断
- *   5. 有人说话时 BGM 被压低
  */
 const fs = require('fs');
 const path = require('path');
@@ -71,7 +70,7 @@ const maxOpus = Math.max(...clipKeys.map(opusSize));
 check('单条 opus 最大 ≤150 KB', maxOpus <= 150 * 1024, `${(maxOpus / 1024).toFixed(0)} KB`);
 
 // ---------- 运行时 ----------
-withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
+withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors }) => {
   const rows = [];
   const add = (name, ok, why) => rows.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
   const voiceReqs = () => netLog().filter((r) => VOICE_RE.test(r.url));
@@ -124,11 +123,45 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
 
   const state = await evaluate(`(() => {
     const as = [...document.querySelectorAll('audio')];
-    const bg = as.find(a => a.loop);
+    // BGM 双轨轮播后不再开单曲循环,不能再用 a.loop 认它;
+    // 按 src 逻辑名认:剧本 BGM 是 <key>-inst / <key>-vocal,配音切片是 intro_/s*_o*。
+    const bg = as.find(a => /-(inst|vocal)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
     return { n: as.length, hasBgm: !!bg, vol: bg ? bg.volume : null };
   })()`);
   add('audio 元素已挂载', state.n >= 1, `${state.n} 个`);
-  add('BGM 存在且未被永久压低', state.hasBgm && state.vol > 0.05, `vol=${state.vol}`);
+  add('BGM 存在且音量正常', state.hasBgm && state.vol > 0.05, `vol=${state.vol}`);
+
+  // 页面不可见:当前句暂停、队列挂起;回前台续播(与 BGM 同策略,见 audio.cjs)。
+  // 句间有 260ms 空档,先等到有一句真的在播再掐,否则断言会落在空档上。
+  let playing = false;
+  for (let i = 0; i < 30; i += 1) {
+    playing = await evaluate(`[...document.querySelectorAll('audio')]
+      .some(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || '') && !a.paused)`);
+    if (playing) break;
+    await sleep(200);
+  }
+  add('c1 有配音正在播', playing, '等了 6 秒还没有一句在播');
+  const t2 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+  await cdp.send('Target.activateTarget', { targetId: t2.targetId });
+  await sleep(500);
+  const hidV = await evaluate(`(() => {
+    const v = [...document.querySelectorAll('audio')]
+      .find(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
+    return { vis: document.visibilityState, paused: v ? v.paused : null };
+  })()`);
+  add('页面进后台 → 配音暂停', hidV.vis === 'hidden' && hidV.paused === true, JSON.stringify(hidV));
+  const { targetInfos } = await cdp.send('Target.getTargets');
+  const mine = targetInfos.find((t) => (t.url || '').startsWith(url));
+  if (mine) await cdp.send('Target.activateTarget', { targetId: mine.targetId });
+  await cdp.send('Target.closeTarget', { targetId: t2.targetId }).catch(() => {});
+  await sleep(600);
+  const backV = await evaluate(`(() => {
+    const v = [...document.querySelectorAll('audio')]
+      .find(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
+    return { vis: document.visibilityState, paused: v ? v.paused : null };
+  })()`);
+  // 续播可能跨过句间空档:回前台后要么这句继续播,要么下一句已顶上
+  add('回前台 → 配音续播', backV.vis === 'visible' && backV.paused === false, JSON.stringify(backV));
 
   // 换相位要掐断
   netReset();
@@ -137,7 +170,10 @@ withPage(async ({ evaluate, netLog, netReset, enterGame, consoleErrors }) => {
   const afterExit = netLog().filter((r) => VOICE_RE.test(r.url));
   add('退出后不再拉新配音', afterExit.length === 0, afterExit.map((r) => logical(r.url)).join(', '));
 
-  const paused = await evaluate(`[...document.querySelectorAll('audio')].every(a => a.paused || !a.getAttribute('src'))`);
+  // 只查配音切片:goSelect 会播 idle BGM,后台恢复路径下它是合法在播的,不能一起算。
+  const paused = await evaluate(`[...document.querySelectorAll('audio')]
+    .filter(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''))
+    .every(a => a.paused || !a.getAttribute('src'))`);
   add('退出后语音已掐断', paused);
 
   const rt = report('运行时行为', rows);

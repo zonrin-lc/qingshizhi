@@ -95,7 +95,8 @@ const DRIVER = `(async () => {
         if (!q('.overlay').hidden) q('.overlay .btn--primary').click();
         await sleep(2);
       }
-      const b = q('.stage__foot .btn--primary'); if (b) b.click(); continue;
+      const b = q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+      if (b) b.click(); continue;
     }
     if (ph === 'round') {
       // 行动/蓄势/抉择卡内联结算后,引擎相位已回 round,但 UI 还在等文本区的
@@ -129,7 +130,12 @@ const DRIVER = `(async () => {
       const pick = (ci >= 0 && all.find(c => c.dataset.offerIdx === String(ci) && c.getAttribute('role') === 'button'))
         || acts[0] || cards[0]
         || q('.stage__main .prompt--key.is-live');   // 行动全锁时关键事件提示条是唯一出路
-      if (!pick) { push({ evt: 'STUCK: round 无可点牌' }); break; }
+      if (!pick) {
+        // 发牌前有约 0.5s 翻面动画(2026-10-16 拍板:选中牌留到下回合开始前才翻),
+        // 旧牌还占着位就等发牌落定,不算卡死
+        if (q('.stage__foot .card.is-flipped')) { await sleep(30); continue; }
+        push({ evt: 'STUCK: round 无可点牌' }); break;
+      }
       // 记下打出的卡名(去掉险招的 ⚠ 后缀),下一拍 card-settle 要核对题签
       lastCard = pick.classList.contains('card')
         ? ((pick.querySelector('.card__title') || {}).textContent || '').replace(/\s*⚠$/, '').trim()
@@ -193,7 +199,8 @@ const DRIVER = `(async () => {
       push({ at: i, evt: 'choice', title: c && c.title, opts: c ? c.options.length : 0,
              pick: ci, pickDev: bestDev,
              devs: c ? c.options.map(o => (o.eff && o.eff.dev) || 0) : [] });
-      const b = qa('.stage__foot .card--tappable')[ci]; if (b) b.click(); else break;
+      // 抉择卡选项已内联进文本区(2026-10-16),与际遇/关键事件同口径
+      const b = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[ci]; if (b) b.click(); else break;
       continue;
     }
     if (ph === 'summary') {

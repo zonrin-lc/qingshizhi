@@ -1730,7 +1730,12 @@ function Game:buildEnding(id, variant)
   local total = raw * self.diff.coef * (def.nitian and 1.15 or 1) * (self.coef or 1)
   total = round(total)
   if not isFin(total) then total = 0 end
-  local grade = (total >= 85 and 'S') or (total >= 70 and 'A') or (total >= 55 and 'B') or (total >= 40 and 'C') or 'D'
+  -- 评级:甲/乙/丙各分上中下,丁兜底,共十级(95/90/85/80/70/60/50/40/30;顶部5分一档,中下部10分一档)
+  local grade =
+    (total >= 95 and '甲上') or (total >= 90 and '甲') or (total >= 85 and '甲下') or
+    (total >= 80 and '乙上') or (total >= 70 and '乙') or (total >= 60 and '乙下') or
+    (total >= 50 and '丙上') or (total >= 40 and '丙') or (total >= 30 and '丙下') or
+    '丁'
   local devC = self.dev
   local epilogue
   if devC <= 20 then

@@ -21,7 +21,10 @@
  *    拖慢正在播的那条。必须一条接一条,播完再拉下一条。
  *
  * 3. **语音要盖住 BGM。** 否则配音被背景乐压着,等于没做。
- *    做法是进入配音句子时把 BGM 压低,句子结束恢复 —— 比暂停 BGM 自然。
+ *    靠基准音量差保证:配音 0.8 / BGM 0.6,各播各的,不做压低联动。
+ *
+ * 4. **页面不可见不念。** visibilitychange 隐藏时暂停当前这句、队列挂起
+ *    (隐藏期间绝不开始下一句),回前台从断点续播 —— 与 BGM 同策略,见 audio.ts。
  */
 
 const clips = import.meta.glob<string>('../assets/voice/*/*/*.webm', {
@@ -66,15 +69,13 @@ export class Voice {
    * 真正上线前应接进设置(设置页按用户决定暂不做),给一个静音开关。
    */
   private wanted = true;
-  /** 当前在放的是不是「有人说话」——用来决定 BGM 要不要让位。 */
-  private speaking = false;
   /** 音量由设置项驱动(轻 0.5 / 标准 0.8 / 响 1.0) */
   private volume = 0.8;
   /** 当前这句的收尾回调;stop() 主动调它,好让 pump 的循环能退出。 */
   private settleCurrent: (() => void) | null = null;
-
-  /** 外部注入:BGM 需要在配音期间让位。见 session.ts。 */
-  onSpeakingChange: ((speaking: boolean) => void) | null = null;
+  /** 是我们因页面不可见而暂停的标记:只有这种情况才在回前台时自动续播 */
+  private pausedByHidden = false;
+  private visibilityBound = false;
 
   get available(): boolean {
     return Object.keys(clips).length > 0 || Object.keys(clips4a).length > 0;
@@ -113,6 +114,7 @@ export class Voice {
   /** 立刻掐断当前这句,并清空未播的。不该让上一章的语音继续响下去。 */
   stop(): void {
     this.queue.length = 0;
+    this.pausedByHidden = false;
     if (this.el) {
       this.el.pause();
       this.el.removeAttribute('src');
@@ -122,13 +124,6 @@ export class Voice {
     // pump 会一直卡在 await 上、playing 永远是 true,之后所有入队都被无声丢弃。
     // 所以这里要主动把当前这句结算掉,让 pump 的循环看见空队列并退出。
     this.settleCurrent?.();
-    this.setSpeaking(false);
-  }
-
-  private setSpeaking(on: boolean): void {
-    if (this.speaking === on) return;
-    this.speaking = on;
-    this.onSpeakingChange?.(on);
   }
 
   /**
@@ -143,6 +138,9 @@ export class Voice {
     this.playing = true;
     try {
       while (this.queue.length) {
+        // 页面不可见时挂起队列:隐藏期间不该接着念下一句
+        await this.waitVisible();
+        if (!this.queue.length) break; // 挂起期间可能已被 stop() 清空
         const item = this.queue.shift()!;
         await this.playOne(item.url);
         // 句子之间留一点停顿,不然连续念像机关枪
@@ -151,6 +149,10 @@ export class Voice {
     } finally {
       this.playing = false;
     }
+  }
+
+  private async waitVisible(): Promise<void> {
+    while (typeof document !== 'undefined' && document.hidden) await this.wait(200);
   }
 
   private playOne(url: string): Promise<void> {
@@ -164,23 +166,46 @@ export class Voice {
       const el = this.el;
       const done = () => {
         this.settleCurrent = null;
-        this.setSpeaking(false);
         resolve();
       };
       // stop() 也要能调它,所以存起来,而不是只挂在事件上
       this.settleCurrent = done;
       el.addEventListener('ended', done, { once: true });
       el.addEventListener('error', done, { once: true });
+      this.bindVisibility();
       el.src = url;
       el.volume = this.volume;
       el.preload = 'auto';
-      this.setSpeaking(true);
       void el.play().catch(() => done());
     });
   }
 
   private wait(ms: number): Promise<void> {
     return new Promise((r) => setTimeout(r, ms));
+  }
+
+  /**
+   * 页面不可见(切标签/最小化/关预览面板)时暂停当前这句,回前台续播。
+   * 续播条件:settleCurrent 非空(这句还挂着没念完)且没被 stop() 收掉;
+   * 续播被拒也不能卡死 pump —— 直接结算这句,让循环往下走。
+   */
+  private bindVisibility(): void {
+    if (this.visibilityBound || typeof document === 'undefined') return;
+    this.visibilityBound = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (this.el && !this.el.paused) {
+          this.pausedByHidden = true;
+          this.el.pause();
+        }
+        return;
+      }
+      if (!this.pausedByHidden) return;
+      this.pausedByHidden = false;
+      if (this.wanted && this.el && this.el.src && this.settleCurrent) {
+        void this.el.play().catch(() => this.settleCurrent?.());
+      }
+    });
   }
 }
 

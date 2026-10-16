@@ -1,8 +1,9 @@
 /* ============================================================================
  * 设置页
  *
- * 版式对齐 Lua 的 settingRow:一行标题 + 若干互斥按钮。
- * 复用档案页的窄幅悬挂卷轴(.panel-dialog),两页气质一致。
+ * 音频三项各一条横向滑杆(2026-10-15 起替代原先的开关+三档按钮):
+ * 拖到最左即静音,喇叭图标随音量档位变化。梅/竹装饰图只作衬托,
+ * pointer-events:none,不挡任何交互。
  * ==========================================================================*/
 
 .settings {
@@ -16,23 +17,45 @@
   overflow: auto;
 }
 
-/* ---------- 标题 ---------- */
-.settings__head { margin-bottom: var(--sp-lg); }
-.settings__title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--ink-heavy);
-  letter-spacing: 0.3em;
+/* 返回钮:全站共享的 .pageback 罗盘钮(见 base.css) */
+
+/* ---------- 界面装饰(梅右上、竹左下) ---------- */
+.settings__deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.55;
+}
+.settings__deco--plum {
+  top: 0;
+  right: 0;
+  width: min(36vw, 400px);
+}
+.settings__deco--bamboo {
+  bottom: 0;
+  left: 0;
+  width: min(26vw, 300px);
 }
 
-/* ---------- 设置表 ---------- */
+.settings__head,
+.settings__list,
+.settings__foot {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- 标题 ----------
+ * 标题与分隔线样式统一为 base.css 的 .page-title / .page-rule(2026-10-16 拍板)。
+ * align-self: stretch:.settings 是 align-items:center 的 flex 列,不撑开的话
+ * head 会收缩到标题宽度,page-rule 的 70% 算出来就被压扁了。 */
+.settings__head { margin-bottom: var(--sp-lg); align-self: stretch; }
+
+/* ---------- 设置表:无框,三条滑杆整体宽 60vw、上下居中(标题留顶部) ---------- */
 .settings__list {
-  width: min(520px, 100%);
-  padding: var(--sp-md) var(--sp-lg);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 35%);
+  width: 60vw;
+  padding: var(--sp-md) 0;
+  margin: auto 0;
 }
 
 .srow {
@@ -51,29 +74,92 @@
   white-space: nowrap;
 }
 
-.srow__opts { display: flex; gap: 6px; }
+/* ---------- 音量滑杆 ---------- */
+.srow--vol { gap: var(--sp-md); }
 
-.sopt {
-  min-width: 3.4em;
-  padding: 6px 12px;
-  font: inherit;
+.vol {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.vol__icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--ink-strong);
+}
+.vol__icon svg { width: 100%; height: 100%; display: block; }
+.vol__body { fill: currentColor; }
+.vol__w1, .vol__w2, .vol__x {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+/* 档位显隐:m0 静音叉 / m1 仅喇叭 / m2 一波 / m3 两波 */
+.vol--m0 .vol__w1, .vol--m0 .vol__w2 { display: none; }
+.vol--m1 .vol__w2, .vol--m1 .vol__x { display: none; }
+.vol--m2 .vol__w2, .vol--m2 .vol__x { display: none; }
+.vol--m3 .vol__x { display: none; }
+.vol--m0 { color: var(--ink-dim); }
+
+.vol__range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  /* --p 由 JS 按当前值写入,左段赭金填充、右段素线 */
+  background: linear-gradient(var(--gold), var(--gold)) 0 0 / var(--p, 0%) 100% no-repeat var(--track);
+  outline: none;
+  cursor: pointer;
+}
+.vol__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper-card-sel);
+  border: 2px solid var(--gold);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+}
+.vol__range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--paper-card-sel);
+  border: 2px solid var(--gold);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+}
+.vol__range:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+
+/* ---------- TapTap 云存档同步行 ---------- */
+.tapsync {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+}
+.tapsync__status {
   font-size: var(--fs-note);
   color: var(--ink-soft);
-  background: transparent;
+  letter-spacing: 0.06em;
+}
+.tapsync__btn {
+  font-family: var(--font-kai);
+  font-size: var(--fs-note);
+  letter-spacing: 0.15em;
+  color: var(--ink);
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
+  padding: 0.3rem 1rem;
   cursor: pointer;
-  transition: color .15s, border-color .15s, background-color .15s;
 }
-.sopt:hover { color: var(--ink); border-color: var(--ink-soft); }
-.sopt:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-
-.sopt.is-on {
-  color: var(--paper);
-  background: var(--ink);
-  border-color: var(--ink);
-  font-weight: 600;
-}
+.tapsync__btn:hover { filter: brightness(1.05); }
+.tapsync__btn:disabled { opacity: 0.45; cursor: default; }
 
 /* ---------- 底部:版本号 + 返回 ---------- */
 .settings__foot {
@@ -91,13 +177,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-.settings__back { min-width: 9em; }
-
-/* ---------- 窄屏 ---------- */
+/* ---------- 窄屏 ----------
+ * (.page-title 的窄屏字号在 base.css 里统一收口) */
 @media (max-width: 560px) {
   .settings { padding: var(--sp-md); }
-  .settings__title { font-size: 1.6rem; }
   .srow { flex-direction: column; align-items: flex-start; gap: var(--sp-sm); }
-  .srow__opts { align-self: stretch; }
-  .sopt { flex: 1; }
+  .vol { align-self: stretch; max-width: none; }
 }
