@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 主菜单 · 效果图
+ *
+ * 原型问题:
+ *   ① 右侧 44% 是纯文字五行,主操作「开始游戏」与「退出游戏」同等权重,无层次
+ *   ② 帘与画面之间只有一条硬分割线,割裂感强
+ *   ③ 「继续旅程」没有上下文——不知道要继续什么
+ *   ④ 底部大片空白,收集进度、版本信息散落
+ *
+ * 改版:
+ *   ① 主操作做成朱红实心按钮,次级项保留文字但加序号与下划线动效
+ *   ② 帘右缘加卷草装饰,左侧加一道渐隐阴影,两区过渡自然
+ *   ③ 顶部加「上次进度」卡,让继续旅程有落点
+ *   ④ 底部加收集进度(结局/词条/成就),与图鉴页同一套数据语言
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;--zhu-hi:#9e3422;--gold:#8a6a34;--gold-hi:#c4a05a;
+  --line:#c6b492;--line-soft:#d6c8ae;--paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#3a3226;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/h5/src/assets/lua/menu-bg.webp') center/cover no-repeat,#e8dcc4}
+
+/* ============ 左:主视觉 ============ */
+.hero{position:absolute;left:0;top:0;bottom:0;width:58%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:26px;padding-bottom:14px}
+/* 标题组:书法 + 朱印。高度按可用空间给,别顶到定位句 */
+.hero__box{position:relative;height:58%;aspect-ratio:100/235;flex:0 0 auto}
+.hero__art{width:100%;height:100%;object-fit:contain;display:block}
+.hero__seal{position:absolute;right:-13%;bottom:3%;width:23%;opacity:.94}
+/* 定位句:压在水墨浓处会糊,垫一层纸色柔光 */
+.hero__lede{position:relative;text-align:center;flex:0 0 auto;padding:14px 30px}
+.hero__lede::before{content:'';position:absolute;inset:-6px -34px;
+  background:radial-gradient(closest-side,rgba(246,239,224,.92),rgba(246,239,224,.6) 62%,rgba(246,239,224,0));
+  pointer-events:none}
+.hero__lede p{position:relative;font-size:13px;letter-spacing:.34em;color:var(--ink);line-height:2.1}
+.hero__lede .sep{display:inline-block;width:3px;height:3px;border-radius:50%;
+  background:var(--gold);vertical-align:middle;margin:0 9px}
+/* 左下角:版本标记,垫纸色保证可读 */
+.hero__mark{position:absolute;left:36px;bottom:26px;display:flex;align-items:center;gap:9px;
+  font-size:10.5px;letter-spacing:.18em;color:var(--ink-soft);padding:6px 13px;border-radius:999px;
+  background:rgba(246,239,224,.78)}
+.hero__mark i{width:5px;height:5px;border-radius:50%;background:var(--gold);display:block}
+
+/* ============ 右:帘 ============ */
+.veil{position:absolute;right:0;top:0;bottom:0;width:42%;
+  background:linear-gradient(90deg,rgba(246,239,224,.72) 0%,rgba(243,234,217,.94) 14%,rgba(241,231,212,.97) 100%);
+  display:flex;flex-direction:column;padding:38px 44px 30px}
+/* 左缘:渐隐阴影 + 金线,替代原来的硬分割 */
+.veil::before{content:'';position:absolute;left:-58px;top:0;bottom:0;width:58px;
+  background:linear-gradient(90deg,rgba(90,74,48,0),rgba(90,74,48,.10));pointer-events:none}
+.veil__edge{position:absolute;left:0;top:9%;bottom:9%;width:1px;
+  background:linear-gradient(180deg,transparent,var(--line) 18%,var(--line) 82%,transparent)}
+.veil__edge::before,.veil__edge::after{content:'';position:absolute;left:-4px;width:9px;height:9px;
+  background:var(--gold);transform:rotate(45deg)}
+.veil__edge::before{top:-4px}
+.veil__edge::after{bottom:-4px}
+
+/* ---- 顶部:上次进度 ---- */
+.last{background:rgba(255,255,255,.55);border:1px solid var(--line-soft);border-radius:11px;
+  padding:13px 15px;margin-bottom:auto}
+.last__t{font-size:10px;letter-spacing:.26em;color:var(--ink-dim);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.last__t::after{content:'';flex:1 1 auto;height:1px;background:var(--line-soft)}
+.last__row{display:flex;align-items:center;gap:11px}
+.last__seal{width:36px;height:36px;border-radius:6px;background:var(--zhu);color:#f7f0e0;
+  display:grid;place-items:center;font-family:var(--disp);font-size:15px;flex:0 0 auto}
+.last__name{font-family:var(--disp);font-size:15px;color:var(--ink-heavy);letter-spacing:.08em}
+.last__sub{font-size:10.5px;color:var(--ink-soft);letter-spacing:.06em;margin-top:3px}
+.last__go{margin-left:auto;font-size:11px;letter-spacing:.14em;color:var(--gold);white-space:nowrap}
+/* 章进度点 */
+.last__dots{display:flex;gap:4px;margin-top:11px}
+.last__dots i{flex:1 1 auto;height:3px;border-radius:2px;background:rgba(198,180,146,.42)}
+.last__dots i.on{background:var(--gold)}
+
+/* ---- 中部:菜单 ---- */
+.nav{margin:auto 0;display:flex;flex-direction:column;gap:3px}
+.nav__item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;
+  padding:11px 6px;background:none;border:0;cursor:pointer;text-align:left;
+  border-bottom:1px solid transparent;transition:border-color .18s ease}
+.nav__no{font-family:var(--sans);font-size:10px;letter-spacing:.1em;color:var(--ink-dim);
+  width:20px;text-align:center;flex:0 0 auto}
+.nav__label{font-family:var(--kai);font-size:1.32rem;font-weight:700;color:var(--ink-strong);
+  letter-spacing:.3em;transition:color .16s ease}
+.nav__arrow{font-size:13px;color:var(--line);transition:transform .18s ease,color .18s ease}
+.nav__item:hover .nav__label{color:var(--zhu)}
+.nav__item:hover .nav__arrow{color:var(--zhu);transform:translateX(3px)}
+.nav__item:hover{border-bottom-color:var(--line-soft)}
+.nav__item.is-off{opacity:.34;cursor:default}
+.nav__item.is-off .nav__label{color:var(--ink-dim)}
+
+/* 主操作:朱红实心 */
+.nav__item--start{margin-bottom:9px;padding:15px 20px;border-radius:10px;
+  background:linear-gradient(180deg,#b8482f,var(--zhu-hi));
+  box-shadow:0 6px 18px rgba(140,50,30,.26),inset 0 1px 0 rgba(255,255,255,.22)}
+.nav__item--start .nav__label{color:#fdf6e8;font-size:1.46rem;letter-spacing:.36em}
+.nav__item--start .nav__no{color:rgba(253,246,232,.6)}
+.nav__item--start .nav__arrow{color:rgba(253,246,232,.75)}
+.nav__item--start:hover{filter:brightness(1.06)}
+.nav__item--start:hover .nav__label{color:#fff}
+.nav__item--start:hover{border-bottom-color:transparent}
+
+/* ---- 底部:收集进度 ---- */
+.stats{border-top:1px solid var(--line-soft);padding-top:15px}
+.stats__row{display:flex;gap:18px;margin-bottom:11px}
+.stat{flex:1 1 0}
+.stat__k{font-size:9.5px;letter-spacing:.2em;color:var(--ink-dim)}
+.stat__v{font-family:var(--disp);font-size:16px;color:var(--ink-strong);margin-top:3px}
+.stat__v em{font-style:normal;font-size:10.5px;color:var(--ink-dim)}
+.stat__bar{height:3px;border-radius:2px;background:rgba(198,180,146,.4);overflow:hidden;margin-top:5px}
+.stat__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-hi),var(--gold))}
+.stats__foot{display:flex;align-items:center;justify-content:space-between;
+  font-size:10px;letter-spacing:.12em;color:var(--ink-dim)}
+</style></head>
+<body>
+<div class="stage">
+
+  <!-- ============ 左:主视觉 ============ -->
+  <div class="hero">
+    <div class="hero__box">
+      <img class="hero__art" src="/workspace/h5/src/assets/lua/title-calligraphy.webp" alt="青史志">
+      <img class="hero__seal" src="/workspace/_uploads/ae8363d88ba7c5fb279a532c88ba5d12d4d0d10e06f55ad1d9ca00cb1e44574d.png" alt="">
+    </div>
+    <div class="hero__lede">
+      <p>悠悠千载<span class="sep"></span>青史万卷</p>
+      <p>若置身棋局<span class="sep"></span>当如何落子</p>
+    </div>
+    <div class="hero__mark"><i></i><span>v2.2.0 · H5 版</span></div>
+  </div>
+
+  <!-- ============ 右:帘 ============ -->
+  <aside class="veil">
+    <div class="veil__edge"></div>
+
+    <!-- 上次进度 -->
+    <div class="last">
+      <div class="last__t">上 次 进 度</div>
+      <div class="last__row">
+        <div class="last__seal">李</div>
+        <div>
+          <div class="last__name">仓鼠之局 · 李斯</div>
+          <div class="last__sub">第三章 · 沙丘前夜 · 普通难度</div>
+        </div>
+        <span class="last__go">继续 ›</span>
+      </div>
+      <div class="last__dots">
+        <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+
+    <!-- 菜单 -->
+    <nav class="nav">
+      <button class="nav__item nav__item--start" type="button">
+        <span class="nav__no">壹</span>
+        <span class="nav__label">开 始 游 戏</span>
+        <span class="nav__arrow">›</span>
+      </button>
+      <button class="nav__item" type="button">
+        <span class="nav__no">贰</span>
+        <span class="nav__label">继 续 旅 程</span>
+        <span class="nav__arrow">›</span>
+      </button>
+      <button class="nav__item" type="button">
+        <span class="nav__no">叁</span>
+        <span class="nav__label">查 看 存 档</span>
+        <span class="nav__arrow">›</span>
+      </button>
+      <button class="nav__item" type="button">
+        <span class="nav__no">肆</span>
+        <span class="nav__label">青 史 图 鉴</span>
+        <span class="nav__arrow">›</span>
+      </button>
+      <button class="nav__item" type="button">
+        <span class="nav__no">伍</span>
+        <span class="nav__label">设 置 一 下</span>
+        <span class="nav__arrow">›</span>
+      </button>
+      <button class="nav__item" type="button">
+        <span class="nav__no">陆</span>
+        <span class="nav__label">退 出 游 戏</span>
+        <span class="nav__arrow">›</span>
+      </button>
+    </nav>
+
+    <!-- 收集进度 -->
+    <div class="stats">
+      <div class="stats__row">
+        <div class="stat">
+          <div class="stat__k">结 局</div>
+          <div class="stat__v">12 <em>/ 40</em></div>
+          <div class="stat__bar"><i style="width:30%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="stat__k">词 条</div>
+          <div class="stat__v">38 <em>/ 160</em></div>
+          <div class="stat__bar"><i style="width:24%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="stat__k">成 就</div>
+          <div class="stat__v">5 <em>/ 62</em></div>
+          <div class="stat__bar"><i style="width:8%"></i></div>
+        </div>
+      </div>
+      <div class="stats__foot">
+        <span>玄墨为局 · 朱青为子</span>
+        <span>横屏体验最佳</span>
+      </div>
+    </div>
+  </aside>
+</div>
+</body></html>
