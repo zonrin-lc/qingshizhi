@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 《青史志》主菜单 · 重新设计
+ *
+ * 设计依据(游戏基调):
+ *   这是一个「历史偏移模拟器」,玩家以史官视角重写一个人的人生。
+ *   基调不是"古风 RPG",而是**一卷摊开的史书**——沉、静、克制。
+ *   所以主菜单不该是"左图右单"的通用布局,而应像翻开书卷的第一页。
+ *
+ * 构图:中轴对称的竖向叙事,自上而下四层——
+ *   ① 题签      顶部一行小字,标出"这是一部什么"
+ *   ② 书名      竖排书法居中,朱印压角,是全屏唯一的视觉重心
+ *   ③ 入口      主按钮居中,两侧对称挂次级项(横排,不占竖向空间)
+ *   ④ 卷脚      底部一行:进度 + 版本,像书页的页码
+ *
+ * 关键取舍:
+ *   - 不用"帘"——帘把画面切成两半,是通用菜单的做法,与"书卷"意象冲突
+ *   - 次级项横排在主按钮两侧,让竖向留白完整,标题才能"站得住"
+ *   - 背景用新生成的水墨图(左右松竹、中央留白),而不是旧素材
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;--zhu-hi:#9e3422;--gold:#8a6a34;--gold-hi:#c4a05a;
+  --line:#c6b492;--line-soft:#d6c8ae;--paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2e2820;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/assets/image/menu_bg_center_20261016112729.png') center/cover no-repeat,#e9dfc9}
+
+/* 中央柔光:把标题区再提亮一档,让竖排字压得住背景 */
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(52% 62% at 50% 44%,rgba(250,245,233,.72),rgba(250,245,233,.28) 58%,rgba(250,245,233,0) 82%)}
+/* 书页底边:下半部的次级项与卷脚落在水墨上会糊,
+   用一条自下而上的纸色渐隐带做它们的落点,顺便把画面重心压稳。 */
+.pagefoot{position:absolute;left:0;right:0;bottom:0;height:210px;pointer-events:none;z-index:2;
+  background:linear-gradient(0deg,rgba(247,241,229,.96) 0%,rgba(247,241,229,.9) 34%,rgba(247,241,229,.5) 66%,rgba(247,241,229,0) 100%)}
+
+/* ============ ① 题签 ============ */
+.prologue{position:absolute;top:44px;left:0;right:0;text-align:center;z-index:3}
+.prologue__k{font-size:10.5px;letter-spacing:.62em;color:var(--gold);text-indent:.62em}
+.prologue__rule{margin:11px auto 0;width:190px;height:8px;
+  background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent) center/100% 1px no-repeat}
+.prologue__rule::after{content:'';display:block;width:7px;height:7px;margin:-4px auto 0;
+  background:var(--gold);transform:rotate(45deg)}
+
+/* ============ ② 书名 ============ */
+.title{position:absolute;top:92px;left:50%;transform:translateX(-50%);z-index:3;
+  display:flex;flex-direction:column;align-items:center}
+.title__art{width:126px;height:auto;display:block;
+  /* 书法素材本身是墨色,轻微投影让它在远山前有厚度 */
+  filter:drop-shadow(0 2px 10px rgba(60,48,32,.16))}
+/* 朱印:压在书名右下 */
+.title__seal{position:absolute;right:-28px;bottom:-4px;width:50px;height:50px;
+  opacity:.95;filter:drop-shadow(0 2px 6px rgba(120,40,24,.22))}
+
+/* ============ ③ 入口 ============ */
+.entry{position:absolute;left:0;right:0;bottom:96px;z-index:4;
+  display:flex;flex-direction:column;align-items:center}
+/* 主按钮:朱红,但不是整条铺满——留出边距,像书上的朱批 */
+.enter{position:relative;display:inline-flex;align-items:center;gap:14px;
+  padding:16px 54px;border:0;border-radius:4px;cursor:pointer;
+  background:linear-gradient(180deg,#b8482f,var(--zhu-hi));
+  box-shadow:0 8px 22px rgba(140,50,30,.28),inset 0 1px 0 rgba(255,255,255,.2);
+  transition:filter .16s ease,transform .16s ease}
+.enter:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.enter__t{font-family:var(--kai);font-size:1.62rem;font-weight:700;color:#fdf6e8;letter-spacing:.42em}
+.enter__k{font-family:var(--sans);font-size:9px;letter-spacing:.24em;color:rgba(253,246,232,.62)}
+/* 按钮左右的小菱饰 */
+.enter::before,.enter::after{content:'';position:absolute;top:50%;width:7px;height:7px;
+  margin-top:-3.5px;background:rgba(253,246,232,.5);transform:rotate(45deg)}
+.enter::before{left:20px}
+.enter::after{right:20px}
+
+/* 次级项:横排在主按钮下方一行,不占竖向空间 */
+.subnav{display:flex;align-items:center;gap:0;margin-top:20px}
+.subnav__sep{width:1px;height:11px;background:var(--line);margin:0 20px}
+.subnav__i{background:none;border:0;cursor:pointer;padding:6px 2px;
+  font-family:var(--kai);font-size:.95rem;color:var(--ink-soft);
+  letter-spacing:.24em;transition:color .15s ease;position:relative;white-space:nowrap}
+.subnav__i:hover{color:var(--zhu)}
+.subnav__i:hover::after{content:'';position:absolute;left:0;right:0;bottom:1px;height:1px;background:var(--zhu)}
+.subnav__i.is-off{opacity:.36;cursor:default}
+.subnav__i.is-off:hover{color:var(--ink-soft)}
+.subnav__i.is-off:hover::after{display:none}
+
+/* 继续旅程:带进度的次级项(单独一行,给存档上下文) */
+.resume{display:flex;align-items:center;gap:11px;margin-bottom:19px;padding:7px 17px;
+  background:rgba(255,255,255,.5);border:1px solid var(--line-soft);border-radius:999px}
+.resume__seal{width:26px;height:26px;border-radius:5px;background:var(--zhu);color:#f7f0e0;
+  display:grid;place-items:center;font-family:var(--disp);font-size:12px;flex:0 0 auto}
+.resume__t{font-size:11.5px;color:var(--ink-strong);letter-spacing:.1em}
+.resume__s{font-size:10px;color:var(--ink-dim);letter-spacing:.06em}
+.resume__go{font-size:10.5px;color:var(--gold);letter-spacing:.1em;margin-left:4px}
+
+/* ============ ④ 卷脚 ============ */
+.colophon{position:absolute;left:0;right:0;bottom:34px;z-index:3;
+  display:flex;align-items:center;justify-content:center;gap:34px;
+  font-size:10.5px;letter-spacing:.16em;color:var(--ink-soft)}
+.colophon__i{display:flex;align-items:center;gap:8px}
+.colophon__i b{font-family:var(--disp);font-weight:400;font-size:13px;color:var(--ink-strong);letter-spacing:.04em}
+.colophon__i b em{font-style:normal;font-size:9.5px;color:var(--ink-dim)}
+.colophon__bar{width:34px;height:2px;border-radius:1px;background:rgba(198,180,146,.5);overflow:hidden}
+.colophon__bar i{display:block;height:100%;background:var(--gold)}
+.colophon__sep{width:1px;height:10px;background:var(--line)}
+.colophon__motto{color:var(--gold);letter-spacing:.28em}
+</style></head>
+<body>
+<div class="stage">
+  <div class="pagefoot"></div>
+
+  <!-- ① 题签 -->
+  <div class="prologue">
+    <div class="prologue__k">历 史 偏 移 模 拟 器</div>
+    <div class="prologue__rule"></div>
+  </div>
+
+  <!-- ② 书名 -->
+  <div class="title">
+    <img class="title__art" src="/workspace/h5/src/assets/lua/title-calligraphy.webp" alt="青史志">
+    <img class="title__seal" src="/workspace/_uploads/ae8363d88ba7c5fb279a532c88ba5d12d4d0d10e06f55ad1d9ca00cb1e44574d.png" alt="">
+  </div>
+
+  <!-- ③ 入口 -->
+  <div class="entry">
+    <div class="resume">
+      <span class="resume__seal">李</span>
+      <span class="resume__t">仓鼠之局 · 第三章 沙丘前夜</span>
+      <span class="resume__s">普通</span>
+      <span class="resume__go">继续 ›</span>
+    </div>
+
+    <button class="enter" type="button">
+      <span class="enter__t">入 局</span>
+      <span class="enter__k">ENTER</span>
+    </button>
+
+    <div class="subnav">
+      <button class="subnav__i" type="button">存 档</button>
+      <span class="subnav__sep"></span>
+      <button class="subnav__i" type="button">图 鉴</button>
+      <span class="subnav__sep"></span>
+      <button class="subnav__i" type="button">设 置</button>
+      <span class="subnav__sep"></span>
+      <button class="subnav__i" type="button">退 出</button>
+    </div>
+  </div>
+
+  <!-- ④ 卷脚 -->
+  <div class="colophon">
+    <span class="colophon__i">结局 <b>12<em>/40</em></b><span class="colophon__bar"><i style="width:30%"></i></span></span>
+    <span class="colophon__i">词条 <b>38<em>/160</em></b><span class="colophon__bar"><i style="width:24%"></i></span></span>
+    <span class="colophon__i">成就 <b>5<em>/62</em></b><span class="colophon__bar"><i style="width:8%"></i></span></span>
+    <span class="colophon__sep"></span>
+    <span class="colophon__motto">玄墨为局 · 朱青为子</span>
+    <span class="colophon__sep"></span>
+    <span>v2.2.0</span>
+  </div>
+</div>
+</body></html>
