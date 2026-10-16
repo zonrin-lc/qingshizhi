@@ -1,10 +1,12 @@
 # Build artifacts & runtime state
 .build/
 dist/
+node_modules/
 .cli/
 logs/
 *.log
 logs/.nfs*
+.nfs*
 .sce/logs/
 .sce/build/build_steps/__pycache__/
 
@@ -34,7 +36,48 @@ lua-tools/
 schemas/
 skills/
 templates/
-tools/
+/tools/
 urhox-libs/
 AGENTS.md
 CLAUDE.md
+
+# 沙箱主稿模式追加忽略
+docs/prot/**/*.bak-v215
+prot/js/**/*.bak
+prot/*.bak-v215
+__pycache__/
+
+# >>> TapTap Maker AI dev kit (local only) >>>
+.DS_Store
+.agents\skills\custom-lobby/
+.agents\skills\materials/
+.agents\skills\nvg-resolution-mode/
+.agents\skills\online-system-notification/
+.agents\skills\setup-achievements/
+.agents\skills\setup-ads/
+.agents\skills\setup-fsm/
+.agents\skills\skill-creator/
+.agents\skills\sprite-gen/
+.agents\skills\ui-astroon/
+.agents\skills\ui-brawlforge/
+.agents\skills\ui-pixelforge/
+.claude/
+.cli/
+.codex/
+.emmylua/
+.installer/
+.maker/
+AGENTS.md
+CLAUDE.md
+engine-docs/
+examples/
+schemas/
+skills/
+templates/
+# 引擎自带的工具目录(urhox 那套)。必须写成 /tools/ —— 不带前导斜杠的
+# 「tools/」匹配任意层级,会连 h5/tools/ 一起吃掉,导致资产生成脚本
+# (build-assets.py / build-audio.py)从来没进过仓库:克隆下来能看到已入库的
+# webp 与 bgm,却没有重新生成它们的办法。
+/tools/
+urhox-libs/
+# <<< TapTap Maker AI dev kit (local only) <<<

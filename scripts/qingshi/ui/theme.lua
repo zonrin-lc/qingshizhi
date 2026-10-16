@@ -92,7 +92,7 @@ Theme.ARCH = {
 -- 宣纸纹理(平铺;UI.Panel backgroundImage 用)
 Theme.PAPER_TEX = "ui/paper-tex.jpg"
 -- 书法主标题(透明底 PNG,竖排)
-Theme.TITLE_IMG = "ui/title-calligraphy.png"
+Theme.TITLE_IMG = "ui/logo/title-calligraphy.png"
 
 -- 当前 UI 缩放(转发库实现;主题层统一出口,避免各处直接 require Core)
 function Theme.GetScale() return UI.Theme.GetScale() end
