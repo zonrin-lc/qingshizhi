@@ -6,7 +6,7 @@ FR=/home/Maker/fonts/NotoSansSC-Regular.ttf
 FB=/home/Maker/fonts/NotoSansSC-Bold.otf
 BK='#141210'; GOLD='#d9a441'; TXT='#e8dcc8'; DIM='#9a8f7d'
 GRN='#6aa84f'; RED='#c0504d'; BLU='#5b9bd5'; BRN='#b08a55'; LINE='#3a332a'
-W=1280; H=800
+W=1280; H=900
 OUT=assets/images/devlog
 
 # ---------- 图1: H5 一天六个页面 ----------
@@ -87,4 +87,54 @@ convert -size ${W}x${H} xc:${BK} \
   ${OUT}/day13-assets.png
 
 echo "已生成:"
+ls -la ${OUT}/day13-*.png
+
+# ---------- 图3: 四天时间线 ----------
+convert -size ${W}x${H} xc:${BK} \
+  -font ${FB} -pointsize 44 -fill ${GOLD} -annotate +60+86 'H5 版四天:从六个页面到能上线' \
+  -font ${FR} -pointsize 25 -fill ${TXT} -annotate +60+132 'DAY 13 搭页面 → DAY 14 审查+存档换代 → DAY 15 存档页/设置页 → DAY 16 云存档/图鉴' \
+  -draw "stroke ${LINE} stroke-width 2 line 60,162 1220,162" \
+  \
+  -font ${FB} -pointsize 26 -fill ${GOLD} -annotate +60+214 'DAY 13 · 六个页面 + 罗盘' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +60+252 'menu / select / wheel / settings / savepage / cast + session' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +60+284 '规则原样复用(alias @engine/@data),只做渲染层' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +60+316 '四条资产管线 + 七套浏览器验收' \
+  \
+  -font ${FB} -pointsize 26 -fill ${RED} -annotate +60+380 'DAY 14 · 全量审查 → 5 高危 15 中危' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +60+418 'H1 回溯按钮每局累积(闭包绑旧对局)' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +60+450 'H2 返回钮监听叠加 / H3 存档页死按钮' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +60+482 '根因同一个:常驻壳节点只挂不摘 → Session.dispose()' \
+  -font ${FR} -pointsize 20 -fill ${GRN} -annotate +60+514 '修完测试 8 套 → 11 套' \
+  \
+  -font ${FB} -pointsize 26 -fill ${GOLD} -annotate +60+578 'DAY 14 · 存档语义换代 v2.2.0' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +60+600 '旧:章首档(读档=回本章开头,前 3 轮白打)' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +60+630 '新:snapshot(章首)+ live(当前时刻全量状态)' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +60+660 '随机轨迹随档存取 —— 章内回溯仍不存(防 SL)' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +60+690 '四类相位 round-trip:round / 随机轨迹 / choice / summary' \
+  \
+  -draw "stroke ${LINE} stroke-width 2 line 700,190 700,580" \
+  \
+  -font ${FB} -pointsize 25 -fill ${GOLD} -annotate +740+214 'DAY 15 · 存档页重做' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+252 '自动档 6 条(点「返回」时写)+ 暂存 1 条(pagehide)' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+284 '手动槽位取消,槽位显示轮次标识' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+322 '设置页:开关+三档 → 横向滑杆(拖到 0 即静音)' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+354 '拖动期间不重画整行(重画会打断拖拽)' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+386 '剧本内容缩减:五本各减 30–100 行' \
+  \
+  -font ${FB} -pointsize 25 -fill ${GOLD} -annotate +740+448 'DAY 16 · 平台与收藏' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+486 'tapcloud.ts:TapTap 云存档(普通浏览器 no-op)' \
+  -font ${FR} -pointsize 20 -fill ${DIM} -annotate +740+518 '整包单存档(逐槽会撞一分钟频控)/ 整包新者胜' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+556 'collection.ts:跨局收藏(成就/图鉴不再关页就丢)' \
+  -font ${FR} -pointsize 20 -fill ${TXT} -annotate +740+588 'gallery.ts 图鉴 / teaser.ts 朝代预告' \
+  -font ${FR} -pointsize 20 -fill ${GRN} -annotate +740+620 '测试 11 套 → 16 套' \
+  \
+  -draw "stroke ${LINE} stroke-width 2 line 60,600 1220,600" \
+  -font ${FB} -pointsize 26 -fill ${GOLD} -annotate +60+734 '最危险的一类 bug:注释诊断对了,代码没跟上' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +60+768 '懒加载被启动自检抵消(注释还自承是刻意取舍)' \
+  -font ${FR} -pointsize 21 -fill ${TXT} -annotate +60+794 '版本号第三副本(注释专门警告过漂移事故)' \
+  -font ${FR} -pointsize 20 -fill ${BRN} -annotate +60+826 '这类问题测试抓不到,review 才抓得到' \
+  -font ${FR} -pointsize 21 -fill ${BRN}  \
+  ${OUT}/day13-timeline.png
+
+echo "时间线图已生成"
 ls -la ${OUT}/day13-*.png
