@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 青史图鉴 · 效果图
+ *
+ * 原型问题:左半屏空着、右侧全是「? ? ? 未达成」、达成与未达成无从区分。
+ * 改版:
+ *   ① 左侧空白改为「收集总览」侧栏(总进度环 + 五印章 + 筛选)
+ *   ② 右侧结局卡分两态:已达成显示印章+结局名+史传摘要;未达成为锁定占位
+ *   ③ 每剧本一行小统计,进度可视化
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;--zhu-hi:#9e3422;--gold:#8a6a34;--gold-hi:#c4a05a;
+  --xunshi:#6b7a86;--gouhuo:#8a7a52;--wenjian:#4a6b52;--nitian:#b0432f;--baiju:#7a6a72;
+  --line:#c6b492;--line-soft:#d6c8ae;--paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#3a3226;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/h5/src/assets/lua/bg-select.webp') center/cover no-repeat,var(--paper)}
+
+/* ---------- 顶栏 ---------- */
+.top{position:absolute;top:14px;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;padding:0 30px;z-index:4}
+.top__back{width:64px;height:64px;background:url('/workspace/h5/src/assets/lua/back-btn.webp') center/contain no-repeat}
+.top__center{position:absolute;left:50%;transform:translateX(-50%);text-align:center}
+.top__title{font-family:var(--disp);font-size:34px;letter-spacing:.5em;color:var(--ink-heavy);text-indent:.5em}
+.top__rule{margin:8px auto 0;width:330px;height:14px;
+  background:linear-gradient(90deg,transparent,var(--gold) 22%,var(--gold) 78%,transparent) center/100% 1px no-repeat}
+.top__rule::after{content:'';display:block;width:11px;height:11px;margin:-6px auto 0;
+  background:var(--gold);transform:rotate(45deg)}
+.top__sub{margin-top:9px;font-size:10.5px;letter-spacing:.2em;color:var(--ink-soft)}
+
+/* ---------- 主体 ---------- */
+.body{position:absolute;top:112px;left:0;right:0;bottom:0;display:flex;gap:22px;padding:0 30px 14px}
+
+/* ============ 左:收集总览 ============ */
+.side{flex:0 0 250px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.panel{background:rgba(255,255,255,.5);border:1px solid var(--line-soft);border-radius:11px;padding:12px 15px}
+.panel__t{font-size:10.5px;letter-spacing:.26em;color:var(--ink-soft);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel__t::after{content:'';flex:1 1 auto;height:1px;background:var(--line-soft)}
+
+/* 总进度环 */
+.ring{display:flex;align-items:center;gap:14px}
+.ring__svg{width:76px;height:76px;flex:0 0 auto}
+.ring__bg{fill:none;stroke:var(--line-soft);stroke-width:7}
+.ring__fg{fill:none;stroke:var(--gold);stroke-width:7;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.ring__mid{font-family:var(--disp);font-size:23px;fill:var(--ink-heavy);text-anchor:middle}
+.ring__lbl{font-size:9.5px;fill:var(--ink-dim);text-anchor:middle;letter-spacing:.1em}
+.ring__info{display:flex;flex-direction:column;gap:5px}
+.ring__big{font-family:var(--disp);font-size:26px;color:var(--ink-heavy);line-height:1}
+.ring__big em{font-style:normal;font-size:13px;color:var(--ink-dim)}
+.ring__note{font-size:10.5px;color:var(--ink-soft);letter-spacing:.06em;line-height:1.6}
+
+/* 五印章收集 */
+.seals{display:flex;flex-direction:column;gap:7px}
+.srow{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:9px}
+.srow__seal{
+  width:34px;height:34px;border-radius:6px;display:grid;place-items:center;
+  font-family:var(--disp);font-size:12px;color:#f7f0e0;letter-spacing:0;
+  box-shadow:inset 0 0 0 1.5px rgba(247,240,224,.4);
+}
+.srow__seal.is-off{background:rgba(198,180,146,.3);color:rgba(96,86,70,.55);box-shadow:inset 0 0 0 1.5px rgba(198,180,146,.55)}
+.srow__k{font-size:11px;color:var(--ink);letter-spacing:.06em}
+.srow__bar{height:4px;border-radius:2px;background:rgba(198,180,146,.42);overflow:hidden;margin-top:3px}
+.srow__bar i{display:block;height:100%;border-radius:2px}
+.srow__v{font-size:10px;color:var(--ink-dim);letter-spacing:.04em}
+
+/* 筛选 */
+.filters{display:flex;flex-wrap:wrap;gap:7px}
+.fchip{padding:4px 11px;font-size:10.5px;letter-spacing:.1em;color:var(--ink-soft);
+  background:rgba(255,255,255,.6);border:1px solid var(--line-soft);border-radius:999px}
+.fchip.is-on{color:var(--zhu-hi);border-color:rgba(176,67,47,.35);background:rgba(176,67,47,.08);font-weight:700}
+
+/* ============ 右:结局列表 ============ */
+.list{flex:1 1 auto;min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:11px}
+.scen{background:rgba(255,255,255,.44);border:1px solid var(--line-soft);border-radius:11px;padding:11px 14px}
+.scen__head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.scen__name{font-family:var(--disp);font-size:15px;color:var(--ink-strong);letter-spacing:.1em}
+.scen__bar{flex:1 1 auto;height:3px;border-radius:2px;background:rgba(198,180,146,.42);overflow:hidden;max-width:220px}
+.scen__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-hi),var(--gold))}
+.scen__cnt{font-size:10.5px;color:var(--ink-dim);letter-spacing:.08em;margin-left:auto}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* 已达成:印章 + 结局名 + 史传摘要 */
+.ecard{display:grid;grid-template-columns:auto 1fr;gap:9px;padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.72);border:1px solid var(--line-soft);position:relative}
+.ecard__seal{width:30px;height:30px;border-radius:5px;display:grid;place-items:center;
+  font-family:var(--disp);font-size:10.5px;color:#f7f0e0;box-shadow:inset 0 0 0 1.2px rgba(247,240,224,.38)}
+.ecard__name{font-family:var(--disp);font-size:13px;color:var(--ink-heavy);letter-spacing:.06em}
+.ecard__txt{margin-top:3px;font-size:9.5px;line-height:1.5;color:var(--ink-soft);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ecard__grade{position:absolute;right:9px;top:8px;font-family:var(--disp);font-size:13px}
+/* 未达成:虚线占位 */
+.ecard--lock{background:rgba(246,240,228,.34);border:1px dashed var(--line);grid-template-columns:auto 1fr}
+.ecard--lock .ecard__seal{background:rgba(198,180,146,.28);color:rgba(96,86,70,.5);box-shadow:inset 0 0 0 1.2px rgba(198,180,146,.5)}
+.ecard--lock .ecard__name{color:var(--ink-dim);letter-spacing:.3em}
+.ecard--lock .ecard__txt{color:var(--ink-dim);opacity:.75}
+</style></head>
+<body>
+<div class="stage">
+  <div class="top">
+    <div class="top__back"></div>
+    <div class="top__center">
+      <div class="top__title">青史图鉴</div>
+      <div class="top__rule"></div>
+      <div class="top__sub">各本结局达成情况 · 跨局累计 · 未达成的结局只留残迹</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 左:收集总览 -->
+    <aside class="side">
+      <div class="panel">
+        <div class="panel__t">收 集 总 览</div>
+        <div class="ring">
+          <svg class="ring__svg" viewBox="0 0 100 100">
+            <circle class="ring__bg" cx="50" cy="50" r="40"></circle>
+            <circle class="ring__fg" cx="50" cy="50" r="40"
+              stroke-dasharray="251.3" stroke-dashoffset="173.4"></circle>
+            <text class="ring__mid" x="50" y="50">31%</text>
+            <text class="ring__lbl" x="50" y="63">已达成</text>
+          </svg>
+          <div class="ring__info">
+            <div class="ring__big">12 <em>/ 40</em></div>
+            <div class="ring__note">五局共 40 种结局<br>已收录 12 种</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__t">印 章 收 集</div>
+        <div class="seals">
+          <div class="srow">
+            <div class="srow__seal" style="background:var(--xunshi)">循史</div>
+            <div><div class="srow__k">循史</div><div class="srow__bar"><i style="width:60%;background:var(--xunshi)"></i></div></div>
+            <div class="srow__v">3/5</div>
+          </div>
+          <div class="srow">
+            <div class="srow__seal" style="background:var(--gouhuo)">苟活</div>
+            <div><div class="srow__k">苟活</div><div class="srow__bar"><i style="width:40%;background:var(--gouhuo)"></i></div></div>
+            <div class="srow__v">4/10</div>
+          </div>
+          <div class="srow">
+            <div class="srow__seal" style="background:var(--wenjian)">稳健</div>
+            <div><div class="srow__k">稳健</div><div class="srow__bar"><i style="width:30%;background:var(--wenjian)"></i></div></div>
+            <div class="srow__v">3/10</div>
+          </div>
+          <div class="srow">
+            <div class="srow__seal is-off">逆天</div>
+            <div><div class="srow__k" style="color:var(--ink-dim)">逆天</div><div class="srow__bar"><i style="width:10%;background:var(--nitian)"></i></div></div>
+            <div class="srow__v">1/10</div>
+          </div>
+          <div class="srow">
+            <div class="srow__seal is-off">败局</div>
+            <div><div class="srow__k" style="color:var(--ink-dim)">败局</div><div class="srow__bar"><i style="width:20%;background:var(--baiju)"></i></div></div>
+            <div class="srow__v">1/5</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__t">筛 选</div>
+        <div class="filters">
+          <span class="fchip is-on">全部</span>
+          <span class="fchip">已达成</span>
+          <span class="fchip">未达成</span>
+          <span class="fchip">逆天</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右:结局列表 -->
+    <div class="list">
+      <div class="scen">
+        <div class="scen__head">
+          <span class="scen__name">李斯 · 仓鼠之局</span>
+          <i class="scen__bar"><i style="width:62%"></i></i>
+          <span class="scen__cnt">结局 5 / 8</span>
+        </div>
+        <div class="grid">
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--xunshi)">循史</div>
+            <div>
+              <div class="ecard__name">东市之叹</div>
+              <div class="ecard__txt">太史公曰:斯以闾巷历诸侯,入事秦,因时推毂,遂成帝业……</div>
+            </div>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--gouhuo)">苟活</div>
+            <div>
+              <div class="ecard__name">兰陵归鼠</div>
+              <div class="ecard__txt">太史公曰:弃相印而归兰陵,犬逐东门之乐,终老于乡……</div>
+            </div>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--wenjian)">稳健</div>
+            <div>
+              <div class="ecard__name">上蔡东门</div>
+              <div class="ecard__txt">太史公曰:进退有度,禄位终其身,不为权首亦不为祸先……</div>
+            </div>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--nitian)">逆天</div>
+            <div>
+              <div class="ecard__name">扶苏新政</div>
+              <div class="ecard__txt">太史公曰:矫诏不发,扶苏践祚,秦祚再续三十载……</div>
+            </div>
+            <span class="ecard__grade" style="color:var(--nitian)">S</span>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--gouhuo)">苟活</div>
+            <div>
+              <div class="ecard__name">东门逐客</div>
+              <div class="ecard__txt">太史公曰:逐客令下,布衣归乡,不复入秦廷半步……</div>
+            </div>
+          </div>
+          <div class="ecard ecard--lock">
+            <div class="ecard__seal">?</div>
+            <div>
+              <div class="ecard__name">未 达 成</div>
+              <div class="ecard__txt">此结局尚未在任一局中达成</div>
+            </div>
+          </div>
+          <div class="ecard ecard--lock">
+            <div class="ecard__seal">?</div>
+            <div>
+              <div class="ecard__name">未 达 成</div>
+              <div class="ecard__txt">此结局尚未在任一局中达成</div>
+            </div>
+          </div>
+          <div class="ecard ecard--lock">
+            <div class="ecard__seal">?</div>
+            <div>
+              <div class="ecard__name">未 达 成</div>
+              <div class="ecard__txt">此结局尚未在任一局中达成</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scen">
+        <div class="scen__head">
+          <span class="scen__name">荆轲 · 图穷之局</span>
+          <i class="scen__bar"><i style="width:38%"></i></i>
+          <span class="scen__cnt">结局 3 / 8</span>
+        </div>
+        <div class="grid">
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--xunshi)">循史</div>
+            <div>
+              <div class="ecard__name">易水寒</div>
+              <div class="ecard__txt">太史公曰:图穷匕见,环柱而走,事败身死,燕亦随之……</div>
+            </div>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--wenjian)">稳健</div>
+            <div>
+              <div class="ecard__name">以辩代刀</div>
+              <div class="ecard__txt">太史公曰:不事刺杀,以口舌存燕,约盟而还……</div>
+            </div>
+          </div>
+          <div class="ecard">
+            <div class="ecard__seal" style="background:var(--gouhuo)">苟活</div>
+            <div>
+              <div class="ecard__name">隐于市</div>
+              <div class="ecard__txt">太史公曰:不受命,隐于市井,史书失其名……</div>
+            </div>
+          </div>
+          <div class="ecard ecard--lock">
+            <div class="ecard__seal">?</div>
+            <div>
+              <div class="ecard__name">未 达 成</div>
+              <div class="ecard__txt">此结局尚未在任一局中达成</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
