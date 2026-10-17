@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 《青史志》按钮设计 · 三套方案
+ *
+ * 每套含:主按钮(选中/未选中) + 次按钮(选中/未选中)
+ * 选中态统一为「偏暗的金色渐变」——不是亮金,是旧金/赭金,
+ * 与游戏里的宣纸底、墨色字同族,避免金得发飘。
+ *
+ * 三套的区别在**形制**,不在颜色:
+ *   一 · 卷轴牌   两端轴头,横长条,像书卷题签
+ *   二 · 方印牌   八角切角,像印章边款
+ *   三 · 双线牌   上下双金线,极简,像书页天头地脚
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;
+  /* 旧金五段:高光 → 亮 → 中 → 暗 → 压边。
+     之前只有四段且高光只占最顶 22%,整块看起来是"褐"不是"金";
+     这里把亮金区间拉长到 40%,底部再压一道深边,金感才立得住。 */
+  --gold-hi:#f2dda6;
+  --gold-l:#d9b467;
+  --gold-m:#bd9440;
+  --gold-d:#9a7730;
+  --gold-e:#6f5520;
+  --line:#c6b492;--line-soft:#d6c8ae;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2e2820;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:700px;overflow:hidden;padding:34px 44px;
+  background:url('/workspace/assets/image/menu_bg_center_20261016112729.png') center/cover no-repeat,#e9dfc9}
+/* 纸色柔光:按钮压在山水上要能看清 */
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(180deg,rgba(250,245,233,.94),rgba(250,245,233,.86) 40%,rgba(250,245,233,.9))}
+
+.wrap{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
+
+/* 页头 */
+.head{text-align:center;margin-bottom:22px}
+.head__t{font-family:var(--disp);font-size:21px;letter-spacing:.34em;color:var(--ink-heavy);text-indent:.34em}
+.head__s{margin-top:6px;font-size:10.5px;letter-spacing:.18em;color:var(--ink-dim)}
+
+/* 一套 */
+.set{display:flex;align-items:center;gap:26px;padding:17px 0;border-top:1px solid rgba(198,180,146,.42)}
+.set:last-child{border-bottom:1px solid rgba(198,180,146,.42)}
+.set__label{flex:0 0 118px}
+.set__no{font-family:var(--disp);font-size:13px;color:var(--gold);letter-spacing:.16em}
+.set__name{font-family:var(--disp);font-size:15px;color:var(--ink-strong);letter-spacing:.1em;margin-top:4px}
+.set__desc{font-size:9.5px;color:var(--ink-dim);letter-spacing:.06em;margin-top:5px;line-height:1.6}
+
+.btns{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;align-items:center}
+.cell{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.cell__cap{font-size:9.5px;letter-spacing:.16em;color:var(--ink-dim);padding-left:2px}
+
+/* 按钮公共 */
+.btn{position:relative;width:100%;height:58px;border:0;background:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--kai);font-size:1.02rem;font-weight:700;letter-spacing:.3em;text-indent:.3em}
+
+/* ───────── 旧金渐变(选中态统一底) ───────── */
+.gold{
+  background:linear-gradient(180deg,
+    var(--gold-hi) 0%, var(--gold-l) 18%, var(--gold-l) 40%,
+    var(--gold-m) 66%, var(--gold-d) 88%, var(--gold-e) 100%);
+  color:#2a2010;
+  text-shadow:0 1px 0 rgba(255,248,224,.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255,250,232,.72),
+    inset 0 -1px 0 rgba(58,42,14,.5),
+    0 5px 15px rgba(110,86,41,.32);
+}
+/* ───────── 素底(未选中态统一底) ───────── */
+.plain{
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(246,239,224,.62));
+  color:var(--ink-strong);
+}
+
+/* ═══════════ 套一 · 卷轴牌 ═══════════ */
+/* 两端轴头:一竖线 + 上下小菱形 */
+.scroll{border-radius:5px}
+.scroll::before,.scroll::after{content:'';position:absolute;top:50%;width:2px;height:60%;
+  transform:translateY(-50%);border-radius:1px}
+.scroll::before{left:15px}
+.scroll::after{right:15px}
+.scroll.gold::before,.scroll.gold::after{background:rgba(58,42,14,.42)}
+.scroll.plain::before,.scroll.plain::after{background:var(--line)}
+.scroll.plain{border:1px solid var(--line)}
+/* 轴头上的菱饰 */
+.scroll i{position:absolute;top:50%;width:6px;height:6px;transform:translateY(-50%) rotate(45deg)}
+.scroll i:first-of-type{left:31px}
+.scroll i:last-of-type{right:31px}
+.scroll.gold i{background:rgba(58,42,14,.5)}
+.scroll.plain i{background:var(--line)}
+
+/* ═══════════ 套二 · 方印牌 ═══════════ */
+/* 八角切角 */
+.seal{clip-path:polygon(13px 0,calc(100% - 13px) 0,100% 13px,100% calc(100% - 13px),
+        calc(100% - 13px) 100%,13px 100%,0 calc(100% - 13px),0 13px)}
+.seal.gold{box-shadow:none}
+/* 内双线:用内层 span 画,clip-path 下 box-shadow 会被裁掉 */
+.seal .inner{position:absolute;inset:6px;pointer-events:none;
+  clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),
+        calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)}
+.seal.gold .inner{border:1.5px solid rgba(58,42,14,.42)}
+.seal.plain .inner{border:1.5px solid var(--line)}
+.seal.plain{border:1px solid var(--line-soft)}
+
+/* ═══════════ 套三 · 双线牌 ═══════════ */
+/* 上下双金线,无左右边框。
+   选中态若只换线色,和未选中几乎分不出——所以选中时:
+   ① 线加粗到 2.5px ② 内侧再补一道细线 ③ 底子铺一层淡金。
+   三条一起上,远看是"一横金条",近看有层次。 */
+.rule{background:none}
+.rule::before,.rule::after{content:'';position:absolute;left:0;right:0;height:2px}
+.rule::before{top:0}
+.rule::after{bottom:0}
+.rule.plain{background:rgba(255,255,255,.34)}
+.rule.plain::before,.rule.plain::after{background:linear-gradient(90deg,transparent,var(--line) 12%,var(--line) 88%,transparent)}
+.rule.plain{color:var(--ink-soft)}
+.rule.gold{background:linear-gradient(180deg,rgba(242,221,166,.5),rgba(189,148,64,.34))}
+.rule.gold::before,.rule.gold::after{height:2.5px;
+  background:linear-gradient(90deg,transparent,var(--gold-m) 10%,var(--gold-l) 50%,var(--gold-m) 90%,transparent)}
+/* 选中态在双线内侧再加一道细线 */
+.rule .inner{position:absolute;inset:6px 0;pointer-events:none}
+.rule.gold .inner{border-top:1px solid rgba(111,85,32,.4);border-bottom:1px solid rgba(111,85,32,.4)}
+
+/* 悬停:统一微提亮 */
+.btn:hover{filter:brightness(1.06)}
+</style></head>
+<body>
+<div class="stage">
+  <div class="wrap">
+
+    <div class="head">
+      <div class="head__t">按 钮 方 案</div>
+      <div class="head__s">选中态统一为旧金渐变 · 三套区别在形制</div>
+    </div>
+
+    <!-- ═══════ 套一 ═══════ -->
+    <div class="set">
+      <div class="set__label">
+        <div class="set__no">壹</div>
+        <div class="set__name">卷轴牌</div>
+        <div class="set__desc">两端轴头 + 菱饰<br>横长条,像书卷题签</div>
+      </div>
+      <div class="btns">
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 选中</span>
+          <button class="btn scroll gold"><i></i><i></i>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 未选中</span>
+          <button class="btn scroll plain"><i></i><i></i>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 选中</span>
+          <button class="btn scroll gold" style="height:46px;font-size:.92rem"><i></i><i></i>查 看 存 档</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 未选中</span>
+          <button class="btn scroll plain" style="height:46px;font-size:.92rem"><i></i><i></i>查 看 存 档</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 套二 ═══════ -->
+    <div class="set">
+      <div class="set__label">
+        <div class="set__no">贰</div>
+        <div class="set__name">方印牌</div>
+        <div class="set__desc">八角切角 + 内双线<br>像印章边款,方正中见锋</div>
+      </div>
+      <div class="btns">
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 选中</span>
+          <button class="btn seal gold"><span class="inner"></span>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 未选中</span>
+          <button class="btn seal plain"><span class="inner"></span>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 选中</span>
+          <button class="btn seal gold" style="height:46px;font-size:.92rem"><span class="inner"></span>查 看 存 档</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 未选中</span>
+          <button class="btn seal plain" style="height:46px;font-size:.92rem"><span class="inner"></span>查 看 存 档</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 套三 ═══════ -->
+    <div class="set">
+      <div class="set__label">
+        <div class="set__no">叁</div>
+        <div class="set__name">双线牌</div>
+        <div class="set__desc">上下双金线,无左右框<br>极简,像书页天头地脚</div>
+      </div>
+      <div class="btns">
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 选中</span>
+          <button class="btn rule gold"><span class="inner"></span>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">主按钮 · 未选中</span>
+          <button class="btn rule plain"><span class="inner"></span>开 始 游 戏</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 选中</span>
+          <button class="btn rule gold" style="height:46px;font-size:.92rem"><span class="inner"></span>查 看 存 档</button>
+        </div>
+        <div class="cell">
+          <span class="cell__cap">次按钮 · 未选中</span>
+          <button class="btn rule plain" style="height:46px;font-size:.92rem"><span class="inner"></span>查 看 存 档</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body></html>
