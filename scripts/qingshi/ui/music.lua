@@ -34,26 +34,26 @@ local TRACKS = {
   jingke = {
     inst = "audio/bgm_jingke_inst.ogg",
     vocal = "audio/bgm_jingke_vocal.ogg",
-    durInst = 208.03,
-    durVocal = 241.58,
+    durInst = 197.63,
+    durVocal = 278.03,
   },
   hanxin = {
     inst = "audio/bgm_hanxin_inst.ogg",
     vocal = "audio/bgm_hanxin_vocal.ogg",
-    durInst = 227.40,
-    durVocal = 228.84,
+    durInst = 212.82,
+    durVocal = 252.18,
   },
   xiangyu = {
     inst = "audio/bgm_xiangyu_inst.ogg",
     vocal = "audio/bgm_xiangyu_vocal.ogg",
-    durInst = 208.39,
-    durVocal = 231.55,
+    durInst = 182.82,
+    durVocal = 267.18,
   },
   chensheng = {
     inst = "audio/bgm_chensheng_inst.ogg",
     vocal = "audio/bgm_chensheng_vocal.ogg",
-    durInst = 207.98,
-    durVocal = 234.43,
+    durInst = 197.53,
+    durVocal = 251.63,
   },
 }
 
