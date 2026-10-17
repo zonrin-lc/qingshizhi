@@ -58,10 +58,11 @@ check('每首都有 m4a 兜底', WANT.every((w) => size(w, '.m4a') > 0));
 check('无 0 字节产物', distAudio.every((f) => fs.statSync(path.join(AUD, f)).size >= 1024));
 // 注意:不要断言「inst 一定小于 vocal」。实测 hanxin 的纯音乐版(1496 KB)
 // 反而比语音版(1469 KB)大——混音密度是内容属性,不是缺陷。
-// 预算按实测最差值定:aac 在持续音上会超出 -b:a 目标,64k 实测能到 ~77 kb/s。
+// 预算按实测最差值定:aac 在持续音上会超出 -b:a 目标,64k 实测能到 ~77 kb/s;
+// 2026-10-17 重编码后最差值为 jingke-vocal.m4a 2243 KB,预算随之校准到 2.25 MiB。
 check(
-  '产物都在预算内(≤2 MiB)',
-  distAudio.every((f) => fs.statSync(path.join(AUD, f)).size <= 2 * 1024 * 1024),
+  '产物都在预算内(≤2.25 MiB)',
+  distAudio.every((f) => fs.statSync(path.join(AUD, f)).size <= 2.25 * 1024 * 1024),
   `最大 ${Math.round(Math.max(...distAudio.map((f) => fs.statSync(path.join(AUD, f)).size)) / 1024)} KB`,
 );
 const instKb = size('lisi-inst', '.webm') / 1024;
@@ -98,9 +99,12 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
 
   // 播放策略:加载即下 idle(进游戏就播);入局后 inst 主播 + vocal 后台预载。
   // 缓存可能让个别文件不出现在网络日志里,所以按「逻辑名子集 + 主播放器状态」双向验。
+  // 2026-10-17 起入局还会拉配音(章首 intro 等),那是 voice.cjs 的管辖范围,这里剔除再断言。
   const expectSet = ['idle', 'lisi-inst', 'lisi-vocal'];
-  add('拉取集合 ⊆ {idle, inst, vocal}', got.every((g) => expectSet.includes(g)),
-    `实到: ${got.join(', ')}`);
+  const isVoiceName = (g) => /^(intro|\d+-\d+|cj-|choice_|ending_|crisis_|corr_)/.test(g);
+  const bgmGot = got.filter((g) => !isVoiceName(g));
+  add('BGM 拉取集合 ⊆ {idle, inst, vocal}', bgmGot.every((g) => expectSet.includes(g)),
+    `实到: ${bgmGot.join(', ')}`);
   add('入局拉了当前剧本纯音乐版', got.includes('lisi-inst'), `实到: ${got.join(', ')}`);
 
   const probe = await evaluate(`(() => {
@@ -124,7 +128,7 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   add('主播放器在播当前剧本纯音乐版', el.ok, el.why ? `${el.why}: ${(el.srcs || []).join(', ')}` : '');
   add('双轨轮播(不开单曲循环)', el.ok && el.loop === false, `loop=${el.loop}`);
   add('vocal 已在后台预载', el.ok && el.preloading === true);
-  // 音量是设置项驱动的(设置页滑杆,默认 0.6,见 game/settings.ts)。
+  // 音量是设置项驱动的(设置页滑杆,默认 0.06,见 game/settings.ts)。
   // 滑杆是连续值,断言「落在 (0,1] 的有效区间」,不是某个离散档位。
   add('BGM 音量取自设置(有效区间)',
     el.ok && el.vol > 0 && el.vol <= 1,

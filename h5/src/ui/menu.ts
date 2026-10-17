@@ -4,7 +4,7 @@
  * 版式:整页水墨山水底(湖舟松竹,左右留白在中轴);自上而下——
  *   中央柔光层 → 组合主 logo(花纹 + 竖排书法 + 朱印,保留原有组合)→
  *   存档进度胶囊(继续旅程)→ 朱红大按钮「入 局」→ 横排次级项(存档/图鉴/设置/退出)。
- * 底部一条纸色渐隐带(pagefoot)给入口区做落点,不要题签行与卷脚行。
+ * 不要题签行、卷脚行与底部渐隐带。
  *
  * 「退出游戏」是真退出(2026-10-16 拍板):确认后由 onExit 请求容器杀进程 /
  * 浏览器关页(game/tapcloud.ts requestExit);环境拒绝(非脚本打开的窗口等)
@@ -16,12 +16,18 @@
  *   次级项含「图 鉴」「设 置」文案;继续按钮无档时 disabled + .is-off;
  *   退出确认 .menu__confirm .menu__cbtn--yes;落幕页 .menu__farewell。
  */
-import { el, lbl } from './kit';
+import { el, lbl, btn } from './kit';
 import { getLatestAuto, DIFF_LABEL } from '../game/saves';
 
 import titleImg from '../assets/lua/title-calligraphy.webp';
 import logoIconImg from '../assets/lua/logo-icon.webp';
 import logoYinImg from '../assets/lua/logo-yin.webp';
+import sceneBaseImg from '../assets/menu/scene-base.webp';
+import rocksLImg from '../assets/menu/rocks-l.webp';
+import rocksRImg from '../assets/menu/rocks-r.webp';
+import boatImg from '../assets/menu/boat.webp';
+import pineLoopVid from '../assets/menu/pine-loop.mp4';
+import bambooTallLoopVid from '../assets/menu/bamboo-tall-loop.mp4';
 
 export interface MenuActions {
   /** 开始游戏 → 选择页 */
@@ -50,8 +56,52 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   host.querySelector('.menu')?.remove();
   const root = el('div', 'menu');
 
-  // ---------- 柔光层 + 底部纸色渐隐带 ----------
-  root.append(el('div', 'menu__glow'), el('div', 'menu__pagefoot'));
+  // ---------- 分层山水场景:20:9 底图 + 近岸礁石 + 两侧视频 + 湖面行舟 ----------
+  // 素材来自美术分层(图片_分图层_1):底图已含远山与湖,礁石/舟为独立透明层。
+  // 两块礁石素材按画面平衡互换了左右(rocks-r 放左侧,rocks-l 放右侧)。
+  // 场景盒固定 20:9、contain 居中,层内元素全部用百分比定位,窗口拉伸不变形;
+  // 超宽窗口的两侧空档由 stage 的模糊延展层(art.css)垫底。
+  // 动效:左松右竹两段水墨视频循环(灰底经 CSS 提白 + multiply 融进纸面),
+  //      小舟从左缓行到右(纯 CSS,见 menu.css)。
+  const scene = el('div', 'menu__scene');
+  const layer = (cls: string, src: string) => {
+    const img = el('img', cls) as HTMLImageElement;
+    img.src = src;
+    img.alt = '';
+    img.draggable = false;
+    return img;
+  };
+  const boat = el('div', 'menu__boat');
+  const boatBody = el('div', 'menu__boat-body');
+  boatBody.append(layer('menu__boat-img', boatImg), layer('menu__boat-reflect', boatImg));
+  boat.append(boatBody);
+  // 松(左)/竹(右)水墨视频:循环静音播放,枝叶自带风中摇曳
+  const vid = (cls: string, src: string) => {
+    const v = el('video', cls) as HTMLVideoElement;
+    v.src = src;
+    v.autoplay = true;
+    v.loop = true;
+    v.muted = true;
+    v.playsInline = true;
+    v.setAttribute('disablepictureinpicture', '');
+    return v;
+  };
+  // 白云:四朵由多层 radial-gradient 拼成的云团,贴着湖面缓缓左→右飘,
+  // 在场景内置于底图之上、舟/礁石/松竹视频之下(前景层后面),参数见 menu.css
+  const clouds = el('div', 'menu__clouds');
+  for (let i = 0; i < 4; i++) clouds.append(el('i'));
+  scene.append(
+    layer('menu__scene-base', sceneBaseImg),
+    clouds,
+    boat,
+    layer('menu__scene-rocks-l', rocksRImg),
+    layer('menu__scene-rocks-r', rocksLImg),
+    vid('menu__scene-vid menu__scene-vid--pine', pineLoopVid),
+    vid('menu__scene-vid menu__scene-vid--bamboo', bambooTallLoopVid),
+  );
+
+  // ---------- 柔光层 ----------
+  root.append(scene, el('div', 'menu__glow'));
 
   // ---------- 组合主 logo(花纹 + 书法 + 朱印),居中偏上 ----------
   const titleWrap = el('div', 'menu__titlewrap');
@@ -81,7 +131,6 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   const resume = el('button', 'menu__item menu__item--continue menu__resume');
   resume.type = 'button';
   resume.append(
-    el('span', 'menu__resume-seal', canContinue ? latest.scenName.charAt(0) : '青'),
     el('span', 'menu__resume-t', canContinue ? `${latest.scenName} · ${latest.chapterTitle}` : '尚无存档 · 青史待启'),
   );
   if (canContinue) {
@@ -96,10 +145,10 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   }
   entry.append(resume);
 
-  // 朱红主按钮「入 局」(.menu__item--start)
+  // 金色主按钮「入 局」(.menu__item--start)
   const enter = el('button', 'menu__item menu__item--start menu__enter');
   enter.type = 'button';
-  enter.append(el('span', 'menu__enter-t', '入 局'), el('span', 'menu__enter-k', 'ENTER'));
+  enter.append(el('span', 'menu__enter-t', '入 局'));
   enter.addEventListener('click', act.onStart);
   entry.append(enter);
 
@@ -131,16 +180,18 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   host.append(root);
 
   // ---------- 退出确认 → 落幕 ----------
+  // 弹框与章末结算同口径(2026-10-17):深色蒙版 overlay--dim + 窄幅悬挂卷轴
+  // panel-scroll--summary + 描金/幽灵按钮;.menu__confirm/.menu__cbtn--yes 是
+  // 测试契约类,只作标记不再带样式。
   function showExitConfirm(): void {
-    const ov = el('div', 'menu__confirm');
-    const box = el('div', 'menu__confirmbox');
-    box.append(lbl('退出游戏？', 'menu__confirmtitle u-kai'),
-      lbl('确定要放下笔,离开这卷青史吗？', 'menu__confirmtext'));
+    const ov = el('div', 'menu__confirm overlay overlay--dim');
+    const box = el('div', 'menu__confirmbox overlay__box overlay__box--scroll panel-scroll--summary');
+    box.append(
+      lbl('退出游戏？', 'overlay__title u-kai u-strong'),
+      lbl('确定要放下笔,离开这卷青史吗？', 'overlay__body'));
     const row = el('div', 'menu__confirmrow');
-    const yes = el('button', 'menu__cbtn menu__cbtn--yes', '退 出');
-    const no = el('button', 'menu__cbtn', '再 想 想');
-    yes.type = 'button';
-    no.type = 'button';
+    const yes = btn('退 出', { variant: 'primary', cls: 'menu__cbtn menu__cbtn--yes' });
+    const no = btn('返 回', { variant: 'ghost', cls: 'menu__cbtn' });
     yes.addEventListener('click', () => {
       ov.remove();
       root.classList.add('is-farewell');

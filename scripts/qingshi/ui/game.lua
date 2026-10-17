@@ -54,8 +54,39 @@ function M.attach(Shell)
   local g = function() return env.game end
   local S = Shell
   local mainAdd = function(w) env.mainBox:AddChild(w) end
-  local segW = function(text) return T.richSeg(text, { onGloss = function(t) M.showGloss(t) end }) end
+  -- 2026-10-16 起对局页隐藏词条功能:⟦⟧ 标记由 theme.glossToLink 剥成纯文本,不再可点
+  local segW = function(text) return T.richSeg(text) end
   local noteW = function(text) return T.lbl { t = text, size = T.FS.note, color = C.qing, mb = 6 } end
+
+  -- 逐行渐显(2026-10-16 拍板:由逐段改为逐句):一段拆成句,每句一个 widget 依次出;
+  -- 句间紧凑(mb 2),段末保留原段距(mb 10)。
+  -- utf8.codes 逐字符遍历(string.find 按字节会碎多字节标点)。
+  local SENT_END = { ['。']=true, ['！']=true, ['？']=true, ['；']=true, ['…']=true }
+  local SENT_CLOSE = { ['”']=true, ['’']=true, ['」']=true, ['』']=true }
+  local splitSentences = function(text)
+    local chars = {}
+    for _, cp in utf8.codes(text) do chars[#chars + 1] = utf8.char(cp) end
+    local out, buf, pending = {}, {}, false
+    for _, ch in ipairs(chars) do
+      if pending and not SENT_CLOSE[ch] then
+        out[#out + 1] = table.concat(buf); buf = {}; pending = false
+      end
+      buf[#buf + 1] = ch
+      if SENT_END[ch] then pending = true end
+    end
+    if #buf > 0 then out[#out + 1] = table.concat(buf) end
+    if #out == 0 then out[1] = text end
+    return out
+  end
+  local segLines = function(items, segs)
+    for _, s in ipairs(segs or {}) do
+      local lines = splitSentences(s)
+      for j, ln in ipairs(lines) do
+        items[#items + 1] = T.richSeg(ln, { mb = (j == #lines) and 10 or 2 })
+      end
+    end
+    return items
+  end
 
   -- 按 UTF-8 字符截断(string.sub 按字节切会碎中文,见 theme.VText 注)
   local function truncChars(s, maxChars)
@@ -308,7 +339,7 @@ function M.attach(Shell)
     mainAdd(UI.Panel { width = 52, height = 2, backgroundColor = C.gold, marginBottom = 14 })
     S.renderPortrait(ch.intro)                 -- 立绘列:本章出场人物(无则主角)
     local items = {}
-    for _, s in ipairs(ch.intro or {}) do items[#items + 1] = segW(s) end
+    segLines(items, ch.intro)
     for _, n in ipairs(g().introNotes or {}) do items[#items + 1] = noteW(n) end
     if fromBt then
       items[#items + 1] = noteW('【回溯】你回到了本章开头。偏离度与图鉴不会重置——做过的事，史书都记着。')
@@ -343,7 +374,7 @@ function M.attach(Shell)
     if ev.altSegs and g().flags[ev.altSegs.flag] then segs = ev.altSegs.segs end
     S.renderPortrait(segs)                     -- 立绘列:本事件出场人物(无则主角)
     local items = {}
-    for _, s in ipairs(segs or {}) do items[#items + 1] = segW(s) end
+    segLines(items, segs)
     S.scrollMainTop()
     S.renderSide(segs)
     -- 主线事件查 chapters;随机/危机/反噬事件查 specials(用 ev.id,反噬则用其 corrId)
@@ -424,7 +455,7 @@ function M.attach(Shell)
     mainAdd(UI.Panel { width = 44, height = 2, backgroundColor = C.gold, marginBottom = 12 })
     S.renderPortrait(v.segs)                   -- 立绘列:本抉择出场人物(无则主角)
     local items = {}
-    for _, s in ipairs(v.segs or {}) do items[#items + 1] = segW(s) end
+    segLines(items, v.segs)
     S.scrollMainTop()
     S.renderSide(v.segs)
     Voice.Play(Voice.CardPaths(gg.d.SCENARIO.id, v.id))
@@ -434,11 +465,21 @@ function M.attach(Shell)
   function M.renderChoiceOptions(v)
     S.clearOpts()
     for i, o in ipairs(v.options) do
+      -- 财富见底锁(2026-10-16):引擎 getChoiceCard 已按财富 ≤ 0 打上 locked/reason
+      local locked = o.locked and true or false
+      local kids = { T.lbl { t = o.t, size = T.FS.ui, color = locked and C.inkDim or C.ink, bold = not locked } }
+      if locked and o.reason then
+        kids[#kids + 1] = T.lbl { t = '🔒 ' .. o.reason, size = T.FS.cap, color = C.zhuHi }
+      end
+      -- 锁定项必须真的「无回调」(同 renderOptions 的 Lua 陷阱注释:`x and nil or y` 恒等于 y)
+      local optClick = nil
+      if not locked then optClick = function() M.doChooseCardOpt(i - 1) end end
       -- 与回合页卡片同款 flex 布局:自适应宽 + wrap 文本在 Yoga 下会塌成细条(实测 21px),flex 定宽才可见
       env.optBox:AddChild(T.Plaque {
         flex = true, pad = 11, gap = 3,
-        onClick = function() M.doChooseCardOpt(i - 1) end,
-        children = { T.lbl { t = o.t, size = T.FS.ui, color = C.ink, bold = true } },
+        onClick = optClick,
+        opacity = locked and 0.55 or 1,
+        children = kids,
       })
     end
     env.optBox:AddChild(T.Plaque {
@@ -597,13 +638,17 @@ function M.attach(Shell)
     mainAdd(T.lbl { t = ev.title, size = T.FS.title, color = C.inkHeavy, bold = true, mb = 10 })
     S.renderPortrait(ev.segs)                -- 立绘列:章末事件出场人物(无则主角)
     local items = {}
-    for _, s in ipairs(ev.segs or {}) do items[#items + 1] = segW(s) end
+    segLines(items, ev.segs)
     S.scrollMainTop()
     S.renderSide(ev.segs)
     Voice.Play(Voice.SegPaths(g().d.SCENARIO.id, g():chapter().id, ev.id))
     S.revealSegs(items, function()
       for i, o in ipairs(ev.options) do
         local c = o.req and g():check(o.req) or { ok = true, reason = nil }
+        -- 财富见底锁(2026-10-16):财富 ≤ 0 时扣财选项不可执行(引擎 endEventChoose 同口径兜底)
+        if c.ok and g():_caifuBroke() and g():_caifuCost(o) > 0 then
+          c = { ok = false, reason = g().CAIFU_LOCK_REASON }
+        end
         local kids = { T.lbl { t = o.t, size = T.FS.ui, color = c.ok and C.ink or C.line } }
         if not c.ok and c.reason then
           kids[#kids + 1] = T.lbl { t = '🔒 ' .. c.reason, size = T.FS.cap, color = C.zhuHi }

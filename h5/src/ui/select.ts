@@ -10,7 +10,8 @@
  * - 朝代罗盘可拖可点(见 ui/wheel.ts);只有「秦」已开卷,其余朝代显示朝代预告页
  *   (见 ui/teaser.ts,2026-10-16 拍板,替代原「准备中」占位);回秦后难度状态保持;
  * - 难度名与注释取自剧本数据的 DIFFICULTY 表(选中剧本后异步加载填充);
- * - 选中态全部原地更新(不重建 DOM),手风琴才有过渡动画。
+ * - 选中态全部原地更新(不重建 DOM),手风琴才有过渡动画;
+ * - 点漩涡直接入局(2026-10-17 二拍:漩涡放大 + 粒子穿梭转场已去,只留对局页自身淡入)。
  */
 import type { DiffKey, ScenarioData } from '../../types/scenario';
 import { loadScenario, prefetch, SCENARIOS, DIFFICULTIES, type ScenarioEntry } from '../data/scenarios';
@@ -28,7 +29,7 @@ import archTang from '../assets/lua/arch-tang.png';
 import archSong from '../assets/lua/arch-song.png';
 import archMing from '../assets/lua/arch-ming.png';
 import scenPlate from '../assets/lua/scen-plate.webp';
-import vortexImg from '../assets/lua/vortex.webp';
+import vortexImg from '../assets/lua/vortex-gold.webp';
 import coverLisi from '../assets/cover/lisi.webp';
 import coverJingke from '../assets/cover/jingke.webp';
 import coverHanxin from '../assets/cover/hanxin.webp';
@@ -119,6 +120,11 @@ export function renderSelectPage(
   brand.append(logo, lbl('悠 悠 千 载  ·  青 史 万 卷', 'seltop__sub'));
   top.append(brand);
   root.append(back, top);
+
+  // ---------- 页首标题:复用存档页/设置页全站样式(page-title + 金线,2026-10-17 拍板) ----------
+  const head = el('div', 'selhead');
+  head.append(lbl('选 择 剧 本', 'page-title'), el('div', 'page-rule'));
+  root.append(head);
 
   // ---------- 主体:左罗盘 | 右内容 ----------
   const row = el('div', 'selrow');
@@ -238,7 +244,7 @@ export function renderSelectPage(
       caps.append(item);
     }
     din.append(caps);
-    // 入局:水墨漩涡(自转 + 呼吸),悬停浮现「入 局」
+    // 入局:暗金水墨漩涡(自转 + 呼吸),白色「开始」常显于漩涡正中
     const enter = el('button', 'selenter') as HTMLButtonElement;
     enter.type = 'button';
     enter.title = '入局';
@@ -250,7 +256,7 @@ export function renderSelectPage(
     vortex.alt = '';
     vortex.draggable = false;
     spin.append(vortex);
-    enter.append(spin, lbl('入 局', 'selenter__lbl'));
+    enter.append(spin, lbl('开始', 'selenter__lbl'));
     enter.addEventListener('click', () => {
       const s = SCENARIOS.find((x) => x.key === curKey);
       if (s) onEnter({ scenario: s, diff: curDiff });
@@ -276,6 +282,10 @@ export function renderSelectPage(
     onChange(i) {
       dynIdx = i;
       buildRight();
+      // 朝代切换:右栏淡入(类删了再加,动画才重播;与中心盘 is-swap 同手法)
+      right.classList.remove('is-swap');
+      void right.offsetWidth;
+      right.classList.add('is-swap');
     },
   });
   wheelCol.append(wheel.el);

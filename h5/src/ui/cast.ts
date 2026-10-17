@@ -94,7 +94,6 @@ export function renderCast(
   names: readonly string[],
   focus: string,
   onFocus: (name: string) => void,
-  onGloss: (name: string) => void,
 ): HTMLElement | null {
   if (names.length === 0) return null;
   const row = el('div', 'castRow');
@@ -111,8 +110,9 @@ export function renderCast(
     img.src = src;
     chip.append(img, lbl(name, 'castChip__name'));
     chip.addEventListener('click', () => {
+      // 没有大立绘的角色(liubang/jibu)点了不动作——
+      // 原本兜底开词条,2026-10-16 起对局页隐藏词条功能
       if (bigPortrait(name)) onFocus(name);
-      else onGloss(name);
     });
     row.append(chip);
   }

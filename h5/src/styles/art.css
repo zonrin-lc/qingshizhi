@@ -17,26 +17,16 @@
   background-size: cover;
 }
 .stage[data-bg='game']     { background-image: url('../assets/bg/game.webp'); }
-/* 主菜单:水墨山水亭台图(抉择结算浮层/background.png);选择页:封存 Lua 版素材(ui/bg-select.jpg)
- * 2026-10-15 用户反馈:窗口比 16:9 宽时 cover 会放大裁掉上下(山体/岸滩被切)。
- * 这幅画改 contain 完整呈现;两侧空档不垫纯色(试过分界明显),而是用同一幅画
- * 铺两层:底层 ::before cover + blur 做模糊延展,上层 ::after contain 清晰全图,
- * 边缘自然无接缝。blur 层 scale 放大一点,把模糊产生的半透明虚边推出画面。
- * 注意顺序:清晰层必须在 ::after(后绘制),放 ::before 会被模糊层整个盖住。 */
+/* 主菜单:水墨山水 20:9 分层场景(menu.ts 的 .menu__scene 承担清晰全图与动效);
+ * 这里只保留超宽窗口两侧的模糊延展垫底——同一底图 cover + blur,
+ * scale 放大一点把模糊产生的半透明虚边推出画面。 */
 .stage[data-bg='menu']::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: url('../assets/lua/menu-bg.webp') center / cover no-repeat;
+  background: url('../assets/menu/scene-base.webp') center / cover no-repeat;
   filter: blur(22px);
   transform: scale(1.06);
-  pointer-events: none;
-}
-.stage[data-bg='menu']::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('../assets/lua/menu-bg.webp') center / contain no-repeat;
   pointer-events: none;
 }
 .stage[data-bg='select']   { background-image: url('../assets/lua/bg-select.webp'); }
@@ -53,7 +43,10 @@
 .panel-scroll {
   border-image: url('../assets/panel/scroll-main.webp') 50 62 50 62 fill;
   border-image-width: 50px 62px 50px 62px;
-  border-width: 50px 62px 50px 62px;
+  /* 布局边距与贴图解耦(2026-10-17 四拍):上下 border-width 收窄(50→14/22),
+   * 贴图仍按 50px 画(轴头 1:1 不变形、纸面位置不变),内容区得以贴近纸面:
+   * 配合 main 的 22px padding,正文距纸面上缘 10px、按钮距纸面下缘 10px */
+  border-width: 14px 62px 22px;
   border-style: solid;
 }
 
@@ -312,13 +305,9 @@
   overflow: hidden;
   background: var(--paper);
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.16s ease;
 }
-.castChip:hover {
-  transform: scale(1.08);
-  border-color: var(--zhu);
-}
-/* 当前大立绘焦点的圆像:朱圈常驻,与 hover 同色相但不动 */
+/* 当前大立绘焦点的圆像:朱圈常驻 */
 .castChip.is-on {
   border-color: var(--zhu);
   box-shadow: 0 0 0 1.5px var(--zhu);
@@ -349,6 +338,10 @@
    * 立绘列因此原地不动;min-height:0 让出滚动所需的高度约束 */
   min-height: 0;
   overflow-y: auto;
+  /* 纵 flex:最后(live)小节撑满余高,让 .dock 能以 margin-top:auto 沉到画卷可视底部
+   * (2026-10-17 拍板:选项卡/继续钮统一靠画卷底部) */
+  display: flex;
+  flex-direction: column;
 }
 
 /* 分隔题签:换成金线 + 菱形贴图 */
@@ -401,12 +394,17 @@
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
+  /* 2026-10-17 三拍:标题下移一档,标题下加分隔线;四拍:上边距再加大、与雷达图间距收窄 */
+  margin: var(--sp-lg) 0 var(--sp-xs);
+  padding-bottom: var(--sp-xs);
+  border-bottom: 1px solid var(--line);
 }
 .radar {
   display: block;
   /* 2026-10-14 用户拍板:雷达图放大,占属性区内容宽度的 70%。 */
   width: 70%;
-  margin: 0 auto var(--sp-xs);
+  /* 2026-10-17 四拍:与上下(标题分隔线/身外属性行)的间距收窄 */
+  margin: 0 auto;
   overflow: visible;
 }
 .radar__ring {
@@ -455,22 +453,45 @@
   column-gap: var(--sp-sm);
   line-height: 1.4;
   align-items: center;
-  margin-bottom: var(--sp-xs);
+  /* 2026-10-17 四拍:行间间距 8px(sp-sm) */
+  margin-bottom: var(--sp-sm);
   /* 2026-10-14 用户拍板:身外维度字号加大(0.75→0.85rem);
-   * 2026-10-15:与边框的间距再加大(sp-sm→sp-md) */
+   * 2026-10-15:与边框的间距再加大(sp-sm→sp-md);
+   * 2026-10-17 四拍:名字与数值字号统一,再放大到 0.95rem */
   padding: 0 var(--sp-md);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 .stage__side .kv__k { grid-area: k; color: var(--ink); white-space: nowrap; }
 .stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; }
 .stage__side .kv .meter { grid-area: m; }
-/* 维度进度条加高(5→8px);偏离条(side__foot 的 meter)不动 */
+/* 维度进度条再加粗(8→12px,2026-10-17 拍板);偏离条(side__foot 的 meter)不动 */
 .stage__side .kv .meter {
-  height: 8px;
-  border-radius: 4px;
+  height: 12px;
+  border-radius: 6px;
 }
 .stage__side .kv .meter__fill {
-  border-radius: 4px;
+  border-radius: 6px;
+}
+/* 身外/自身属性悬浮交互(2026-10-17 拍板):行底色晕染 + 条增亮;雷达图轻微浮起 */
+.stage__side .kv {
+  border-radius: var(--r-sm);
+  transition: background-color 0.18s ease;
+}
+.stage__side .kv:hover {
+  background-color: rgba(176, 141, 74, 0.12);
+}
+.stage__side .kv:hover .kv__k {
+  color: var(--ink-strong);
+}
+.stage__side .kv:hover .meter__fill {
+  filter: brightness(1.15);
+}
+.radar {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.radar:hover {
+  transform: scale(1.04);
+  filter: drop-shadow(0 2px 5px rgba(138, 106, 52, 0.35));
 }
 .meter {
   height: 5px;
@@ -482,12 +503,20 @@
   background: linear-gradient(90deg, var(--gold-hi), var(--gold));
 }
 .side__foot {
-  margin-top: var(--sp-xs);
+  /* 沉到属性区底边(2026-10-17 三拍;容器是纵 flex,见 game.css .stage__side);
+   * 四拍:去掉上方分隔线,下边距加大 */
+  margin-top: auto;
   padding-top: var(--sp-xs);
-  border-top: 1px solid var(--line);
+  padding-bottom: var(--sp-md);
   text-align: center;
   font-size: var(--fs-note);
   color: var(--ink-soft);
+  /* 「偏离 0（循史）· 25 岁」一行放下(2026-10-17 拍板) */
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.3em;
+  white-space: nowrap;
 }
 
 /* ---------- 浮层 ---------- */
@@ -514,6 +543,21 @@
 }
 .overlay--confirm {
   background-image: url('../assets/bg/overlay.webp');
+}
+/* 深色蒙版弹框(2026-10-17 拍板):章末结算/最终结算/历史修正统一口径——
+   对局页留在原地不重建,压半透明深色蒙版,上叠弹框。 */
+.overlay--dim {
+  background-color: rgba(26, 20, 12, 0.62);
+  background-image: none;
+}
+.overlay--dim .overlay__box {
+  box-shadow: 0 1.6rem 3.6rem rgba(0, 0, 0, 0.5);
+}
+/* 章末/结局弹框:窄幅悬挂卷轴底板直接作弹框(版式沿用原整页窄卷轴的内边距) */
+.overlay__box--scroll {
+  width: min(46rem, 100%);
+  padding: 4.25rem 4.75rem 3.5rem;
+  text-align: left;
 }
 .overlay[hidden] {
   display: none;

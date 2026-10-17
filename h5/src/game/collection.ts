@@ -22,7 +22,7 @@ export interface EndingRec {
   c: number;
   /** 最佳总分 */
   b: number;
-  /** 最佳评级(S/A/B/C/D) */
+  /** 最佳评级(十级制:甲上/甲/甲下/乙上/乙/乙下/丙上/丙/丙下/丁;旧档可能是 S/A/B/C/D) */
   g: string;
 }
 
@@ -54,7 +54,7 @@ export function loadCollection(scenId: string): Collection | null {
           s: typeof r.s === 'string' ? r.s : '',
           c: r.c,
           b: typeof r.b === 'number' ? r.b : 0,
-          g: typeof r.g === 'string' ? r.g : 'D',
+          g: typeof r.g === 'string' ? normGrade(r.g) : '丁',
         };
       }
     }
@@ -88,7 +88,16 @@ export function saveCollection(game: Game): void {
   write(game.d.SCENARIO.id, col);
 }
 
-const GRADE_RANK: Record<string, number> = { S: 4, A: 3, B: 2, C: 1, D: 0 };
+/* 评级高低序(v2.1.0 十级制,对齐 engine.js 结局评级);
+ * S/A/B/C/D 是旧档残留值,留着只为历史 localStorage 记录比大小不塌成 0。 */
+const GRADE_RANK: Record<string, number> = {
+  甲上: 9, 甲: 8, 甲下: 7, 乙上: 6, 乙: 5, 乙下: 4, 丙上: 3, 丙: 2, 丙下: 1, 丁: 0,
+  S: 9, A: 6, B: 4, C: 2, D: 0,
+};
+
+/** 旧档字母评级 → 十级制(按 GRADE_RANK 档位等价迁移;展示层只认十级) */
+const LEGACY_GRADE: Record<string, string> = { S: '甲上', A: '乙上', B: '乙下', C: '丙', D: '丁' };
+const normGrade = (g: string): string => LEGACY_GRADE[g] ?? g;
 
 /** 剧本结局总数(本体 + 变体各算一种) */
 export function countEndings(endings: ScenarioData['ENDINGS']): number {
@@ -111,7 +120,7 @@ export function recordEnding(game: Game): { rec: EndingRec; reached: number; tot
     s: e.seal,
     c: (prev?.c ?? 0) + 1,
     b: Math.max(prev?.b ?? 0, e.total),
-    g: (GRADE_RANK[e.grade] ?? 0) >= (GRADE_RANK[prev?.g ?? 'D'] ?? 0) ? e.grade : (prev?.g ?? e.grade),
+    g: (GRADE_RANK[e.grade] ?? 0) >= (GRADE_RANK[prev?.g ?? '丁'] ?? 0) ? e.grade : normGrade(prev?.g ?? e.grade),
   };
   col.endings[k] = rec;
   col.gloss = [...game.gloss];

@@ -39,7 +39,9 @@ ${STEP_SNIPPET}
   const hint = q('.rotate-hint');
   const rotateHint = !!(hint && getComputedStyle(hint).display !== 'none');
   if (!isPortrait) {
-    for (let i = 0; i < 140 && g.phase !== 'round'; i++) {
+    // 预算 140 轮 × ~14ms ≈ 2s:配音全量后入局负载变大,偶发走不完 intro→round;
+    // 放宽到 400 轮(≈6s),布局断言本身不受影响
+    for (let i = 0; i < 400 && g.phase !== 'round'; i++) {
       await sleep(10);
       // 渐显期间选项还没挂上,先点正文跳过去(同 chain)
       if (window.__QS__.session.isRevealing) {

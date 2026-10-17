@@ -3,10 +3,11 @@
  *
  * 结构(2026-10-15 二次拍板):
  * - **自动档**(qingshi.autos.v1):每个剧本独立一桶,最多 6 条。
- *   写入时机只有一个:对局页点「返回」时玩家确认存档(见 main.ts requestExit)。
+ *   写入时机只有一个:对局页点「返回」(见 main.ts requestExit)——2026-10-17 起
+ *   有空位时自动写不再打断,满员才问是否覆盖最早;本章经营未满 5 轮不写。
  *   存档页原来的 6 个手动槽位改为展示这 6 条自动档,不再有手动存。
  * - **暂存**(qingshi.stash.v1):每个剧本只留最近 1 条,关页/刷新(pagehide)
- *   时自动落,防丢兜底。
+ *   时自动落,防丢兜底(同口径:未满 5 轮不落)。
  *
  * 引擎侧的三条硬约束(见 prot/engine.js exportSave),UI 必须如实反映,
  * 不能假装能存:
@@ -41,7 +42,15 @@ export interface SaveMeta {
 
 export interface Slot extends SaveMeta {
   payload: unknown;
+  /** 题签历史(v2.3.0):读档时把卷轴上已收起的小节(题签+属性胶囊+正文)摆回去。
+   *  这是 UI 层状态,不进引擎 payload;旧档没有它,按空处理。 */
+  ui?: SecRec[];
 }
+
+/** 题签历史里一枚属性胶囊 */
+export interface SecTag { k: string; name: string; v: string; up: boolean }
+/** 一条已落定的小节记录:题签(含「——所选」后缀)+ 属性胶囊 + 正文纯文本 */
+export interface SecRec { t: string; tags: SecTag[]; body: string }
 
 /** 某个对局当前能不能存档,以及不能的理由 */
 export function whyCannotSave(game: Game): string | null {
@@ -69,6 +78,10 @@ export function loadPayload(payload: unknown, game: Game): boolean {
 const AUTO_KEY = 'qingshi.autos.v1';
 /** 每剧本自动档上限;与存档页槽位行数一致 */
 export const AUTO_MAX = 6;
+
+/** 本章经营满几轮才开始存档(2026-10-17 拍板):开局没多久就退出没什么可存的,
+ * 「返回」与 pagehide 暂存同口径。roundNo 章首归零,所以按本章轮次计。 */
+export const SAVE_MIN_ROUND = 5;
 
 type AutoStore = Record<string, Slot[]>;
 
@@ -137,7 +150,7 @@ export function saveAuto(
   game: Game,
   scenKey: string,
   scenName: string,
-  opts?: { overwriteOldest?: boolean; roundNo?: number },
+  opts?: { overwriteOldest?: boolean; roundNo?: number; ui?: SecRec[] },
 ): { ok: boolean; reason: string; full: boolean } {
   const ch = game.chapter();
   const payload = game.exportSave();
@@ -164,6 +177,7 @@ export function saveAuto(
     backtracksLeft: Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
     age: game.age,
     payload,
+    ...(opts?.ui?.length ? { ui: opts.ui } : {}),
   });
   store[scenKey] = list;
   const where = `${ch?.title ?? `第 ${game.chapterIdx + 1} 章`}${roundNo > 0 ? ` · 第 ${roundNo} 轮` : ''}`;
@@ -206,10 +220,10 @@ export const DIFF_LABEL: Record<DiffKey, string> = {
 /* ============================================================================
  * 暂存(2026-10-15 拍板,同日二次调整):对局中直接关页/刷新(pagehide)时
  * 自动落一份进度,每个剧本单独一桶,只保留最近一条。
- * 点「返回」正常退出不写暂存——那条路径由玩家确认后写自动档。
+ * 点「返回」正常退出不写暂存——那条路径写自动档(有空位自动写,满员确认覆盖)。
  *
  * 与自动档分开存放的理由:
- * - 自动档是玩家点「返回」时确认存的,语义是「我想留住这一局」
+ * - 自动档是玩家主动点「返回」留下的,语义是「我想留住这一局」
  * - 暂存是关页/刷新时的防丢兜底,玩家没表态,频繁覆写自动档等于替玩家做决定
  * - 暂存按剧本分桶:同时玩多个剧本时互不覆盖
  *
@@ -244,7 +258,7 @@ function writeStash(store: StashStore): boolean {
 }
 
 /** 写一份暂存;返回是否真的存下了(不可存的局安静返回 false) */
-export function stashSave(game: Game, scenKey: string, scenName: string, roundNo = 0): boolean {
+export function stashSave(game: Game, scenKey: string, scenName: string, roundNo = 0, ui?: SecRec[]): boolean {
   const ch = game.chapter();
   const payload = game.exportSave();
   if (!payload) return false;
@@ -261,6 +275,7 @@ export function stashSave(game: Game, scenKey: string, scenName: string, roundNo
     backtracksLeft: Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
     age: game.age,
     payload,
+    ...(ui?.length ? { ui } : {}),
   });
   // FIFO:超上限从头部(最早)挤掉
   while (list.length > STASH_MAX) list.shift();

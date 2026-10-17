@@ -1,13 +1,21 @@
 /**
- * 配音试点回归(李斯 c1)。
+ * 配音回归(全剧本,2026-10-17 整段合并口径)。
  *
  * 这套测试盯的是「预取时机」和「串行」——headless 里听不到声音,
  * 但这两件事错了玩家立刻能感觉到(卡顿、串音、上一章跟着念)。
  *
- *   1. 进 c1 才拉配音,且只拉 opus 一套格式
+ *   1. 入局就拉本章配音(intro 已合并为一条),且只拉 opus 一套格式
  *   2. 首句在「继续」之前就已预取好(缓冲窗口只有几百毫秒,来不及现拉)
- *   3. 请求是串行的,不会一次并发 41 条把连接池打满
+ *   3. 请求是串行的,不会一次并发几十条把连接池打满
  *   4. 换相位会掐断上一段,回选择页也掐断
+ *
+ * 命名(与 voice.ts 头注释同口径):
+ *   intro / <事件id>(N-N、N-Nb、4-5-pre 这类事件 id、章末事件 cj-* 等)
+ *   choice_<卡id>(_oN) / ending_E*(_变体) / crisis_C-*(_oN) / corr_N
+ *
+ * 配音与 BGM 的区分:dist/assets 里的音频只有这两类,BGM 命名固定为
+ * idle / <剧本>-(inst|vocal),所以「是音频且不是 BGM」就是配音 ——
+ * 事件/卡片 id 各剧本不同(lisi 是 ACT-N,jingke 是 JK-ACT-N……),正向枚举会漂移。
  */
 const fs = require('fs');
 const path = require('path');
@@ -15,83 +23,102 @@ const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 const AUD = path.join(__dirname, '..', 'dist', 'assets');
 // Vite 会把 src/assets/** 全部摊平到 dist/assets/ 并加 hash,
-// 所以产物 URL 里既没有剧本名也没有章号 —— 只能靠切片名本身识别。
-// BGM 是 <剧本>-(inst|vocal)-<hash>,配音是 intro_N / N-N_sN / N-N_oN,两者不会撞。
-// CDP 给的是完整绝对 URL(http://127.0.0.1:PORT/assets/xxx),
-// 所以只能匹配其中的 /assets/ 片段,不能从 ^ 开始锚。
-const VOICE_RE = /\/assets\/(intro_\d+|\d+-\d+_[so]\d+)-[A-Za-z0-9_-]{8}\.(webm|m4a)$/;
+// 所以产物 URL 里既没有剧本名也没有章号 —— 只能靠文件名本身识别。
+// CDP 给的是完整绝对 URL(http://127.0.0.1:PORT/assets/xxx),匹配其中的 /assets/ 片段。
+const BGM_SRC = '(?:idle|(?:lisi|jingke|hanxin|xiangyu|chensheng)-(?:inst|vocal))-[A-Za-z0-9_-]{8}\\.(?:webm|m4a)$';
+const AUDIO_URL_RE = /\/assets\/[^/]+\.(?:webm|m4a)$/;
+const BGM_RE = new RegExp(`\\/assets\\/${BGM_SRC}`);
+const isVoiceUrl = (u) => AUDIO_URL_RE.test(u) && !BGM_RE.test(u);
+// 用在 evaluate 字符串里的页面端判定:文件名是音频且不符合 BGM 命名
+const IS_VOICE_FN = `(a => { const s = (a.getAttribute('src') || '').split('/').pop(); return /\\.(webm|m4a)$/.test(s) && !/${BGM_SRC}/.test(s); })`;
 const logical = (u) => u.replace(/^.*\//, '').replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, '');
 const checks = [];
 const check = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
 
 // ---------- 构建产物 ----------
-// Vite 把 src/assets/** 摊平到 dist/assets/ 并加 hash,所以产物名是
-// intro_1-BFjC0lwb.webm 这种,剧本名与章号已经进了 map 的 key 而不是文件名。
 const files = fs.existsSync(AUD) ? fs.readdirSync(AUD).filter((f) => /\.(webm|m4a)$/.test(f)) : [];
-const isVoice = (f) => VOICE_RE.test('http://x/assets/' + f);
+const isVoice = (f) => isVoiceUrl('http://x/assets/' + f);
+const isBgm = (f) => BGM_RE.test('http://x/assets/' + f);
 const voiceFiles = files.filter(isVoice);
 const clipName = (f) => f.replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, '');
 
 check('配音产物已构建', voiceFiles.length > 0, `${voiceFiles.length} 个`);
 
+// 源 ogg:TTS 批次产物(lisi_v2/lisi_probe + 其余剧本 <key>_v1),一条语音对应产物 webm+m4a 两个文件
 const srcDir = path.join(__dirname, '..', '..', 'assets', 'audio', 'voice');
-const srcC1 = fs.existsSync(srcDir) ? fs.readdirSync(srcDir).filter((f) => /^lisi_c1_.*\.ogg$/.test(f)) : [];
-check('李斯 c1 切片数正确(41×2 格式)', voiceFiles.length === srcC1.length * 2,
-  `产物 ${voiceFiles.length},源 ${srcC1.length}×2`);
+const srcOgg = fs.existsSync(srcDir)
+  ? fs.readdirSync(srcDir).filter((f) => /^(?:lisi_(?:v2|probe)|(?:jingke|hanxin|xiangyu|chensheng)_v1)_.*\.ogg$/.test(f))
+  : [];
+check('配音切片数与 TTS 源一致(源×2 格式)', voiceFiles.length > 0 && voiceFiles.length === srcOgg.length * 2,
+  `产物 ${voiceFiles.length},源 ${srcOgg.length}×2`);
 
 const names = new Set(voiceFiles.map(clipName));
-check('含 intro 切片', [...names].some((n) => /^intro_\d+$/.test(n)), `样例 ${[...names][0]}`);
-check('含事件段 s 切片', [...names].some((n) => /^\d+-\d+_s\d+$/.test(n)));
-check('含选项 o 切片', [...names].some((n) => /^\d+-\d+_o\d+$/.test(n)));
+check('含章首 intro 切片', names.has('intro'), `样例 ${[...names][0]}`);
+check('含主线事件切片(N-N)', [...names].some((n) => /^\d+-\d+$/.test(n)));
+check('含章末事件切片(cj-*)', [...names].some((n) => /^cj-/.test(n)));
+check('含抉择卡切片(choice_*-ACT-*)', [...names].some((n) => /^choice_(?:[A-Z]+-)?ACT-\d+$/.test(n)));
+check('含抉择卡结算切片(choice_*_oN)', [...names].some((n) => /^choice_(?:[A-Z]+-)?ACT-\d+_o\d+$/.test(n)));
+check('含结局切片(ending_E*)', [...names].some((n) => /^ending_E\d+$/.test(n)));
+check('含结局变体切片(ending_E*_*)', [...names].some((n) => /^ending_E\d+_[a-z]+$/.test(n)));
+check('含危机切片(crisis_C-*)', [...names].some((n) => /^crisis_C-[A-Za-z0-9]+$/.test(n)));
+check('含危机结算切片(crisis_*_oN)', [...names].some((n) => /^crisis_C-[A-Za-z0-9]+_o\d+$/.test(n)));
+check('含历史修正切片(corr_N)', [...names].some((n) => /^corr_\d+$/.test(n)));
+// 不配音的类别不该出现在产物里:主线事件选项结算(N-N_oN)、随机事件(rand/R-*)、旧的逐段切片(_sN)
+check('不含主线选项结算切片(N-N_oN)', ![...names].some((n) => /^\d+-\d+_o\d+$/.test(n)));
+check('不含旧的逐段切片(_sN)', ![...names].some((n) => /_s\d+$/.test(n)));
 // 加配音不该动到 BGM。11 首 × 2 格式 = 22 个;idle 不含 inst/vocal 字样,
 // 所以别用 /(inst|vocal)-/ 数,idle 会被漏掉(数出 20 而不是 22)。
-const isBgm = (f) => !isVoice(f);
 check('BGM 产物仍是 11 首 ×2', files.filter(isBgm).length === 22,
   `${files.filter(isBgm).length} 个`);
 check('配音与 BGM 没有混在同一命名空间', voiceFiles.every(isVoice) && files.filter(isBgm).every((f) => !isVoice(f)));
 
-// 每条切片双格式成对
+// 每条切片双格式成对(同名 intro 在不同章内容不同,vite 按内容给 hash,不会互相覆盖)
 const byLogical = {};
 for (const f of voiceFiles) {
   const l = clipName(f);
-  (byLogical[l] ||= {})[f.endsWith('.webm') ? 'webm' : 'm4a'] = true;
+  (byLogical[l] ||= { webm: 0, m4a: 0 });
+  byLogical[l][f.endsWith('.webm') ? 'webm' : 'm4a'] += 1;
 }
 const unpaired = Object.entries(byLogical).filter(([, v]) => !v.webm || !v.m4a).map(([k]) => k);
 check('每条切片都有 webm+m4a', unpaired.length === 0, unpaired.slice(0, 3).join(', '));
 
+// 合并口径下单条最长约 240 字:opus 均值 ~213KB、最大 ~455KB(2026-10-17 李斯 134 条实测)
 const opusSize = (l) => {
   const f = voiceFiles.find((x) => clipName(x) === l && x.endsWith('.webm'));
   return f ? fs.statSync(path.join(AUD, f)).size : 0;
 };
 const clipKeys = Object.keys(byLogical);
 const avgOpus = clipKeys.reduce((s, l) => s + opusSize(l), 0) / clipKeys.length;
-check('单条 opus 均值在预算内(≤100 KB)', avgOpus <= 100 * 1024, `${(avgOpus / 1024).toFixed(0)} KB`);
+check('单条 opus 均值在预算内(≤260 KB)', avgOpus <= 260 * 1024, `${(avgOpus / 1024).toFixed(0)} KB`);
 const maxOpus = Math.max(...clipKeys.map(opusSize));
-check('单条 opus 最大 ≤150 KB', maxOpus <= 150 * 1024, `${(maxOpus / 1024).toFixed(0)} KB`);
+check('单条 opus 最大 ≤512 KB', maxOpus <= 512 * 1024, `${(maxOpus / 1024).toFixed(0)} KB`);
 
 // ---------- 运行时 ----------
 withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors }) => {
   const rows = [];
   const add = (name, ok, why) => rows.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
-  const voiceReqs = () => netLog().filter((r) => VOICE_RE.test(r.url));
+  const voiceReqs = () => netLog().filter((r) => isVoiceUrl(r.url));
 
   // 不给 __QS__ 加「跳章」后门 —— 那样测的是后门而不是真实链路。
-  // c0 只有 4 个事件,按真实流程点过去就行,顺带把 c0 无配音也验了。
+  // c0 只有 4 个事件,按真实流程点过去就行。
   const advance = async (wantCh, max = 300) => {
     for (let i = 0; i < max; i += 1) {
       const ch = await evaluate('window.__QS__.game.chapter()?.id || ""');
       if (ch === wantCh) return true;
-      await evaluate(`(() => { ${STEP_SNIPPET} advanceOnce(); })()`);
+      // 行动卡结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等发牌落定;
+      // 随机事件落定无「继 续」也要等自动推进(否则 idle 空转烧步数)
+      await evaluate(`(async () => { ${STEP_SNIPPET} const r = advanceOnce(); if (r === 'card') await waitDeal(); else await waitSettle(); })()`);
       await sleep(70);
     }
     return false;
   };
 
-  // c0:应无配音。__QS__ 是入局后才挂上的,所以必须先 enterGame
+  // c0 入局即念章首:__QS__ 是入局后才挂上的,所以必须先 enterGame
   await enterGame();
-  await sleep(700);
+  await sleep(1200);
   const atC0 = voiceReqs();
-  add('c0 没有配音也不报错', atC0.length === 0, `却拉了 ${atC0.map((r) => logical(r.url)).join(', ')}`);
+  add('c0 入局拉到了章首配音', atC0.some((r) => logical(r.url) === 'intro'),
+    `却拉了 ${atC0.map((r) => logical(r.url)).join(', ') || '(无)'}`);
 
   // 走到 c1
   netReset();
@@ -110,21 +137,19 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   add('MIME 正确', c1.length > 0 && c1.every((r) => r.mime === 'audio/webm'),
     [...new Set(c1.map((r) => r.mime))].join(','));
 
-  const chs = [...new Set(c1.map((r) => (r.url.match(/\/assets\/(intro_\d+|\d+-\d+_[so]\d+)/) || [])[1]).filter(Boolean))];
-  add('拉的是本章切片(intro_/事件_s 事件_o)', chs.length > 0,
-    chs.slice(0, 4).join(',') || '(无)');
+  add('拉的是配音切片(intro/事件id)', uniq.length > 0, uniq.slice(0, 4).join(',') || '(无)');
   add('URL 带构建 hash', c1.every((r) => /-[A-Za-z0-9_-]{8}\.(webm|m4a)$/.test(r.url)),
     c1[0]?.url);
 
-  // 串行:一次只预取几条。整章 41 条若一次性并发,网络面板会瞬间齐;
-  // 串行则随播放逐条推进。这里用「进入 c1 后 1.5 秒内的条数」做粗判。
-  add('没有一次性把整章拉完(串行预取)', uniq.length > 0 && uniq.length <= 14,
-    `一下拉了 ${uniq.length} / 41 条`);
+  // 串行:合并口径下进一章只入队一条 intro,之后随事件推进逐条入队。
+  // 这里用「进入 c1 后 1.5 秒内的条数」做粗判,防的是一次性并发预取回归。
+  add('没有一次性把整章拉完(串行预取)', uniq.length > 0 && uniq.length <= 6,
+    `一下拉了 ${uniq.length} 条`);
 
   const state = await evaluate(`(() => {
     const as = [...document.querySelectorAll('audio')];
     // BGM 双轨轮播后不再开单曲循环,不能再用 a.loop 认它;
-    // 按 src 逻辑名认:剧本 BGM 是 <key>-inst / <key>-vocal,配音切片是 intro_/s*_o*。
+    // 按 src 逻辑名认:剧本 BGM 是 <key>-inst / <key>-vocal,配音切片是 intro/N-N/choice_* 等。
     const bg = as.find(a => /-(inst|vocal)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
     return { n: as.length, hasBgm: !!bg, vol: bg ? bg.volume : null };
   })()`);
@@ -136,7 +161,7 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   let playing = false;
   for (let i = 0; i < 30; i += 1) {
     playing = await evaluate(`[...document.querySelectorAll('audio')]
-      .some(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || '') && !a.paused)`);
+      .some(a => (${IS_VOICE_FN})(a) && !a.paused)`);
     if (playing) break;
     await sleep(200);
   }
@@ -145,8 +170,7 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   await cdp.send('Target.activateTarget', { targetId: t2.targetId });
   await sleep(500);
   const hidV = await evaluate(`(() => {
-    const v = [...document.querySelectorAll('audio')]
-      .find(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
+    const v = [...document.querySelectorAll('audio')].find(${IS_VOICE_FN});
     return { vis: document.visibilityState, paused: v ? v.paused : null };
   })()`);
   add('页面进后台 → 配音暂停', hidV.vis === 'hidden' && hidV.paused === true, JSON.stringify(hidV));
@@ -156,8 +180,7 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   await cdp.send('Target.closeTarget', { targetId: t2.targetId }).catch(() => {});
   await sleep(600);
   const backV = await evaluate(`(() => {
-    const v = [...document.querySelectorAll('audio')]
-      .find(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''));
+    const v = [...document.querySelectorAll('audio')].find(${IS_VOICE_FN});
     return { vis: document.visibilityState, paused: v ? v.paused : null };
   })()`);
   // 续播可能跨过句间空档:回前台后要么这句继续播,要么下一句已顶上
@@ -167,12 +190,12 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   netReset();
   await evaluate('window.__QS__.goSelect()');
   await sleep(700);
-  const afterExit = netLog().filter((r) => VOICE_RE.test(r.url));
+  const afterExit = netLog().filter((r) => isVoiceUrl(r.url));
   add('退出后不再拉新配音', afterExit.length === 0, afterExit.map((r) => logical(r.url)).join(', '));
 
   // 只查配音切片:goSelect 会播 idle BGM,后台恢复路径下它是合法在播的,不能一起算。
   const paused = await evaluate(`[...document.querySelectorAll('audio')]
-    .filter(a => /(intro_\\d+|\\d+-\\d+_[so]\\d+)-[A-Za-z0-9_-]{8}\\.(webm|m4a)$/.test(a.getAttribute('src') || ''))
+    .filter(${IS_VOICE_FN})
     .every(a => a.paused || !a.getAttribute('src'))`);
   add('退出后语音已掐断', paused);
 

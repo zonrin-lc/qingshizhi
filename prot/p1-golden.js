@@ -55,7 +55,10 @@ function driveGame(D, diffKey, seed) {
     if (g.phase === 'correction') { g.correctionContinue(); steps.push(['corr']); continue; }
     if (g.phase === 'summary') { g.proceedSummary(); steps.push(['sum']); continue; }
     if (g.phase === 'endEvent') {
-      const opts = g.currentEndEvent.options.map(o => ({ locked: o.req ? !g.check(o.req).ok : false }));
+      // 财富见底锁(2026-10-16)与引擎 endEventChoose 兜底同口径:req 硬门槛 + 扣财选项在财富 ≤ 0 时锁
+      const opts = g.currentEndEvent.options.map(o => ({
+        locked: (o.req ? !g.check(o.req).ok : false) || (g.attrs.caifu <= 0 && !!(o.eff && o.eff.attrs && o.eff.attrs.caifu < 0)),
+      }));
       const i = pickByRng(opts, rng);
       g.endEventChoose(i); steps.push(['endev', i]); continue;
     }
@@ -67,7 +70,8 @@ function driveGame(D, diffKey, seed) {
     if (g.phase === 'settle') { g.proceed(); steps.push(['settle']); continue; }
     if (g.phase === 'choice') {
       const v = g.getChoiceCard();
-      const i = Math.floor(rng() * v.options.length);
+      // 财富见底锁(2026-10-16):getChoiceCard 已给扣财选项打 locked,只挑未锁项
+      const i = pickByRng(v.options.map(o => ({ locked: !!o.locked })), rng);
       g.chooseCardOption(i); steps.push(['copt', i]); continue;
     }
     throw new Error('unknown phase ' + g.phase);

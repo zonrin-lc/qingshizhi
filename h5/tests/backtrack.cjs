@@ -35,7 +35,7 @@ const PROBE = `(async () => {
       await sleep(8);
       continue;
     }
-    (q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary'))?.click();
+    (q('.stage__main .dock .btn--primary') || q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary'))?.click();
     await sleep(8);
     if (g.phase !== 'intro') break;
   }
@@ -67,7 +67,7 @@ const PROBE = `(async () => {
       if (cont) { cont.click(); await sleep(8); continue; }
     }
     if (ph === 'intro' || ph === 'summary') {
-      const b = q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+      const b = q('.stage__main .dock .btn--primary') || q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
       if (b) { b.click(); await sleep(8); continue; }
     }
   }
@@ -135,6 +135,7 @@ withPage(async ({ evaluate, consoleErrors }) => {
   const after = o.log[o.log.length - 2];
   const second = o.log[o.log.length - 1];
   const errs = consoleErrors();
+  if (errs.length) errs.forEach((e) => console.log('  控制台错误: ' + e));
 
   const ok = report('回溯链路', [
     ['章首显示剩余次数(normal=1)', init.btnText === '回溯 1' && init.can === true],

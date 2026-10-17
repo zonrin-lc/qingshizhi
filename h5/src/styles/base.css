@@ -295,3 +295,20 @@ body {
   height: 100%;
   object-fit: contain;
 }
+
+/* ---------- 全站按钮统一交互(2026-10-17 拍板) ----------
+ * 所有按钮的 hover 反馈与选择页返回钮(.pageback)同款:放大 1.05,过渡 0.16s ease,
+ * 不再做变色/位移/亮度。各元素的 transition 在各自样式表就地声明,这里只出 hover 目标值。 */
+.btn:hover:not(:disabled),
+.menu__resume:hover:not(:disabled),
+.menu__enter:hover:not(:disabled),
+.menu__item--sub:hover:not(:disabled),
+.menu__cbtn:hover:not(:disabled),
+.seldiff__cap:hover:not(:disabled),
+.selenter:hover:not(:disabled),
+.stab:hover:not(:disabled),
+.galfilter__chip:hover:not(:disabled),
+.castChip:hover:not(:disabled),
+.tapsync__btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}

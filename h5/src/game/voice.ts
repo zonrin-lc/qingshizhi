@@ -1,23 +1,27 @@
 /**
- * 配音。
+ * 配音(2026-10-17 起改为整段合并口径,覆盖李斯全剧本 134 条)。
  *
- * 试点范围:李斯 c1(第一章 兰陵问道)41 条。其余章节/剧本没有配音,自动降级为无声。
+ * 切片命名与剧本节点的对应(由生成脚本按 JSON 推导,**不需要额外维护清单**,
+ * 查不到就是没这条配音;这也是用 glob 而不是「预生成 index.json」的原因——清单会漂移,glob 不会):
+ *   intro                → chapter.intro 全部段合并一条
+ *   <事件id>             → event.segs 全部段合并一条(主线事件 + 章末事件 cj-*)
+ *   choice_<ACT-id>      → 抉择卡 segs 合并一条
+ *   choice_<ACT-id>_o<N> → 抉择卡第 N 个选项的结算
+ *   ending_<E>[_<变体>]  → 结局「太史公曰」(变体结局单独一条)
+ *   crisis_<C-id>        → 危机事件 segs 合并一条
+ *   crisis_<C-id>_o<N>   → 危机事件第 N 个选项的结算
+ *   corr_<N>             → CORRECTIONS[N] 历史修正 segs 合并一条
+ * (主线事件的选项结算、随机事件 R-* 不配音 —— 2026-10-17 用户拍板)
  *
- * 切片命名与 JSON 的对应(已对全库 162 节点 + 全部随机事件校验):
- *   intro_<N>        → chapter.intro[N]
- *   <事件id>_s<N>    → event.segs[N-1]
- *   <事件id>_o<N>    → event.options[N-1].res
+ * 目录:voice/<剧本>/<章cN>/<切片>;跨章共享的(choice_/ending_/crisis_/corr_)
+ * 放 _shared/,clipUrl 先查本章目录、查不到回落 _shared。
  *
- * 所以切片名纯靠推导得出,**不需要额外维护清单**。查不到就是没这条配音。
- * 这也是这里用 glob 而不是「预生成一份 index.json」的原因:
- * 清单会漂移,glob 不会。
- *
- * 三条现实约束,决定了下面的写法:
+ * 四条现实约束,决定了下面的写法:
  *
  * 1. **缓冲窗口只有几百毫秒。** 点完选项到下一句播出来,中间没有留给你下载的时间。
- *    所以必须提前把本章切片拉下来,而不是播到哪下到哪。
+ *    所以必须提前把切片拉下来,而不是播到哪下到哪。
  *
- * 2. **串行播放,不能并发。** 一章 41 条如果一次性并发拉,会把连接池打满、
+ * 2. **串行播放,不能并发。** 一次性并发拉全表会把连接池打满、
  *    拖慢正在播的那条。必须一条接一条,播完再拉下一条。
  *
  * 3. **语音要盖住 BGM。** 否则配音被背景乐压着,等于没做。
@@ -47,10 +51,13 @@ const probe = (() => {
   return w === 'probably' || w === 'maybe' ? ('webm' as Ext) : ('m4a' as Ext);
 })();
 
-/** 该章某条切片在不在。切掉某章配音时这里是空表,其余不受影响。 */
+/** 该章某条切片在不在;查不到本章目录时回落 _shared(跨章共享切片)。 */
 function clipUrl(scenario: string, chapter: string, clip: string): string | null {
-  const key = `../assets/voice/${scenario}/${chapter}/${clip}.`;
-  return probe === 'webm' ? (clips[key + 'webm'] ?? null) : (clips4a[key + 'm4a'] ?? null);
+  const pick = (dir: string): string | null => {
+    const key = `../assets/voice/${scenario}/${dir}/${clip}.`;
+    return probe === 'webm' ? (clips[key + 'webm'] ?? null) : (clips4a[key + 'm4a'] ?? null);
+  };
+  return pick(chapter) ?? pick('_shared');
 }
 
 export function hasVoice(scenario: string, chapter: string, clip: string): boolean {
@@ -64,13 +71,10 @@ export class Voice {
   private queue: QueueItem[] = [];
   private el: HTMLAudioElement | null = null;
   private playing = false;
-  /**
-   * 试点目的就是验证这条链路,所以默认开。
-   * 真正上线前应接进设置(设置页按用户决定暂不做),给一个静音开关。
-   */
+  /** 配音开关(将来接设置页静音项);默认开。 */
   private wanted = true;
-  /** 音量由设置项驱动(轻 0.5 / 标准 0.8 / 响 1.0) */
-  private volume = 0.8;
+  /** 音量由设置项驱动(设置页 0-100 滑杆,默认 1.0);初值是设置加载前的兜底 */
+  private volume = 1.0;
   /** 当前这句的收尾回调;stop() 主动调它,好让 pump 的循环能退出。 */
   private settleCurrent: (() => void) | null = null;
   /** 是我们因页面不可见而暂停的标记:只有这种情况才在回前台时自动续播 */
@@ -128,7 +132,7 @@ export class Voice {
 
   /**
    * 串行取队列。一条放完再放下一条 —— 这同时也是预取顺序的保证:
-   * 一次并发 41 条会把连接池打满,拖慢正在播的那条。
+   * 一次并发几十条会把连接池打满,拖慢正在播的那条。
    *
    * 若已在 pump 中,直接返回即可:正在跑的循环每轮都会重查队列,
    * 自然会接手新入队的条目,不需要第二个循环。

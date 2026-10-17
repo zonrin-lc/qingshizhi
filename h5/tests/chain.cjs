@@ -34,7 +34,7 @@ const DRIVER = `(async () => {
     }
   };
 
-  for (let i = 0; i < 600; i++) {
+  for (let i = 0; i < 1500; i++) {
     await sleep(3);
     // 叙事渐显:段落没全亮、选项也还没挂上(对齐 Lua 的"读完才给选")。
     // 先点正文区跳过去,否则下面 paras/segs 的段数断言会读到半截。
@@ -43,19 +43,29 @@ const DRIVER = `(async () => {
       continue;
     }
     checkLayout(g.phase);
+    const ph0 = g.phase;
     const ov = q('.overlay');
     if (ov && !ov.hidden) {
-      push({ at: i, evt: 'settle', title: (q('.overlay__title')||{}).textContent || '',
-             changes: qa('.chgrow__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev });
+      // 章末结算/最终结算/历史修正都是深色蒙版弹框(2026-10-17 拍板):
+      // summary 相位也在这里拦截,统计行与「进入下一章」都在弹框里
+      if (ph0 === 'summary') {
+        push({ at: i, evt: 'summary', idx: g.chapterIdx, dev: g.dev,
+               devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .statrow__cell').length,
+               hasNext: qa('.overlay .btn--primary').length > 0 });
+      } else {
+        push({ at: i, evt: 'settle', title: (q('.overlay__title')||{}).textContent || '',
+               changes: qa('.chgrow__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev });
+      }
       const b = q('.overlay .btn--primary');
-      if (!b) { push({ evt: 'STUCK: settle 无继续按钮' }); break; }
+      if (!b) { push({ evt: 'STUCK: 弹框无按钮' }); break; }
       b.click(); continue;
     }
     const ph = g.phase;
     // 偶遇/随机事件与关键事件的结算都内联在文本区(2026-10-14 起关键事件不再弹浮层),
-    // choose() 把引擎相位停在 settle。内联成功路径已在文本区挂「继 续」按钮
-    // (.stage__main .btn--primary),点它推进;属性胶囊封在小节题签(.chgrow__v)。
-    // 顶部 overlay 分支只剩词条/历史修正浮层。
+    // choose() 把引擎相位停在 settle。关键事件/抉择落定后文本区底部停靠带挂「继 续」
+    // (.stage__main .btn--primary),点它推进;随机事件无「继 续」(2026-10-17 拍板),
+    // 落定 1.5s 后自动推进——这里等它,别越过程序代点 proceed(会双推进)。
+    // 顶部 overlay 分支:历史修正/章末/结局弹框。
     if (ph === 'settle') {
       const b0 = q('.stage__main .btn--primary');
       push({ at: i, evt: 'inline-settle', phase: ph, dev: g.dev,
@@ -64,12 +74,13 @@ const DRIVER = `(async () => {
           sec: (b0.closest('.sec') && b0.closest('.sec').querySelector('.sec__head') || {}).textContent || null,
           collapsed: !!(b0.closest('.sec') && b0.closest('.sec').classList.contains('is-collapsed')) } : null });
       if (b0) { b0.click(); continue; }
-      g.proceed(); continue;    }
+      await sleep(120); continue;
+    }
     if (ph === 'intro') {
       const ch = g.chapter();
       push({ at: i, evt: 'intro', idx: g.chapterIdx, title: ch.title,
              paras: qa('.stage__main .prose').length, notes: qa('.intro-note').length,
-             gloss: qa('.gloss').length, cast: qa('.castChip').length,
+             cast: qa('.castChip').length,
              focus: (q('.portrait__name') || {}).textContent || '' });
       // 本章的 0-1/R-2 等事件未必带 ⟦NPC⟧ 标记(实测 cast 只有主角),castswitch
       // 不能只挂在事件相位赌发牌——第二章章首稳定有 3 个圆像(荀卿等),在 PASS
@@ -86,25 +97,34 @@ const DRIVER = `(async () => {
         }
       }
       if (g.chapterIdx >= 1) { push({ evt: 'PASS' }); break; }
-      // 顺手验一次 ⟦词条⟧ 点击链路
-      const first = q('.gloss');
-      if (first && !window.__glossClicked) {
-        window.__glossClicked = true; first.click(); await sleep(2);
-        push({ evt: 'gloss', open: !q('.overlay').hidden,
-               body: (q('.overlay__body')||{}).textContent || '' });
-        if (!q('.overlay').hidden) q('.overlay .btn--primary').click();
-        await sleep(2);
-      }
-      const b = q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+      const b = q('.stage__main .dock .btn--primary') || q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
       if (b) b.click(); continue;
     }
     if (ph === 'round') {
-      // 行动/蓄势/抉择卡内联结算后,引擎相位已回 round,但 UI 还在等文本区的
-      // 一次性「继 续」(2026-10-14 起不再弹浮层)。先点它再读手牌。
+      // 行动卡结算已无「继 续」钮(2026-10-17 拍板:飞卡→题签渐入→逐行→属性飞入→
+      // 翻背面→自动推进)。结算窗口里非收起小节的「经营/蓄势」题签就是凭据:
+      // 核卡名、记属性,然后等它自己推进收起来。
+      const liveHead = q('.stage__main .sec:not(.is-collapsed) .sec__head');
+      if (lastCard && liveHead && /经营 ·|蓄势 ·/.test(liveHead.textContent || '')) {
+        const secTitle = liveHead.textContent || '';
+        // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
+        push({ at: i, evt: 'card-settle',
+          sec: secTitle,
+          picked: lastCard,
+          nameMatch: secTitle.includes(lastCard),
+          changes: qa('.stage__main .sec:not(.is-collapsed) .chgrow__v').map(n => n.textContent.trim()),
+          residual: false });
+        lastCard = null;
+        await sleep(100); continue;
+      }
+      // 抉择卡落定仍有内联「继 续」(2026-10-16 拍板,不随行动卡改动)。先点它再读手牌。
       const cont = q('.stage__main .btn--primary');
       if (cont) {
         const sec = cont.closest('.sec');
-        const secTitle = (sec && sec.querySelector('.sec__head') || {}).textContent || null;
+        // dock 重构(2026-10-17):「继 续」挂在 .dock(prose-body 直子)而非 .sec 内,
+        // closest 落空时退回当前未收起小节的题签
+        const secTitle = ((sec && sec.querySelector('.sec__head'))
+          || q('.stage__main .sec:not(.is-collapsed) .sec__head') || {}).textContent || null;
         // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
         push({ at: i, evt: 'card-settle',
           sec: secTitle,
@@ -131,9 +151,11 @@ const DRIVER = `(async () => {
         || acts[0] || cards[0]
         || q('.stage__main .prompt--key.is-live');   // 行动全锁时关键事件提示条是唯一出路
       if (!pick) {
-        // 发牌前有约 0.5s 翻面动画(2026-10-16 拍板:选中牌留到下回合开始前才翻),
-        // 旧牌还占着位就等发牌落定,不算卡死
-        if (q('.stage__foot .card.is-flipped')) { await sleep(30); continue; }
+        // 结算动画序列真实耗时约 1.5–3.5s(2026-10-17 拍板):旧牌翻面/选定占位期间
+        // 真等它走完,不算卡死;lastCard 还在说明结算进行中,同样等
+        if (q('.stage__foot .card.is-flipped') || q('.stage__foot .card--action.is-chosen') || lastCard) {
+          await sleep(120); continue;
+        }
         push({ evt: 'STUCK: round 无可点牌' }); break;
       }
       // 记下打出的卡名(去掉险招的 ⚠ 后缀),下一拍 card-settle 要核对题签
@@ -157,6 +179,9 @@ const DRIVER = `(async () => {
       }
       const opts = g.getOptions();
       const open = qa('.stage__main .card--tappable, .stage__foot .card--tappable');
+      // 事件选项要等渐显落定才挂上(reveal.cjs 盯着这条);页内驱动抢在这一拍前
+      // open 就是空的,等下一拍再读,别把「还没挂上」当「无选项」
+      if (opts.length > 0 && open.length === 0) { await sleep(60); continue; }
       // 优先挑偏离最大的选项,以便验证偏离归因(devLog)也能在 UI 上出来
       let pick = -1, bestDev = 0;
       for (let j = 0; j < opts.length; j++) {
@@ -185,7 +210,9 @@ const DRIVER = `(async () => {
                  now: (q('.portrait__name') || {}).textContent || '' });
         }
       }
-      open[pick].click(); continue;
+      const target = open[pick];
+      if (!target) { await sleep(60); continue; }  // 选项重排窗口,下一拍再点
+      target.click(); continue;
     }
     if (ph === 'choice') {
       const c = g.getChoiceCard();
@@ -200,14 +227,16 @@ const DRIVER = `(async () => {
              pick: ci, pickDev: bestDev,
              devs: c ? c.options.map(o => (o.eff && o.eff.dev) || 0) : [] });
       // 抉择卡选项已内联进文本区(2026-10-16),与际遇/关键事件同口径
-      const b = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[ci]; if (b) b.click(); else break;
+      const b = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[ci];
+      if (b) b.click(); else { await sleep(60); continue; }  // 没挂上(渐显窗口)就等下一拍
       continue;
     }
     if (ph === 'summary') {
+      // 兜底:正常会被顶部弹框分支拦截;走到这里说明弹框没出,按弹框口径再试一次
       push({ at: i, evt: 'summary', idx: g.chapterIdx, dev: g.dev,
-             devRows: qa('.devrow').length, attrRows: qa('.stage__main .statrow__cell').length,
-             hasNext: qa('.stage__foot .btn--primary').length > 0 });
-      const b = q('.stage__foot .btn--primary'); if (b) b.click();
+             devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .statrow__cell').length,
+             hasNext: qa('.overlay .btn--primary').length > 0 });
+      const b = q('.overlay .btn--primary'); if (b) b.click();
       continue;
     }
     if (ph === 'endEvent') {
@@ -240,14 +269,15 @@ withPage(async ({ evaluate, consoleErrors }) => {
   // choice(抉择卡)也在必现清单里:五本各 12 张、每两轮一张,第一章内必然出现;
   // 不点它,整条「次级关键事件」链路塌了这套总闸也发现不了。
   // 「结算」一项 2026-10-14 起认 inline-settle:关键事件/行动卡结算都内联了,
-  // 浮层 settle 只剩历史修正与词条,不再强求每局必现。
-  const need = ['intro', 'gloss', 'round', 'inline-settle', 'event', 'choice', 'summary'];
+  // 浮层 settle 只剩历史修正,不再强求每局必现。
+  // 2026-10-16:对局页隐藏词条功能,.gloss 元素不再存在,'gloss' 移出必现清单。
+  const need = ['intro', 'round', 'inline-settle', 'event', 'choice', 'summary'];
   const errs = consoleErrors();
   const stuck = out.trace.filter((t) => String(t.evt).startsWith('STUCK'));
   const summaries = out.trace.filter((t) => t.evt === 'summary');
 
   const ok = report('P2 主链路', [
-    ['覆盖 intro/词条/回合/结算/事件/抉择/章末', need.every((k) => kinds.has(k))],
+    ['覆盖 intro/回合/结算/事件/抉择/章末', need.every((k) => kinds.has(k))],
     // 属性增减既可来自浮层(历史修正),也可来自内联题签胶囊(关键/际遇/经营/抉择结算)
     ['属性增减出现', out.trace.some((t) => (t.evt === 'settle' || t.evt === 'inline-settle' || t.evt === 'card-settle') && t.changes && t.changes.length > 0)],
     ['章末结算页出现', summaries.length > 0],

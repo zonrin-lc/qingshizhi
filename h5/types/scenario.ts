@@ -127,8 +127,10 @@ export interface ScenarioData {
   CORRECTIONS: { title: string; segs: string[]; minDev: number; maxDev: number; chance: number; eff?: Effect }[];
   ENDINGS: Record<string, {
     name: string; seal: string; zhuan?: string; zhuanAppends?: { if?: Record<string, unknown>; text: string }[];
+    /** 图鉴卡上的一句话简介(2026-10-17 起取代「截赞文首句」) */
+    brief?: string;
     cuncun?: number; nitian?: boolean; epilogue?: string; ach?: string[];
-    variants?: Record<string, { name: string; zhuan?: string }>;
+    variants?: Record<string, { name: string; zhuan?: string; brief?: string }>;
     variantAch?: Record<string, string[]>;
     aliveNote?: string;
   }>;
@@ -224,6 +226,8 @@ export type CheckResult = true | { ok: boolean; reason: string | null };
 
 /** 章末事件的进行中状态 */
 export interface EndEventView {
+  /** 引擎直接挂的是章数据里的原始事件对象,id 随存档序列化保留 */
+  id: string;
   title: string;
   segs?: string[];
   options: EventOption[];
@@ -270,7 +274,7 @@ export interface Game {
   chapterProgress(): { done: number; total: number };
   getOffer(): OfferView[];
   getOptions(): OptionView[];
-  getChoiceCard(): { id: string; title: string; segs: string[]; options: { t: string; res?: string }[] } | null;
+  getChoiceCard(): { id: string; title: string; segs: string[]; options: (EventOption & { locked?: boolean; reason?: string | null })[] } | null;
   playCard(i: number): CardResult | null;
   playXushi(): CardResult | null;
   chooseCardOption(i: number): CardResult | null;

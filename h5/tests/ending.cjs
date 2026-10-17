@@ -27,16 +27,24 @@ const DRIVER = `(async () => {
     phaseSeen.add(g.phase);
     if (g.phase === 'ending') break;
     const act = advanceOnce();
-    if (act === 'idle') await sleep(4); else await sleep(2);
+    // 行动卡结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等它走完,
+    // 否则 6000 步全空转在结算窗口里
+    if (act === 'card') { await waitDeal(); continue; }
+    // 随机事件落定后无「继 续」(2026-10-17 拍板):1.5s 自动推进,等相位离开 settle,
+    // 否则每个随机事件都拿 idle 空转烧掉几百步
+    if (g.phase === 'settle') { await waitSettle(); continue; }
+    // 空转只发生在无任何可点元素的结算/发牌动画窗口(点不了的 2-3s),
+    // 高频空转纯属烧步数预算(动画放慢后 4ms 空转一轮结算就烧 500 步)——拉长睡眠
+    if (act === 'idle') await sleep(50); else await sleep(2);
   }
   if (g.phase !== 'ending') return { ok: false, why: '6000 步内没走到结局', phase: g.phase, steps };
 
-  // 结局页 DOM:评等印鉴、四维评分、总分行、返回主页
+  // 结局弹框 DOM(2026-10-17 起为深色蒙版弹框):评等印鉴、四维评分、总分行、返回主页
   const dom = {
     seal: !!q('.seal--big'),
     scores: qa('.score').length,
     total: !!q('.score--total'),
-    back: qa('.stage__foot .btn--primary').map(b => b.textContent.trim()),
+    back: qa('.overlay .btn--primary').map(b => b.textContent.trim()),
   };
 
   // 副作用 1:结局落地后该剧本的自动档必须清掉(对齐 Lua renderEnding → Store.remove),
@@ -53,8 +61,8 @@ const DRIVER = `(async () => {
   // 结局页进度行:「此结局第 N 回达成 · 剧本结局 x/y」
   const progLine = qa('.txt').map(t => t.textContent).find(t => t.includes('回达成'));
 
-  // 返回主页 → 主菜单出现
-  const backBtn = qa('.stage__foot .btn--primary')[0];
+  // 返回主页(弹框内按钮) → 主菜单出现
+  const backBtn = qa('.overlay .btn--primary')[0];
   if (backBtn) backBtn.click();
   await sleep(300);
   const menuBack = !!q('.menu__item--start');

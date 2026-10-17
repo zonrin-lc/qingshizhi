@@ -29,8 +29,8 @@ const PROBE = `(async () => {
   // 偶遇/随机事件与抉择卡的选项都内联在文本区小节里(2026-10-16),底部的也要算。
   // 渐显期间两边都没挂,所以「渐显期间为 0」的负向断言语义不变。
   const opts = () => qa('.stage__main .card--tappable, .stage__foot .card--tappable').length;
-  // 剧情「继 续」跟在文本下面(内联,2026-10-15);章末/结局的主按钮仍在底部
-  const cont = () => qa('.stage__main .sec:not(.is-collapsed) .btn--primary, .stage__foot .btn--primary').length;
+  // 剧情「继 续」钉在文本区底部停靠带(.dock,2026-10-17);章末/结局的主按钮在弹框里
+  const cont = () => qa('.stage__main .sec:not(.is-collapsed) .btn--primary, .stage__main .dock .btn--primary, .stage__foot .btn--primary').length;
   const revealing = () => !!window.__QS__.session.isRevealing;
   const out = {};
 
@@ -54,7 +54,7 @@ const PROBE = `(async () => {
   // 「继续」可能还没挂上(上一段没放完),轮询等它,而不是赌它已经在了
   const t1 = performance.now();
   while (cont() === 0 && performance.now() - t1 < 5000) await sleep(40);
-  const contBtn = () => q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
+  const contBtn = () => q('.stage__main .dock .btn--primary') || q('.stage__main .sec:not(.is-collapsed) .btn--primary') || q('.stage__foot .btn--primary');
   if (contBtn()) contBtn().click();
 
   // 「继续」之后未必就是事件:引擎有随机事件机制(实测有时插 R-2,
@@ -96,6 +96,9 @@ const PROBE = `(async () => {
   // 再等一会儿,段数不该自己往上爬(定时器漏掉就会这样)
   await sleep(1200);
   out.parasSettled = paras();
+  // 随机事件落定后 1.5s 自动推进(2026-10-17 拍板):若等待期间相位已换,
+  // paras 量的是新小节,段数不同是预期,不算定时器泄漏
+  out.phaseSettled = g.phase;
   return out;
 })()`;
 
@@ -128,8 +131,8 @@ withPage(async ({ evaluate, enterGame, consoleErrors }) => {
 
     ['选完换相位后没有残留渐显', o.revealingAfterChoose === false],
     ['等待后段数不再自己爬(定时器没漏)',
-      o.parasSettled === o.parasAfterChoose,
-      `${o.parasAfterChoose} → ${o.parasSettled}`],
+      o.parasSettled === o.parasAfterChoose || o.phaseSettled !== o.phaseAfterChoose,
+      `${o.parasAfterChoose} → ${o.parasSettled} (${o.phaseAfterChoose} → ${o.phaseSettled})`],
   ];
 
   const ok = report('叙事渐显', checks);

@@ -3,7 +3,8 @@
  *
  * 不真打一整局 —— ending.cjs 已经验过「结局落地写记录」那条链路;
  * 这里直接往 localStorage 播种一份收藏,验图鉴页的渲染口径:
- * 五剧本分节、x/y 进度、已达成的名字/次数/最佳、未达成的只给谜面。
+ * 立绘卡 + 缩略图切换剧本、x/y 进度、已达成的名字/简介/次数/评级(含旧档字母迁移)、
+ * 未达成的只给谜面、已达成卡点开结算详情浮层。
  */
 'use strict';
 
@@ -14,12 +15,15 @@ const DRIVER = `(async () => {
   const q = s => document.querySelector(s);
   const qa = s => [...document.querySelectorAll(s)];
 
-  // 播种:李斯 E1 达成 2 回、E4 变体 kuaiji 达成 1 回;其余剧本空白
+  // 播种:李斯 E1 达成 2 回(乙)、E4 变体 kuaiji 1 回(甲下)、E6 1 回(甲上),
+  // E2 1 回但评级是旧档字母 B —— 读入时应迁移显示为「乙下」;其余剧本空白
   localStorage.setItem('qingshi.col.v1.lisi', JSON.stringify({
     gloss: [], ach: [],
     endings: {
-      E1: { n: '东市之叹', s: '循史', c: 2, b: 55, g: 'B' },
-      'E4:kuaiji': { n: '会稽老丈', s: '稳健', c: 1, b: 61, g: 'A' },
+      E1: { n: '东市之叹', s: '循史', c: 2, b: 55, g: '乙' },
+      E2: { n: '兰陵归鼠', s: '苟活', c: 1, b: 48, g: 'B' },
+      'E4:kuaiji': { n: '会稽老丈', s: '稳健', c: 1, b: 61, g: '甲下' },
+      E6: { n: '扶苏新政', s: '逆天', c: 1, b: 97, g: '甲上' },
     },
   }));
 
@@ -33,35 +37,79 @@ const DRIVER = `(async () => {
   if (!item) return { ok: false, why: '主菜单没有「青 史 图 鉴」' };
   item.click();
 
-  // 五个剧本分片异步加载,等最慢的那个落地
-  let secs = [];
+  // 五剧本异步加载:等缩略图计数全部落地 + 默认选中本(李斯)的条目铺完
+  let ready = false;
   for (let i = 0; i < 100; i++) {
     await sleep(100);
-    secs = qa('.galsec');
-    if (secs.length === 5 && secs.every(s => s.querySelector('.galsec__entries'))) break;
+    const cnts = qa('.saves__thumbs .stab__cnt');
+    ready = cnts.length === 5 && cnts.every(c => c.textContent.includes('结局'))
+      && qa('.galsec .galent').length === 20;
+    if (ready) break;
   }
-  if (secs.length !== 5 || !secs.every(s => s.querySelector('.galsec__entries'))) {
-    return { ok: false, why: '分节没加载完', secs: secs.length };
-  }
+  if (!ready) return { ok: false, why: '数据没加载完', secs: qa('.galsec').length };
 
-  const secText = i => secs[i].textContent;
-  const lisi = secs[0];
-  const lisiProg = lisi.querySelector('.galsec__prog').textContent;
-  const lisiEntries = [...lisi.querySelectorAll('.galent')];
+  const thumbs = qa('.saves__thumbs .stab');
+  const secText = () => (q('.galsec') ? q('.galsec').textContent : '');
+  const progText = () => { const p = q('.galsec__prog'); return p ? p.textContent : null; };
+  const portraitName = () => {
+    const n = q('.gallery__portrait .saves__name');
+    return n ? n.textContent : null;
+  };
+
+  const lisiEntries = qa('.galsec .galent');
   const e1 = lisiEntries.find(r => r.dataset.ending === 'E1');
+  const e2 = lisiEntries.find(r => r.dataset.ending === 'E2');
   const kv = lisiEntries.find(r => r.dataset.ending === 'E4:kuaiji');
   const unknowns = lisiEntries.filter(r => r.classList.contains('is-unknown'));
 
+  // 已达成卡点开结算详情浮层,收起后消失;未达成卡点了不应有反应
+  const detail = { opened: false, hasName: false, hasStat: false, hasZhuan: false, closed: false, unkQuiet: false };
+  if (e1) {
+    e1.click();
+    await sleep(150);
+    const ov = q('.gallery .overlay');
+    const box = q('.gallery .galdetail');
+    detail.opened = !!(ov && !ov.hidden && box);
+    detail.hasName = !!box && box.textContent.includes('东市之叹');
+    detail.hasStat = !!box && box.textContent.includes('乙') && box.textContent.includes('55') && box.textContent.includes('达成 2 回');
+    detail.hasZhuan = !!box && box.textContent.includes('太史公曰');
+    const closeBtn = box ? [...box.querySelectorAll('.btn')].find(b => b.textContent.includes('收')) : null;
+    if (closeBtn) closeBtn.click();
+    await sleep(150);
+    detail.closed = !!(ov && ov.hidden);
+    const unk = unknowns[0];
+    if (unk) unk.click();
+    await sleep(120);
+    detail.unkQuiet = !!(ov && ov.hidden);
+  }
+
+  // 切到荆轲(缩略图第 2 枚):右栏换成分节 0/18,立绘换名签
+  const sw = { count: thumbs.length, jkProg: null, jkEntries: null, jkPortrait: null, back: null };
+  if (thumbs[1]) {
+    thumbs[1].click();
+    await sleep(250);
+    sw.jkProg = progText();
+    sw.jkEntries = qa('.galsec .galent').length;
+    sw.jkPortrait = portraitName();
+    thumbs[0].click();
+    await sleep(250);
+    sw.back = progText();
+  }
+
   const out = {
     ok: true,
-    lisiProg,
+    lisiProg: progText(),
+    portraitName: portraitName(),
     entryCount: lisiEntries.length,
     e1Text: e1 ? e1.textContent : null,
+    e2Text: e2 ? e2.textContent : null,
     kvText: kv ? kv.textContent : null,
     kvIsVariant: kv ? kv.classList.contains('galent--variant') : null,
     unknownCount: unknowns.length,
     unknownLeak: unknowns.some(r => /东市|兰陵|上蔡东门|沙丘|扶苏|权倾|狱中/.test(r.textContent)),
-    otherProgs: [1, 2, 3, 4].map(secText).map(t => (t.match(/结局 \\d+\\/\\d+/) || [''])[0]),
+    ovText: (q('.gallery__aggr') || {}).textContent || '',
+    detail,
+    sw,
   };
 
   // 返回主菜单(页内这颗;壳上对局返回钮同 class,不能裸 q('.pageback'))
@@ -78,18 +126,23 @@ withPage(async ({ evaluate, consoleErrors }) => {
   }
 
   const ok = report('青史图鉴', [
-    ['图鉴页打开且五剧本分节齐全', out.ok === true],
-    ['李斯进度 结局 2/20', out.lisiProg === '结局 2/20'],
+    ['图鉴页打开,立绘卡默认李斯 + 5 枚缩略图', out.ok === true && out.portraitName === '李 斯' && out.sw?.count === 5],
+    ['李斯进度 结局 4/20', out.lisiProg === '结局 4/20'],
     ['李斯条目 20 条(本体+变体)', out.entryCount === 20],
-    ['已达成条目显示名字与次数', !!out.e1Text && out.e1Text.includes('东市之叹') && out.e1Text.includes('达成 2 回') && out.e1Text.includes('55') && out.e1Text.includes('B')],
-    ['变体条目带从属缩进与自身名字', out.kvIsVariant === true && !!out.kvText && out.kvText.includes('会稽老丈')],
-    ['未达成条目只留谜面(18 条,不泄露名字)', out.unknownCount === 18 && out.unknownLeak === false],
-    ['其余剧本进度 0/x', (out.otherProgs ?? []).every((t) => /^结局 0\/(1[458]|20)$/.test(t))],
+    ['已达成条目显示名字/简介/次数', !!out.e1Text && out.e1Text.includes('东市之叹') && out.e1Text.includes('位极人臣而终受五刑') && out.e1Text.includes('达成 2 回') && out.e1Text.includes('55') && out.e1Text.includes('乙')],
+    ['旧档字母评级迁移(B → 乙下)', !!out.e2Text && out.e2Text.includes('兰陵归鼠') && out.e2Text.includes('乙下') && !out.e2Text.includes('B')],
+    ['变体条目带 galent--variant 类与自身名字', out.kvIsVariant === true && !!out.kvText && out.kvText.includes('会稽老丈')],
+    ['未达成条目只留谜面(16 条,不泄露名字)', out.unknownCount === 16 && out.unknownLeak === false],
+    ['聚合条:总览 4 / 82,五印计数正确(图标 + n/m)', out.ovText.includes('4 / 82') && out.ovText.includes('1/8') && out.ovText.includes('1/12') && out.ovText.includes('0/33')],
+    ['已达成卡点开结算详情(名/评级/最佳/次数/太史公曰)', out.detail?.opened === true && out.detail?.hasName === true && out.detail?.hasStat === true && out.detail?.hasZhuan === true],
+    ['收起后浮层关闭,未达成卡点了不开', out.detail?.closed === true && out.detail?.unkQuiet === true],
+    ['切缩略图到荆轲:分节 0/18、18 条目、立绘换名签', out.sw?.jkProg === '结局 0/18' && out.sw?.jkEntries === 18 && out.sw?.jkPortrait === '荆 轲'],
+    ['切回李斯进度恢复 4/20', out.sw?.back === '结局 4/20'],
     ['返回回到主菜单', out.menuBack === true],
     ['控制台无错误', consoleErrors().length === 0],
   ]);
   if (!ok) {
-    console.log('明细: ' + JSON.stringify(out).slice(0, 800));
+    console.log('明细: ' + JSON.stringify(out).slice(0, 900));
     consoleErrors().forEach((e) => console.log('  错误 ' + e));
   }
   return ok;

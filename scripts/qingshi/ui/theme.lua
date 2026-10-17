@@ -355,15 +355,10 @@ function Theme.Btn(o)
   }
 end
 
--- ---------- 富文本叙事段:⟦词条⟧ → RichText link(库级换行+点击,替代自拼 wrap 面板) ----------
-local function attrEsc(s)
-  s = tostring(s or '')
-  s = string.gsub(s, '"', '&quot;')
-  s = string.gsub(s, '<', '&lt;')
-  s = string.gsub(s, '>', '&gt;')
-  return s
-end
+-- ---------- 富文本叙事段:⟦⟧ 标记剥为纯文本(2026-10-16 起隐藏词条功能,不再生成 link) ----------
 
+-- 2026-10-16 起对局页隐藏词条功能:⟦⟧ 标记渲染为纯文本,不再生成链接。
+-- (函数名保留 glossToLink 以免动调用方;行为已由「转链接」改为「剥标记」。)
 function Theme.glossToLink(s)
   s = tostring(s or '')
   local out = {}
@@ -374,8 +369,7 @@ function Theme.glossToLink(s)
     out[#out + 1] = string.sub(s, pos, b - 1)
     local e = string.find(s, '⟧', b + 3, true)
     if not e then out[#out + 1] = string.sub(s, b) break end
-    local term = string.sub(s, b + 3, e - 1)
-    out[#out + 1] = '<link url="' .. attrEsc(term) .. '">' .. term .. '</link>'
+    out[#out + 1] = string.sub(s, b + 3, e - 1)
     pos = e + 3
   end
   return table.concat(out)

@@ -109,26 +109,27 @@
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  /* --p 由 JS 按当前值写入,左段赭金填充、右段素线 */
-  background: linear-gradient(var(--gold), var(--gold)) 0 0 / var(--p, 0%) 100% no-repeat var(--track);
+  /* 轨道加高,复用对局页身外属性条(art.css .kv .meter)的一套 */
+  height: 12px;
+  border-radius: 6px;
+  /* --p 由 JS 按当前值写入,左段金渐变填充、右段素底 */
+  background: linear-gradient(90deg, var(--gold-hi), var(--gold)) 0 0 / var(--p, 0%) 100% no-repeat rgba(138, 106, 52, 0.16);
   outline: none;
   cursor: pointer;
 }
 .vol__range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--paper-card-sel);
   border: 2px solid var(--gold);
   box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
 }
 .vol__range::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--paper-card-sel);
   border: 2px solid var(--gold);
@@ -157,8 +158,8 @@
   border-radius: var(--r-sm);
   padding: 0.3rem 1rem;
   cursor: pointer;
+  transition: transform 0.16s ease;
 }
-.tapsync__btn:hover { filter: brightness(1.05); }
 .tapsync__btn:disabled { opacity: 0.45; cursor: default; }
 
 /* ---------- 底部:版本号 + 返回 ---------- */

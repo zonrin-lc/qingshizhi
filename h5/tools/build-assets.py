@@ -113,6 +113,22 @@ ASSETS = [
     ("save", r"存档页\右上角梅花枝装饰.png",               "decor/plum-save.webp",    620,  None, 82),
     ("save", r"存档页\左下角水墨竹子装饰.png",             "decor/bamboo-bl.webp",    None,  760,  82),
 
+    # ============ 存档页 v2(2026-10-16 新美术,仓库 assets/image/save/) ============
+    # 全部透明底小件,面板类(save-frame/slot/bar/guide)支持九宫格拉伸,
+    # 保留原尺寸不缩放——金线/虚线在 2x 屏下才不糊。
+    ("savepage", r"repo:image\save\save-frame.png",       "save/frame.webp",       None, None, 90),
+    ("savepage", r"repo:image\save\save-thumb.png",       "save/thumb.webp",       None, None, 90),
+    ("savepage", r"repo:image\save\save-thumb-on.png",    "save/thumb-on.webp",    None, None, 90),
+    ("savepage", r"repo:image\save\save-slot.png",        "save/slot.webp",        None, None, 88),
+    ("savepage", r"repo:image\save\save-slot-empty.png",  "save/slot-empty.webp",  None, None, 88),
+    ("savepage", r"repo:image\save\save-bar.png",         "save/bar.webp",         None, None, 88),
+    ("savepage", r"repo:image\save\save-guide.png",       "save/guide.webp",       None, None, 88),
+    ("savepage", r"repo:image\save\save-pip.png",         "save/pip.webp",         None, None, 92),
+    ("savepage", r"repo:image\save\save-pip-on.png",      "save/pip-on.webp",      None, None, 92),
+    ("savepage", r"repo:image\save\btn-gold.png",         "save/btn-gold.webp",    None, None, 90),
+    ("savepage", r"repo:image\save\btn-plain.png",        "save/btn-plain.webp",   None, None, 90),
+    ("savepage", r"repo:image\save\badge-temp.png",       "save/badge-temp.webp",  None, None, 92),
+
     # ============ 设置 ============
     ("settings", r"设置\梅花枝装饰.png",                   "decor/plum-set.webp",     520,  None, 82),
     ("settings", r"设置\水墨竹石装饰.png",                 "decor/bamboo-set.webp",   None,  680,  82),

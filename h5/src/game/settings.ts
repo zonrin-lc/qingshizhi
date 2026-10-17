@@ -36,11 +36,12 @@ export interface Settings {
 
 export const DEFAULTS: Settings = {
   scale: 'default', segDelay: 650, textScale: 'normal',
-  voice: true, voiceGain: 1.0, music: true, musicGain: 0.6,
-  sfx: true, sfxGain: 0.6,
+  voice: true, voiceGain: 1.0, music: true, musicGain: 0.06,
+  sfx: true, sfxGain: 0.8,
 };
 
-/** 选项表与 Lua home.lua 的 *_OPTS 一一对应 */
+/** 选项表(界面缩放/叙事速度/正文字号)与 Lua home.lua 的 *_OPTS 一一对应;
+ * 音频三项自 2026-10-15 起是 0-100 滑杆,不再有三档选项表 */
 export const SCALE_OPTS = [
   { value: 'small', label: '小' },
   { value: 'default', label: '标准' },
@@ -60,17 +61,6 @@ export const ON_OFF = [
   { value: true, label: '开' },
   { value: false, label: '关' },
 ] as const;
-export const VOICE_GAIN_OPTS = [
-  { value: 0.5, label: '轻' },
-  { value: 0.8, label: '标准' },
-  { value: 1.0, label: '响' },
-] as const;
-export const MUSIC_GAIN_OPTS = [
-  { value: 0.3, label: '轻' },
-  { value: 0.6, label: '标准' },
-  { value: 0.9, label: '响' },
-] as const;
-export const SFX_GAIN_OPTS = MUSIC_GAIN_OPTS;
 
 const KEY = 'qingshi.settings.v1';
 

@@ -307,6 +307,19 @@ function Game:riskRateHist(rate)
   return 20
 end
 
+---------- ---------- 财富见底的支付能力锁(2026-10-16 拍板) ---------- ----------
+-- 财富 ≤ 0 时,结算会扣财富的选项不可执行。与行动卡 caifu 硬门槛同口径
+-- (支付能力检查),但这里锁的是结算侧扣减(eff.attrs.caifu < 0),不是 req 门槛键。
+Game.CAIFU_LOCK_REASON = '财富见底，无力为之'
+function Game:_caifuCost(opt)
+  local a = J(opt) and opt.eff and opt.eff.attrs or nil
+  if J(a) and type(a.caifu) == 'number' and a.caifu < 0 then return -a.caifu end
+  return 0
+end
+function Game:_caifuBroke()
+  return (self.attrs.caifu or 0) <= 0
+end
+
 function Game:checkRisk(req, actionHardCaifu)
   local names = self.d.ATTR_NAMES
   local hard, unmet = {}, {}
@@ -590,7 +603,19 @@ function Game:beginRounds()
       if pool[i] == cpick then table.remove(pool, i) break end
     end
   end
-  local n = math.min(3, #pool)
+  -- 常规抽牌排除抉择卡(与 JS 侧 beginRounds 同步):抉择卡只能经「每两轮强制占一个
+  -- 发牌位」进手;留在常规池里会被同时抽中,与强制位的 cpick 同屏。
+  -- deal() 消耗次数不变(仍抽 n 张),只是池内无 choice。
+  local kept2 = {}
+  for i = 1, #pool do
+    if not J(pool[i].choice) then kept2[#kept2 + 1] = pool[i] end
+  end
+  pool = kept2
+  local cure = (J(self.ill) and J(self.d.ILLNESS)) and true or false
+  local reserved = (J(cpick) and 1 or 0) + (cure and 1 or 0)
+  -- 底部固定 4 占位:关键卡不再占位(挪入文本区提示条),行动卡补到 3 张;
+  -- 抉择卡/求医卡各替换一个行动卡位,总数仍 ≤4(3 - reserved + reserved + 蓄势)。
+  local n = math.min(3 - reserved, #pool)
   for k = 1, n do
     local idx = math.floor(deal() * #pool) + 1
     picks[#picks + 1] = table.remove(pool, idx)
@@ -602,7 +627,8 @@ function Game:beginRounds()
   if J(cpick) then
     self.offer[#self.offer + 1] = { type = 'action', id = cpick.id }
   end
-  if J(self.ill) and J(self.d.ILLNESS) then
+  -- 治病卡:染病时额外发一张「求医问药」,不占行动池、不入收益递减,但占一个发牌位(上方 reserved 已计入)
+  if cure then
     self.offer[#self.offer + 1] = { type = 'action', id = '__cure__' }
   end
   self.phase = 'round'
@@ -848,9 +874,20 @@ function Game:getChoiceCard()
   if self.phase ~= 'choice' or not J(self.pendingCardId) then return nil end
   local a = self:_actionById(self.pendingCardId)
   if not J(a) or not J(a.choice) then return nil end
+  -- 财富见底锁(2026-10-16):扣财选项在财富 ≤ 0 时锁定;抉择卡 UI 恒有「且搁置」兜底,无软锁风险
+  local opts = {}
+  for _, o in ipairs(OR(a.choice.options, {})) do
+    if self:_caifuBroke() and self:_caifuCost(o) > 0 then
+      local c = shallow(o)
+      c.locked = true; c.reason = Game.CAIFU_LOCK_REASON
+      opts[#opts + 1] = c
+    else
+      opts[#opts + 1] = o
+    end
+  end
   return {
     id = a.id, title = OR(a.choice.title, a.name), segs = OR(a.choice.segs, {}),
-    options = OR(a.choice.options, {}), usedCount = self.actionUses[a.id] or 0
+    options = opts, usedCount = self.actionUses[a.id] or 0
   }
 end
 
@@ -860,6 +897,8 @@ function Game:chooseCardOption(i)
   if not J(a) or not J(a.choice) then return nil end
   local opt = (a.choice.options or {})[i + 1]             -- 契约 0-based
   if not J(opt) then return nil end
+  -- 财富见底锁的引擎兜底(UI 锁只是展示层,引擎不依赖 UI 防御)
+  if self:_caifuBroke() and self:_caifuCost(opt) > 0 then return nil end
   self.pendingCardId = nil
   self.choiceUsed[a.id] = true                        -- 抉择卡整局一次性:落定后不再发
   local useN = (self.actionUses[a.id] or 0) + 1
@@ -1040,8 +1079,26 @@ function Game:getOptions()
           risky = { rate = o.hist and self:riskRateHist(cr.rate) or cr.rate, unmet = cr.unmet }
         end
       end
+      -- 财富见底锁(2026-10-16):钱不够不是险招,直接锁(险招是赌属性,支付能力没得赌)
+      if not locked and self:_caifuBroke() and self:_caifuCost(o) > 0 then
+        locked = true; reason = Game.CAIFU_LOCK_REASON; risky = nil
+      end
       r[#r + 1] = { opt = o, locked = locked, reason = reason, hist = (o.hist and true or false), risky = risky }
     end
+  end
+  -- 防软锁(2026-10-16):数据实测存在「全部选项都扣财富」的事件(陈胜 R-1、韩信 R-7、
+  -- 项羽 R-6、荆轲 3-3 徐夫人匕)。财富见底把它们全锁死会让事件页零合法行动,
+  -- 此时放开代价最低的一项任其「举债」——applyEff 底部钳制到 0,不出现负资产。
+  local anyOpen = false
+  for _, e in ipairs(r) do if not e.locked then anyOpen = true break end end
+  if not anyOpen and self:_caifuBroke() then
+    local cheapest = nil
+    for _, e in ipairs(r) do
+      if e.locked and e.reason == Game.CAIFU_LOCK_REASON then
+        if not cheapest or self:_caifuCost(e.opt) < self:_caifuCost(cheapest.opt) then cheapest = e end
+      end
+    end
+    if cheapest then cheapest.locked = false; cheapest.reason = nil end
   end
   return r
 end
@@ -1369,6 +1426,8 @@ function Game:endEventChoose(i)
   local o = ev and ev.options[i + 1]
   if not J(o) then return nil end
   if o.req and not self:check(o.req).ok then return nil end
+  -- 财富见底锁同口径兜底(2026-10-16)
+  if self:_caifuBroke() and self:_caifuCost(o) > 0 then return nil end
   local changes = self:applyEff(o.eff or {})
   local devDelta0 = OR(o.eff and o.eff.dev, 0)
   if devDelta0 > 0 then

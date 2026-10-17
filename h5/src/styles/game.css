@@ -103,19 +103,11 @@
   line-height: 1.7;
 }
 
-/* ---------- 词条 ---------- */
-.gloss {
-  border: 0;
-  border-bottom: 1px dashed var(--gold);
-  background: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: var(--gold);
-  cursor: pointer;
-}
-.gloss:hover {
-  color: var(--zhu);
+/* ---------- 逐行渐显(2026-10-17:逐句改为按排版逐行) ----------
+ * 字符 span 先 is-off 占位(visibility 隐藏,版面不抖),追加后按视觉行分组,轮到哪行摘哪行。
+ * 不进渐显的 prose(结算/回显)没有 is-off,直接全显。 */
+.prose__ch.is-off {
+  visibility: hidden;
 }
 
 /* ---------- 决策区 ---------- */
@@ -333,8 +325,11 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%, cover;
-  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
+  /* 卡背是占位不是可点卡(2026-10-17 拍板):去厚投影、降饱和压暗、不吃点击,一眼知道不能点 */
+  box-shadow: 0 2px 7px rgba(42, 37, 29, 0.18);
+  filter: saturate(0.55) brightness(0.96);
   cursor: default;
+  pointer-events: none;
 }
 
 /* 选定后翻回背面(2026-10-16 拍板):未选中的即刻翻,选中的(.is-chosen)留到下回合发牌前翻。
@@ -347,9 +342,11 @@
 .stage__foot .card.is-flipped.is-back {
   transform: perspective(72rem) rotateY(0deg);
   transition: transform 0.26s ease-out;
-  /* 与 card--back 同口径:通用边框 + 卡背 */
+  /* 与 card--back 同口径:通用边框 + 卡背;同样压暗表示不可点(2026-10-17) */
   background-image: url('../assets/card/card-frame.webp'), url('../assets/card/card-back.webp');
   background-size: 100% 100%, cover;
+  box-shadow: 0 2px 7px rgba(42, 37, 29, 0.18);
+  filter: saturate(0.55) brightness(0.96);
 }
 .stage__foot .card.is-flipped.is-back > * {
   opacity: 0;
@@ -372,26 +369,17 @@
   padding: var(--sp-sm) var(--sp-lg);
   border-radius: var(--r-md);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease;
-}
-.btn:active {
-  transform: translateY(1px);
+  transition: transform 0.16s ease;
 }
 .btn--primary {
   border: 0;
   background: var(--zhu);
   color: var(--paper-card);
 }
-.btn--primary:hover {
-  background: var(--zhu-hi);
-}
 .btn--ghost {
   border: 1px solid var(--line);
   background: var(--paper-card);
   color: var(--ink);
-}
-.btn--ghost:hover {
-  border-color: var(--gold);
 }
 
 /* ---------- 分隔题签 ---------- */
@@ -542,6 +530,9 @@
 .stage__side {
   grid-column: 2;
   grid-row: 1 / 3;
+  /* 纵 flex:页脚(偏离/年岁)以 margin-top:auto 沉到底边(2026-10-17 三拍) */
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   padding: var(--sp-sm) var(--sp-md);
@@ -567,7 +558,17 @@
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   grid-template-rows: minmax(0, 1fr) auto;
-  padding: var(--sp-md) var(--sp-lg);
+  padding: var(--sp-xs) var(--sp-lg);
+}
+/* 入局淡入(2026-10-18 拍板:漩涡放大 + 粒子穿梭转场已去,只留对局页自身淡入)。
+ * 类由 main.ts showGame() 挂载,顶栏与主体两栏同播;全局 reduced-motion 规则会兜底。 */
+@keyframes game-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.stage__bar.is-gamein,
+.stage__cols.is-gamein {
+  animation: game-in 0.55s ease both;
 }
 .stage__main {
   grid-column: 1;
@@ -580,16 +581,17 @@
    * 文本区与画卷内缘(轴杆内沿的金线)也保持同样的边距(2026-10-14 拍板) */
   padding: var(--sp-lg);
 }
-/* 宽屏(≥16:9)下画轴按底图原生比例渲染,高度不变、宽度由比例推出
- * (2026-10-15 拍板「按现在的高度不变,恢复到不变形」):
- * 列轨保持 7fr/3fr 不动(属性区=右三成,auto 轨会被选项卡的 max-content 撑爆);
- * 卷轴只在 7fr 轨内按原生比例居中,与下方居中的选项卡视觉对齐。
- * 低于 16:9 的方屏(4:3/16:10)宽度不足,退回拉伸填充(轨内 100% 宽)。 */
-@media (min-width: 881px) and (min-aspect-ratio: 16/9) {
+/* 卷轴横向铺满 7fr 轨:左右轴头外缘与选项卡行两端对齐(2026-10-17 用户拍板,
+ * 取代 10-15 的「定比例居中不变形」)。九宫格边框图横拉只拉伸纸纹中段,
+ * 轴杆宽度不变,没有形变问题。
+ * 选项卡行还有一层 foot 自带的 sp-lg 横向 padding,main 用同值 margin 收进同样的距离,
+ * 轴头外缘才与卡片两端真正齐平。章末/结局已改弹框(2026-10-17 拍板),不再走窄卷轴版式。 */
+/* 只在宽屏双栏加:窄屏(≤880px)foot 的横向 padding 已换成 sp-xs/sp-sm,
+ * 且窄屏叙事区要占满全宽(viewports 测试盯着占比),不能再收。 */
+@media (min-width: 881px) {
   .stage__main:not(.stage__main--narrow) {
-    aspect-ratio: 1071 / 643;
-    justify-self: center;
-    max-width: 100%;
+    /* 上下留白(2026-10-17 四拍):高度继续增加(上 sm、下 0),中心位置基本不变 */
+    margin: var(--sp-sm) var(--sp-lg) 0;
   }
 }
 
@@ -644,6 +646,8 @@
     border-left: 0;
     border-bottom: 1px solid var(--line);
     overflow-x: auto;
+    /* 窄屏横向属性条:明确回横向,别漏进宽屏的纵 flex(2026-10-17 三拍) */
+    flex-direction: row;
     overflow-y: hidden;
   }
   /* 横向条里既没有空间也没有必要显示标题与进度条 */
@@ -769,6 +773,44 @@
   max-width: min(26rem, 100%);
   margin: var(--sp-xs) auto 0;
 }
+/* 停靠带(2026-10-17 二拍):抉择/随机事件/关键事件的选项卡与「继续」钮统一钉在
+ * 画卷区域底部——不再 sticky 跟随文本区、不垫背景。prose-body 已是纵 flex(art.css),
+ * live 小节撑满余高,dock 以 margin-top:auto 沉底;内容超高时自然跟在文本后,
+ * 玩家下滚到底即可操作。
+ * :not(.is-collapsed) 守住优先级,别让这条压过收起态的 display:none。 */
+.prose-body > .sec:last-of-type {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.prose-body > .sec:last-of-type:not(.is-collapsed) > .sec__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.dock {
+  margin-top: auto;
+  padding-top: var(--sp-md);
+  display: flex;
+  /* 选项横向排列(2026-10-17 四拍):事件/抉择选项卡与「继续」钮一行排开,放不下才折行 */
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--sp-sm);
+  align-self: stretch;
+}
+.dock > .card {
+  /* 横向均分(2026-10-17 四拍):basis 12rem,窄了自动折行,宽了平分一行 */
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+}
+.dock > .btn {
+  display: block;
+  margin: 0;
+}
+
 .sec__body > .btn {
   display: block;
   margin: var(--sp-sm) auto 0;
@@ -800,6 +842,29 @@
 }
 .chglist--tags .chgrow__v {
   font-size: var(--fs-cap);
+}
+
+/* 文本区属性变化清单:胶囊形(2026-10-17 二拍,与题签胶囊同族);
+   只罩文本区(prose-body),结算弹框里的清单仍用整行版式 */
+.prose-body .chglist {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+  max-width: none;
+  margin: var(--sp-sm) 0 0;
+}
+.prose-body .chglist .chgrow {
+  display: inline-flex;
+  gap: var(--sp-xs);
+  align-items: baseline;
+  padding: var(--sp-xs) var(--sp-sm);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--paper-card);
+}
+.prose-body .chglist .chgrow__note {
+  flex-basis: 100%;
 }
 
 /* 滚动条:细条古铜,跟画卷配色走(替换浏览器默认灰条);
@@ -842,7 +907,10 @@
 /* ---------- 属性变化动效 ---------- */
 @keyframes chg-flash {
   0% {
-    background: rgba(138, 106, 52, 0.3);
+    background: rgba(138, 106, 52, 0.34);
+  }
+  45% {
+    background: rgba(138, 106, 52, 0.2);
   }
   100% {
     background: transparent;
@@ -850,10 +918,10 @@
 }
 .chgrow.is-flash,
 .kv.is-flash {
-  animation: chg-flash 1.1s ease-out;
+  animation: chg-flash 2.4s ease-out;
 }
 .meter__fill {
-  transition: width 0.5s ease;
+  transition: width 1s ease;
 }
 .flychg {
   position: fixed;
@@ -868,6 +936,46 @@
 }
 .flychg.is-down {
   color: var(--zhu);
+}
+/* ---------- 行动卡结算动画序列(2026-10-17 拍板) ---------- */
+/* 出牌残影:克隆牌面从选项区飞向文本区,落定即散。
+ * 优先级要压过 .card.card--action 的 position:relative(残影挂在 body 下,
+ * 吃不到 .stage__foot 前缀的规则,但类选择器平级的 position 会赢)。 */
+.card.card-ghost {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  z-index: 95;
+  pointer-events: none;
+  animation: none;
+}
+/* 结算题签渐入:不用 both 填充,结束后归还样式表(否则收起态的透明度被动画盖住) */
+.sec__head.is-enter {
+  animation: sec-head-in 0.7s ease;
+}
+@keyframes sec-head-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/* 右栏属性值变化:飞字落行时数值弹一下并染金,配合 .kv.is-flash 的整行高亮 */
+.kv.is-flash .kv__v {
+  display: inline-block;
+  animation: kv-pop 1.6s ease;
+}
+@keyframes kv-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+    color: var(--gold);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 /* ---------- 险招摇骰动画 ---------- */
 @keyframes dice-shake {

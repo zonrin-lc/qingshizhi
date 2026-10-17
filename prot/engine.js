@@ -242,6 +242,19 @@
     if (rate >= 20) return 30; return 20;
   };
 
+  /* ---------- 财富见底的支付能力锁（2026-10-16 拍板） ----------
+   * 财富 ≤ 0 时，结算会扣财富的选项不可执行。与行动卡 caifu 硬门槛同口径
+   *（支付能力检查），但这里锁的是结算侧扣减（eff.attrs.caifu < 0），不是 req 门槛键。
+   * _caifuCost 返回扣减额（正数），不扣财的选项返回 0。 */
+  Game.prototype._caifuCost = function (opt) {
+    var a = opt && opt.eff && opt.eff.attrs;
+    return a && typeof a.caifu === 'number' && a.caifu < 0 ? -a.caifu : 0;
+  };
+  Game.prototype._caifuBroke = function () {
+    return (this.attrs.caifu || 0) <= 0;
+  };
+  Game.prototype.CAIFU_LOCK_REASON = '财富见底，无力为之';
+
   /* 分类 req：hardOk/hardReason（硬键判定）+ unmet（未达标软键明细）+ rate（综合成功率，无软缺口为 null）
    * caifu 恒为硬门槛（支付能力检查）：万位标尺（v1.8）下软门槛差值档不适用，且"钱不够"本就该锁而不是赌 */
   Game.prototype.checkRisk = function (req, actionHardCaifu) {
@@ -710,7 +723,16 @@
     if (this.phase !== 'choice' || !this.pendingCardId) return null;
     var a = this._actionById(this.pendingCardId);
     if (!a || !a.choice) return null;
-    return { id: a.id, title: a.choice.title || a.name, segs: a.choice.segs || [], options: a.choice.options || [], usedCount: this.actionUses[a.id] || 0 };
+    var self = this;
+    return { id: a.id, title: a.choice.title || a.name, segs: a.choice.segs || [],
+      // 财富见底锁（2026-10-16）：扣财选项在财富 ≤ 0 时锁定;抉择卡 UI 恒有「且搁置」兜底,无软锁风险
+      options: (a.choice.options || []).map(function (o) {
+        if (self._caifuBroke() && self._caifuCost(o) > 0) {
+          return Object.assign({}, o, { locked: true, reason: Game.prototype.CAIFU_LOCK_REASON });
+        }
+        return o;
+      }),
+      usedCount: this.actionUses[a.id] || 0 };
   };
 
   Game.prototype.chooseCardOption = function (i) {
@@ -719,6 +741,8 @@
     if (!a || !a.choice) return null;
     var opt = (a.choice.options || [])[i];
     if (!opt) return null;
+    // 财富见底锁的引擎兜底（UI 锁只是展示层，引擎不依赖 UI 防御）
+    if (this._caifuBroke() && this._caifuCost(opt) > 0) return null;
     this.pendingCardId = null;
     this.choiceUsed[a.id] = true;   // 抉择卡整局一次性：落定后不再发
     var useN = (this.actionUses[a.id] || 0) + 1;
@@ -895,8 +919,26 @@
         if (!cr.hardOk) { locked = true; reason = cr.hardReason; }
         else if (cr.rate != null) risky = { rate: o.hist ? self.riskRateHist(cr.rate) : cr.rate, unmet: cr.unmet };
       }
+      // 财富见底锁（2026-10-16）：钱不够不是险招，直接锁（险招是赌属性，支付能力没得赌）
+      if (!locked && self._caifuBroke() && self._caifuCost(o) > 0) {
+        locked = true; reason = Game.prototype.CAIFU_LOCK_REASON; risky = null;
+      }
    return { opt: o, locked: locked, reason: reason, hist: !!o.hist, risky: risky };
    });
+   /* 防软锁（2026-10-16）：数据实测存在「全部选项都扣财富」的事件（陈胜 R-1、韩信 R-7、
+    * 项羽 R-6、荆轲 3-3 徐夫人匕）。财富见底把它们全锁死会让事件页零合法行动，
+    * 此时放开代价最低的一项任其「举债」——applyEff 底部钳制到 0，不出现负资产。 */
+   var anyOpen = false;
+   _opts.forEach(function (e) { if (e && !e.locked) anyOpen = true; });
+   if (!anyOpen && self._caifuBroke()) {
+     var cheapest = null;
+     _opts.forEach(function (e) {
+       if (e && e.locked && e.reason === Game.prototype.CAIFU_LOCK_REASON) {
+         if (!cheapest || self._caifuCost(e.opt) < self._caifuCost(cheapest.opt)) cheapest = e;
+       }
+     });
+     if (cheapest) { cheapest.locked = false; cheapest.reason = null; }
+   }
    /* 删项审计：过滤掉被摘除的项（见上方 auditHide 注释）。非审计场景 filter 恒真，零行为变化。 */
    return self.auditHide && self.auditHide.ev === ev.id ? _opts.filter(Boolean) : _opts;
    };
@@ -1183,6 +1225,8 @@
     if (!o) return null;
     // 章末选项门槛由引擎兜底校验（v1.6.2 P1 修复：UI 锁只是展示层，引擎不依赖 UI 防御）
     if (o.req && !this.check(o.req).ok) return null;
+    // 财富见底锁同口径兜底（2026-10-16）
+    if (this._caifuBroke() && this._caifuCost(o) > 0) return null;
     var changes = this.applyEff(o.eff || {});
     var devDelta0 = (o.eff && o.eff.dev) || 0;
     if (devDelta0 > 0) this.chapterDev.push({ ev: ev.title, t: o.t, dev: devDelta0 });

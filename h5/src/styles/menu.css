@@ -4,7 +4,7 @@
  * 整页水墨山水底(湖舟松竹,中轴留白);自上而下:
  *   中央柔光 → 组合主 logo(花纹 + 竖排书法 + 朱印)→
  *   存档进度胶囊 → 朱红大按钮「入 局」→ 横排次级项(存档/图鉴/设置/退出)。
- * 底部一条纸色渐隐带(pagefoot)给入口区做落点。无题签行、无卷脚行。
+ * 无题签行、无卷脚行、无底部渐隐带。
  * ==========================================================================*/
 
 .menu {
@@ -12,6 +12,106 @@
   inset: 0;
   z-index: 3;
   overflow: hidden;
+}
+
+/* ---------- 分层山水场景(2026-10-17 美术分层素材) ----------
+ * 场景盒固定 20:9、contain 居中:窗口更宽时两侧空档交给 stage 的模糊延展层,
+ * 窗口更高时上下留白由 paper 底色衔接。层内元素全部按百分比定位,
+ * 任何窗口比例下构图不变形。
+ * 动效全部为 transform/opacity 的 CSS 动画(GPU 合成):
+ *   舟:湖面上从左缓行到右,两端淡入淡出,舟身轻微起伏,水下带淡影。 */
+.menu__scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 20 / 9;
+  width: min(100%, 222.22vh);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  /* 四缘渐隐:与 stage 模糊延展层/纸底色之间不出现硬接缝 */
+  mask-image:
+    linear-gradient(180deg, transparent 0, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(90deg, transparent 0, #000 3%, #000 97%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    linear-gradient(180deg, transparent 0, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(90deg, transparent 0, #000 3%, #000 97%, transparent 100%);
+  -webkit-mask-composite: source-in;
+}
+.menu__scene > img {
+  position: absolute;
+  display: block;
+  user-select: none;
+}
+.menu__scene-base {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 近岸礁石:压左右下角,静态;素材按画面平衡互换了左右(menu.ts 里对应注入) */
+.menu__scene-rocks-l { left: -4%; bottom: -3%; width: 27%; }
+.menu__scene-rocks-r { right: -4%; bottom: -3%; width: 29%; }
+
+/* 两侧水墨视频(循环):素材是灰底墨枝,先 brightness 把灰底推到近白,
+ * 再 multiply 叠进纸面——白底隐去、墨枝留下;四缘 mask 渐隐消除方块边界。
+ * 松在左(3:4)、竹在右(9:16),各自以内容所在一侧为 mask 中心。 */
+.menu__scene-vid {
+  position: absolute;
+  display: block;
+  filter: brightness(1.9) contrast(1.15);
+  mix-blend-mode: multiply;
+}
+.menu__scene-vid--pine {
+  left: -1%;
+  bottom: 1%;
+  width: 24%;
+  mask-image: radial-gradient(ellipse 78% 78% at 34% 46%, #000 42%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse 78% 78% at 34% 46%, #000 42%, transparent 88%);
+}
+.menu__scene-vid--bamboo {
+  right: -1%;
+  bottom: 0;
+  height: 66%;
+  mask-image: radial-gradient(ellipse 82% 78% at 64% 50%, #000 42%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse 82% 78% at 64% 50%, #000 42%, transparent 88%);
+}
+
+/* 舟:从左缓行到右(160s 横渡),两端淡入淡出;舟身起伏 + 水面淡影 */
+.menu__boat {
+  position: absolute;
+  left: 0;
+  bottom: 7%;
+  width: 13%;
+  animation: menuBoatSail 210s linear infinite;
+  will-change: transform, opacity;
+}
+@keyframes menuBoatSail {
+  0%   { transform: translateX(-110%); opacity: 0; }
+  5%   { opacity: 1; }
+  93%  { opacity: 1; }
+  100% { transform: translateX(860%); opacity: 0; }
+}
+.menu__boat-body {
+  animation: menuBoatBob 7s ease-in-out infinite alternate;
+}
+@keyframes menuBoatBob {
+  from { transform: translateY(0) rotate(-0.5deg); }
+  to   { transform: translateY(2.5px) rotate(0.5deg); }
+}
+.menu__boat-img {
+  display: block;
+  width: 100%;
+}
+.menu__boat-reflect {
+  display: block;
+  width: 100%;
+  transform: scaleY(-1);
+  opacity: 0.16;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 65%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 65%);
 }
 
 /* ---------- 中央柔光:把标题区再提亮一档,让竖排字压得住背景 ---------- */
@@ -23,19 +123,42 @@
     rgba(250, 245, 233, 0.72), rgba(250, 245, 233, 0.28) 58%, rgba(250, 245, 233, 0) 82%);
 }
 
-/* ---------- 书页底边:入口区落在水墨上会糊,自下而上的纸色渐隐带做落点 ---------- */
-.menu__pagefoot {
+/* ---------- 白云:多层 radial-gradient 拼云团,贴湖面缓缓左→右飘过 ----------
+ * 置于场景内底图之上、前景(舟/礁石/松竹视频)之下,像从远山湖汊间涌出的云。
+ * 每朵云由几个白色圆拱(顶凸、左右拱、底部两个圆包)加一团冷灰蓝云底阴影
+ * 拼成,底部呈扇贝状起伏而不是一条平线;
+ * 单向线性循环,两端淡入淡出;四朵速度各不相同(260-350s,都比舟慢),
+ * 错开相位与高度。动画只动 transform/opacity,GPU 合成。 */
+.menu__clouds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.menu__clouds i {
   position: absolute;
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 29%;
-  pointer-events: none;
-  z-index: 1;
-  background: linear-gradient(0deg,
-    rgba(247, 241, 229, 0.96) 0%, rgba(247, 241, 229, 0.9) 34%,
-    rgba(247, 241, 229, 0.5) 66%, rgba(247, 241, 229, 0) 100%);
+  display: block;
+  background:
+    radial-gradient(ellipse 26% 58% at 24% 62%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 32% 76% at 48% 42%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(ellipse 24% 54% at 72% 60%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 25% 44% at 37% 72%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 23% 42% at 61% 74%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 40% 26% at 50% 88%, rgba(226, 231, 237, 0.5) 0%, rgba(226, 231, 237, 0) 70%);
+  animation: menuCloudDrift var(--dur) linear var(--delay, 0s) infinite;
+  will-change: transform, opacity;
 }
+@keyframes menuCloudDrift {
+  0%   { transform: translateX(-60%); opacity: 0; }
+  7%   { opacity: var(--peak); }
+  93%  { opacity: var(--peak); }
+  100% { transform: translateX(560%); opacity: 0; }
+}
+.menu__clouds i:nth-child(1) { top: 55%; width: 30%; height: 10%; --peak: 0.85; --dur: 290s; --delay: -60s;  --rest: 15%; }
+.menu__clouds i:nth-child(2) { top: 62%; width: 22%; height: 8%;  --peak: 0.75; --dur: 340s; --delay: -210s; --rest: 55%; }
+.menu__clouds i:nth-child(3) { top: 66%; width: 26%; height: 9%;  --peak: 0.8;  --dur: 260s; --delay: -130s; --rest: 32%; }
+.menu__clouds i:nth-child(4) { top: 58%; width: 18%; height: 7%;  --peak: 0.65; --dur: 315s; --delay: -260s; --rest: 74%; }
 
 /* ---------- 组合主 logo(花纹 + 书法 + 朱印),居中偏上 ---------- */
 .menu__titlewrap {
@@ -59,6 +182,8 @@
   height: 100%;
   aspect-ratio: 100 / 273;
   filter: drop-shadow(0 2px 10px rgba(60, 48, 32, 0.16));
+  /* 整体收一档,给两侧前景让出呼吸感 */
+  transform: scale(0.9);
 }
 .menu__logoicon {
   width: 55%;
@@ -104,22 +229,7 @@
   border: 1px solid var(--line-soft);
   border-radius: 999px;
   cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-.menu__resume:hover:not(:disabled) {
-  border-color: var(--gold);
-}
-.menu__resume-seal {
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 5px;
-  background: var(--zhu);
-  color: #f7f0e0;
-  display: grid;
-  place-items: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  flex: 0 0 auto;
+  transition: transform 0.16s ease;
 }
 .menu__resume-t {
   font-family: var(--font-kai);
@@ -144,52 +254,32 @@
   cursor: default;
 }
 
-/* 朱红主按钮「入 局」:不铺满,像书上的朱批 */
+/* 主按钮「入 局」:朱红描金匾额为底(美术素材 enter-plaque.webp),金字压匾心 */
 .menu__enter {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 1rem 3.4rem;
+  justify-content: center;
+  width: 15.5rem;
+  aspect-ratio: 1165 / 287;
   min-height: 44px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
-  background: linear-gradient(180deg, #b8482f, var(--zhu-hi));
-  box-shadow: 0 8px 22px rgba(140, 50, 30, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: filter 0.16s ease, transform 0.16s ease;
+  background: url('../assets/menu/enter-plaque.webp') center / 100% 100% no-repeat;
+  transition: transform 0.16s ease, filter 0.16s ease;
 }
-.menu__enter:hover,
-.menu__enter:focus-visible {
-  filter: brightness(1.07);
-  transform: translateY(-1px);
-}
+.menu__enter:hover { filter: brightness(1.07); }
+.menu__enter:active { transform: translateY(1px); filter: brightness(0.97); }
 .menu__enter-t {
   font-family: var(--font-kai);
   font-size: 1.55rem;
   font-weight: 700;
-  color: #fdf6e8;
+  color: #f2dfa8;
   letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-shadow: 0 1px 2px rgba(60, 10, 8, 0.55);
 }
-.menu__enter-k {
-  font-size: 0.6rem;
-  letter-spacing: 0.24em;
-  color: rgba(253, 246, 232, 0.62);
-}
-/* 按钮左右的小菱饰 */
-.menu__enter::before,
-.menu__enter::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  margin-top: -3.5px;
-  background: rgba(253, 246, 232, 0.5);
-  transform: rotate(45deg);
-}
-.menu__enter::before { left: 1.25rem; }
-.menu__enter::after { right: 1.25rem; }
 
 /* 横排次级项:不占竖向空间 */
 .menu__subnav {
@@ -210,71 +300,46 @@
   padding: 6px 2px;
   /* 触控兜底:小缩放档下 rem 收缩,菜单项不能小于可点的指触高度 */
   min-height: 40px;
-  position: relative;
+  transition: transform 0.16s ease;
 }
 .menu__item--sub .menu__label {
   font-family: var(--font-kai);
   font-size: 0.95rem;
   color: var(--ink-soft);
   letter-spacing: 0.24em;
-  transition: color 0.15s ease;
   white-space: nowrap;
+  transition: color 0.16s ease;
 }
-.menu__item--sub:hover:not(:disabled) .menu__label,
-.menu__item--sub:focus-visible .menu__label {
-  color: var(--zhu);
-}
-.menu__item--sub:hover:not(:disabled)::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  height: 1px;
-  background: var(--zhu);
-}
+.menu__item--sub:not(.is-off):hover .menu__label { color: #b98f3e; }
+.menu__item--sub:not(.is-off):active .menu__label { color: #a07c2e; }
 .menu__item--sub.is-off {
   opacity: 0.36;
   cursor: default;
 }
 
-/* ---------- 退出确认 ---------- */
-.menu__confirm {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  background: rgba(26, 22, 18, 0.42);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.menu__confirmbox {
-  background: var(--paper-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  padding: 1.6rem 2.4rem;
+/* ---------- 退出确认:与章末结算同口径(overlay--dim + panel-scroll--summary
+   窄幅悬挂卷轴),内容在卷轴内居中;契约类 .menu__confirm/.menu__cbtn--yes
+   只作标记不带样式 ---------- */
+.menu__confirm .overlay__box--scroll {
+  text-align: center;
+  /* 卷轴画稿自身不带投影:去掉 overlay__box 的两层矩形投影,
+     否则深色蒙版上会在卷轴外看到一圈深色矩形 */
+  box-shadow: none;
+  /* 确认框内容少,撑个最小高度并把内容垂直居中,卷轴不至于又扁又空 */
+  min-height: 22rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.8rem;
-  box-shadow: 0 1rem 2.4rem rgba(42, 37, 29, 0.3);
-}
-.menu__confirmtitle {
-  font-size: var(--fs-h2);
-  font-weight: 700;
-  color: var(--ink-heavy);
-  letter-spacing: 0.2em;
-}
-.menu__confirmtext {
-  font-size: var(--fs-ui);
-  color: var(--ink-soft);
+  justify-content: center;
 }
 .menu__confirmrow {
   display: flex;
   gap: var(--sp-lg);
-  margin-top: var(--sp-sm);
+  margin-top: var(--sp-md);
+  justify-content: center;
 }
-.menu__cbtn {
+
+/* 落幕页「再执笔」按钮(沿用旧描边小钮,落幕是纸底不是蒙版) */
+.menu__farewell .menu__cbtn {
   font-family: var(--font-kai);
   font-size: var(--fs-ui);
   letter-spacing: 0.25em;
@@ -284,14 +349,12 @@
   border-radius: var(--r-sm);
   padding: 0.5rem 1.6rem;
   cursor: pointer;
+  transition: transform 0.16s ease;
 }
-.menu__cbtn--yes {
+.menu__farewell .menu__cbtn--yes {
   color: var(--paper-card);
   background: var(--zhu);
   border-color: var(--zhu);
-}
-.menu__cbtn:hover {
-  filter: brightness(1.05);
 }
 
 /* ---------- 落幕页 ---------- */
@@ -315,8 +378,15 @@
 .menu.is-farewell .menu__titlewrap,
 .menu.is-farewell .menu__entry,
 .menu.is-farewell .menu__glow,
-.menu.is-farewell .menu__pagefoot {
+.menu.is-farewell .menu__clouds {
   visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu__clouds i { animation: none; opacity: calc(var(--peak) * 0.8); transform: translateX(var(--rest)); }
+  .menu__boat,
+  .menu__boat-body { animation: none; }
+  .menu__boat { opacity: 1; transform: translateX(280%); }
 }
 
 /* ---------- 窄屏:标题收紧,入口区不动 ---------- */

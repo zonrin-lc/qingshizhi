@@ -29,6 +29,12 @@ export interface ScenarioMeta {
   noSave: boolean;
   /** 章数,用于选剧本页的规模提示 */
   chapters: number;
+  /** 年代跨度,存档页立绘卡用(与 JSON SCENARIO.era 一致) */
+  era: string;
+  /** 主角名,存档页立绘卡用 */
+  protag: string;
+  /** 结局总数(含变体前的顶层结局数),存档页状态行用 */
+  endings: number;
 }
 
 export type ScenarioEntry = ScenarioMeta;

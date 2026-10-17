@@ -338,6 +338,36 @@ const STEP_SNIPPET = `
     if (isRevealing() && tapMain()) return 'skip-reveal';
     return 'idle';
   };
+  // 行动卡结算动画序列(2026-10-17 拍板:飞卡→题签渐入→逐行渐显→属性飞入→
+  // 翻背面→自动推进,不再有「继续」钮)真实耗时约 1.5–3.5s。点完牌要等它走完:
+  // 新牌发落 / 相位离开 round / 浮层出现,任一即到站;等待期间点正文区跳过
+  // 逐行渐显,跟急性子玩家的真实操作一致。
+  const waitDeal = async () => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < 9000) {
+      if (isRevealing()) { tapMain(); await new Promise(r => setTimeout(r, 60)); continue; }
+      if (ovOpen()) return true;
+      const g = window.__QS__ && window.__QS__.game;
+      if (!g || g.phase !== 'round') return true;
+      if (document.querySelector('.stage__foot .card[role="button"]')) return true;
+      if (document.querySelector('.stage__main .prompt--key.is-live')) return true;
+      await new Promise(r => setTimeout(r, 80));
+    }
+    return false;
+  };
+  // 随机事件落定后无「继 续」(2026-10-17 拍板),约 1.5s 自动推进;等相位离开 settle。
+  // 关键事件/抉择落定仍有「继 续」钮(停靠带里)——看到按钮就交还给点击路径。
+  const waitSettle = async () => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < 6000) {
+      if (ovOpen()) return true;
+      const g = window.__QS__ && window.__QS__.game;
+      if (!g || g.phase !== 'settle') return true;
+      if (document.querySelector('.stage__main .btn--primary')) return true;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return false;
+  };
 `;
 
 module.exports = { withPage, report, sleep, findChrome, serve, cdp, freePort, DIST, STEP_SNIPPET };

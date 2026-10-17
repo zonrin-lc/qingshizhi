@@ -1,54 +1,75 @@
 /**
- * 青史图鉴:各剧本结局达成情况一览(2026-10-16 按效果图重排)。
+ * 青史图鉴:各剧本结局达成情况一览。
  *
- * 版式:标题 + 金线;左栏三 panel(收集总览环 / 印章收集条 / 筛选),
- * 右栏按剧本分节的结局卡片(已达成实线卡 / 未达成虚线卡,同名同尺寸不跳动)。
+ * 版式(2026-10-17 对齐存档页):标题 + 金线;左栏大立绘卡(封面 + 金线外框 +
+ * 卡底名签/年代/结局进度)+ 5 枚缩略图切换剧本;右栏顶部是跨剧本聚合(收集总览
+ * 与印章收集,纯文字),其下是「当前选中剧本」的结局卡片列表(已达成实线卡 /
+ * 未达成虚线卡,同尺寸;列表内部滚动,页面本体固定)。已达成卡可点击,弹出该结局
+ * 的结算详情(评级/最佳总分/次数/太史公曰)。
  *
  * 数据 = 剧本 ENDINGS 定义(惰性加载,与入局同一条管线)+ collection.ts 的
  * 跨局达成记录(localStorage)。未达成的结局只留谜面,不剧透名字与赞文。
  *
- * 五个剧本 JSON 在这里会全部按需下载(与首屏瘦身是 trade-off):
+ * 五个剧本 JSON 在这里会全部按需下载(聚合统计需要总量,与首屏瘦身是 trade-off):
  * 图鉴页本来就是「我要看全部剧本」的场景,且 loadScenario 有缓存,
  * 入过局的剧本不再重复下载。
  */
-import { backBtn, el, lbl } from './kit';
-import { SCENARIOS, loadScenario } from '../data/scenarios';
-import { countEndings, endingRecords, type EndingRec } from '../game/collection';
+import { backBtn, btn, divider, el, lbl, seal } from './kit';
+import { SCENARIOS, loadScenario, type ScenarioMeta } from '../data/scenarios';
+import { endingRecords, type EndingRec } from '../game/collection';
 import type { ScenarioData } from '../../types/scenario';
 import sealXunshi from '../assets/gallery/seal-xunshi.png';
 import sealGouhuo from '../assets/gallery/seal-gouhuo.png';
 import sealWenjian from '../assets/gallery/seal-wenjian.png';
 import sealNitian from '../assets/gallery/seal-nitian.png';
 import sealBaiju from '../assets/gallery/seal-baiju.png';
+import imgFrame from '../assets/save/frame.webp';
+import coverLisi from '../assets/cover/lisi.webp';
+import coverJingke from '../assets/cover/jingke.webp';
+import coverHanxin from '../assets/cover/hanxin.webp';
+import coverXiangyu from '../assets/cover/xiangyu.webp';
+import coverChensheng from '../assets/cover/chensheng.webp';
 
 export interface GalleryPage {
   root: HTMLElement;
   destroy(): void;
 }
 
-/** 五印:展示顺序与效果图一致;色值从印章 PNG 主色取样,给进度条用 */
-const SEALS: readonly { name: string; img: string; color: string }[] = [
-  { name: '循史', img: sealXunshi, color: '#6b7a86' },
-  { name: '苟活', img: sealGouhuo, color: '#8a7a53' },
-  { name: '稳健', img: sealWenjian, color: '#527159' },
-  { name: '逆天', img: sealNitian, color: '#b34a36' },
-  { name: '败局', img: sealBaiju, color: '#7b6b72' },
+/** 五印:展示顺序与效果图一致 */
+const SEALS: readonly { name: string; img: string }[] = [
+  { name: '循史', img: sealXunshi },
+  { name: '苟活', img: sealGouhuo },
+  { name: '稳健', img: sealWenjian },
+  { name: '逆天', img: sealNitian },
+  { name: '败局', img: sealBaiju },
 ];
 const SEAL_IMG: Record<string, string> = Object.fromEntries(SEALS.map((s) => [s.name, s.img]));
 
-/** 筛选:全部 / 已达成 / 未达成 / 单印 */
-type Filter = 'all' | 'done' | 'todo' | string;
+/** 剧本封面(与存档页同一份) */
+const COVERS: Record<string, string> = {
+  lisi: coverLisi,
+  jingke: coverJingke,
+  hanxin: coverHanxin,
+  xiangyu: coverXiangyu,
+  chensheng: coverChensheng,
+};
 
 interface Entry {
   key: string;
   name: string;
   seal: string;
+  /** 卡片一句话简介(数据侧 brief;旧数据没有时兜底截赞文首句) */
+  intro: string;
   zhuan: string;
   rec: EndingRec | undefined;
 }
 
+/** 当前查看的剧本 key;进页重置为第一个剧本(与存档页同口径) */
+let selKey = '';
+
 export function renderGalleryPage(host: HTMLElement, onBack: () => void): GalleryPage {
   host.querySelector('.gallery')?.remove();
+  selKey = SCENARIOS[0]?.key ?? '';
   const root = el('div', 'gallery');
 
   const head = el('div', 'gallery__head');
@@ -63,117 +84,182 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
   root.append(body);
   host.append(root);
 
-  // ---------- 左栏 ----------
-  const side = el('div', 'gallery__side');
+  // ---------- 左栏:立绘卡 + 缩略图(完全复用存档页 saves__left 一套) ----------
+  const side = el('div', 'saves__left');
   body.append(side);
+  const portraitSlot = el('div', 'gallery__portrait');
+  side.append(portraitSlot);
 
-  // 收集总览:环轨贴图固定,达成进度用同半径圆弧叠加(SVG 内绘,不为每个百分比出图)
+  const thumbs = el('div', 'saves__thumbs');
+  side.append(thumbs);
+
+  // ---------- 右栏:聚合条 + 选中剧本分节 ----------
+  const main = el('div', 'gallery__main');
+  body.append(main);
+
+  // 聚合条:收集总览 + 印章收集(跨五剧本,不随切换变化;纯文字,不出图)
+  const aggr = el('div', 'gallery__aggr');
+  main.append(aggr);
+
+  // 收集总览:一行 —— 大数字 n/m + 宽进度条
   const overview = el('section', 'galpanel');
   overview.append(lbl('收 集 总 览', 'galpanel__cap'));
-  const ring = el('div', 'galring');
-  const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  arc.setAttribute('class', 'galring__arc');
-  arc.setAttribute('cx', '120');
-  arc.setAttribute('cy', '120');
-  arc.setAttribute('r', '106');
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 240 240');
-  svg.append(arc);
-  const ringCenter = el('div', 'galring__center');
-  ringCenter.append(lbl('—', 'galring__pct u-kai'), lbl('已达成', 'galring__pctcap u-dim'));
-  ring.append(svg, ringCenter);
-  const bigNum = el('div', 'galov__big');
-  const bigB = el('b', 'u-kai');
-  bigB.textContent = '—';
-  bigNum.append(bigB, lbl(' / —', 'galov__of u-dim'));
-  const ovCaps = el('div', 'galov__caps');
-  ovCaps.append(lbl('', 'u-dim'), lbl('', 'u-dim'));
-  overview.append(ring, bigNum, ovCaps);
-  side.append(overview);
+  const stat = el('div', 'galstat');
+  const statRow = el('div', 'galstat__row');
+  const statBig = el('b', 'galstat__n u-kai');
+  statBig.textContent = '—';
+  const statOf = lbl(' / —', 'galstat__of u-dim');
+  const statTrack = el('div', 'galstat__track');
+  const statFill = el('i', 'galstat__fill');
+  statTrack.append(statFill);
+  statRow.append(statBig, statOf, statTrack);
+  stat.append(statRow);
+  overview.append(stat);
+  aggr.append(overview);
 
-  // 印章收集:五印各一行,图标 + 进度条 + n/m
+  // 印章收集:五印横排,图标 + 名 + n/m(纯文字)
   const sealPanel = el('section', 'galpanel');
   sealPanel.append(lbl('印 章 收 集', 'galpanel__cap'));
-  const sealRows = new Map<string, { fill: HTMLElement; num: HTMLElement }>();
+  const sealList = el('div', 'galseals');
+  const sealRows = new Map<string, HTMLElement>();
   for (const s of SEALS) {
     const row = el('div', 'galseal');
     const icon = el('img', 'galseal__icon') as HTMLImageElement;
     icon.src = s.img;
     icon.alt = s.name;
     icon.draggable = false;
-    const track = el('div', 'galseal__track');
-    const fill = el('i', 'galseal__fill');
-    fill.style.background = s.color;
-    track.append(fill);
     const num = lbl('—/—', 'galseal__num u-dim');
-    row.append(icon, lbl(s.name, 'galseal__name u-kai'), track, num);
-    sealPanel.append(row);
-    sealRows.set(s.name, { fill, num });
+    row.append(icon, num);
+    sealList.append(row);
+    sealRows.set(s.name, num);
   }
-  side.append(sealPanel);
+  sealPanel.append(sealList);
+  aggr.append(sealPanel);
 
-  // 筛选:状态三枚 + 五印
-  const filterPanel = el('section', 'galpanel');
-  filterPanel.append(lbl('筛 选', 'galpanel__cap'));
-  const chipBox = el('div', 'galfilter');
-  filterPanel.append(chipBox);
-  side.append(filterPanel);
+  // 选中剧本的分节容器
+  const secSlot = el('div', 'gallery__secs');
+  main.append(secSlot);
 
-  // ---------- 右栏:剧本分节 ----------
-  const main = el('div', 'gallery__main');
-  body.append(main);
-
-  let filter: Filter = 'all';
-  /** 当前筛选下卡片显隐;藏空节,免得整节只剩个标题 */
-  const applyFilter = (): void => {
-    for (const card of Array.from(main.querySelectorAll<HTMLElement>('.galent'))) {
-      const done = card.dataset.done === '1';
-      const show =
-        filter === 'all' ||
-        (filter === 'done' && done) ||
-        (filter === 'todo' && !done) ||
-        card.dataset.seal === filter;
-      card.style.display = show ? '' : 'none';
-    }
-    for (const sec of Array.from(main.querySelectorAll<HTMLElement>('.galsec'))) {
-      const any = Array.from(sec.querySelectorAll<HTMLElement>('.galent')).some((c) => c.style.display !== 'none');
-      sec.style.display = any ? '' : 'none';
-    }
+  // 已达成卡的结算详情浮层(复用对局浮层皮:overlay + panel-dialog)
+  const overlay = el('div', 'overlay overlay--settle');
+  overlay.hidden = true;
+  const closeDetail = (): void => {
+    overlay.hidden = true;
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
   };
-  const chips: { key: Filter; text: string }[] = [
-    { key: 'all', text: '全部' },
-    { key: 'done', text: '已达成' },
-    { key: 'todo', text: '未达成' },
-    ...SEALS.map((s) => ({ key: s.name as Filter, text: s.name })),
-  ];
-  for (const c of chips) {
-    const chip = el('button', `galfilter__chip${c.key === 'all' ? ' is-on' : ''}`) as HTMLButtonElement;
-    chip.type = 'button';
-    chip.textContent = c.text;
-    chip.onclick = () => {
-      filter = c.key;
-      chipBox.querySelectorAll('.galfilter__chip').forEach((x) => x.classList.toggle('is-on', x === chip));
-      applyFilter();
-    };
-    chipBox.append(chip);
-  }
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeDetail();
+  });
+  root.append(overlay);
+  const showDetail = (e: Entry): void => {
+    const rec = e.rec;
+    if (!rec) return;
+    const box = el('div', 'overlay__box panel-dialog--tall galdetail');
+    box.append(lbl(`〔${rec.s || e.seal}〕`, 'u-zhu u-center chapter__sub'));
+    box.append(lbl(rec.n || e.name, 'overlay__title u-kai'));
+    const total = el('div', 'score score--total');
+    total.append(
+      el('span', 'score__k u-strong', '最佳'),
+      el('span', 'score__v score__v--big u-kai u-strong', String(rec.b)),
+      seal(rec.g, 'seal--big'),
+    );
+    box.append(total);
+    box.append(lbl(`此结局累计达成 ${rec.c} 回`, 'u-dim u-center'));
+    if (e.zhuan) {
+      box.append(divider('太史公曰'));
+      box.append(lbl(e.zhuan, 'prose u-qing galdetail__zhuan'));
+    }
+    const row = el('div', 'overlay__row');
+    row.append(btn('收 起', { variant: 'primary', onClick: closeDetail }));
+    box.append(row);
+    overlay.append(box);
+    overlay.hidden = false;
+  };
 
   // 页面销毁后迟到的 resolve 不许再往里写(与 main.ts 的 navToken 同思路)
   let alive = true;
 
-  // 五本全部加载完后一次性算左栏统计(总量/达成量/五印分布)
-  const loaded = SCENARIOS.map((sc) => {
+  // 每本加载结果缓存:entries 供右栏渲染与聚合统计,thumbCnt 供缩略图小字
+  const cache = new Map<string, Entry[] | null>();
+  const thumbCnt = new Map<string, HTMLElement>();
+
+  /** 重画立绘卡 + 缩略图选中态 + 右栏分节(切剧本/数据到达时调用) */
+  const drawSel = (): void => {
+    const meta = SCENARIOS.find((sc) => sc.key === selKey);
+    if (!meta) return;
+    const entries = cache.get(selKey);
+
+    // 立绘卡(复用存档页 saves__portrait 一套样式)
+    portraitSlot.replaceChildren(portrait(meta, entries));
+
+    // 缩略图选中态
+    for (const t of Array.from(thumbs.querySelectorAll<HTMLElement>('.stab'))) {
+      t.classList.toggle('is-on', t.dataset.key === selKey);
+    }
+
+    // 右栏分节
     const sec = el('section', 'galsec');
     const headRow = el('div', 'galsec__head');
-    headRow.append(lbl(sc.name, 'galsec__name u-kai'), lbl('载入中…', 'galsec__prog u-dim'));
+    headRow.append(lbl(meta.name, 'galsec__name u-kai'));
+    const prog = lbl('载入中…', 'galsec__prog u-dim');
+    if (entries) {
+      const reached = entries.filter((e) => e.rec).length;
+      prog.textContent = `结局 ${reached}/${entries.length}`;
+    } else if (cache.has(selKey)) {
+      prog.textContent = '剧本数据加载失败';
+    }
+    headRow.append(prog);
     sec.append(headRow);
-    main.append(sec);
-    return loadScenario(sc.key).then((data) => {
-      if (!alive) return null;
-      return fillSection(sec, data);
-    });
-  });
+    if (entries) {
+      const grid = el('div', 'galsec__entries');
+      for (const ent of entries) {
+        grid.append(entry(ent, ent.key.includes(':'), showDetail));
+      }
+      sec.append(grid);
+    }
+    secSlot.replaceChildren(sec);
+  };
 
+  // 缩略图:封面小图 + 隐藏计数小字(供测试读取,与存档页 stab__cnt 同口径)
+  for (const sc of SCENARIOS) {
+    const tab = el('button', 'stab') as HTMLButtonElement;
+    tab.type = 'button';
+    tab.title = sc.name;
+    tab.dataset.key = sc.key;
+    const img = el('img', 'stab__img') as HTMLImageElement;
+    img.src = COVERS[sc.key] ?? '';
+    img.alt = sc.protag;
+    img.draggable = false;
+    const cnt = lbl('—/—', 'stab__cnt');
+    thumbCnt.set(sc.key, cnt);
+    tab.append(img, cnt);
+    tab.addEventListener('click', () => {
+      if (sc.key === selKey) return;
+      selKey = sc.key;
+      drawSel();
+    });
+    thumbs.append(tab);
+  }
+  drawSel();
+
+  // 五本全部按需加载;每到一本:缓存条目、刷缩略图计数,若是当前选中本则重画右栏
+  const loaded = SCENARIOS.map((sc) =>
+    loadScenario(sc.key).then((data) => {
+      if (!alive) return null;
+      const entries = data ? buildEntries(data) : null;
+      cache.set(sc.key, entries);
+      const cnt = thumbCnt.get(sc.key);
+      if (cnt) {
+        cnt.textContent = entries
+          ? `结局 ${entries.filter((e) => e.rec).length}/${entries.length}`
+          : '加载失败';
+      }
+      if (sc.key === selKey) drawSel();
+      return entries;
+    }),
+  );
+
+  // 五本全部加载完后一次性算聚合统计(总量/达成量/五印分布)
   void Promise.all(loaded).then((results) => {
     if (!alive) return;
     const all = results.filter((r): r is Entry[] => !!r);
@@ -181,24 +267,15 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
     const flat = all.flat();
     const total = flat.length;
     const reached = flat.filter((e) => e.rec).length;
-    // 总览环:106 是环轨贴图(240×240)的实测带半径,别改
-    const C = 2 * Math.PI * 106;
-    const pct = total > 0 ? reached / total : 0;
-    arc.setAttribute('stroke-dasharray', `${(C * pct).toFixed(1)} ${C.toFixed(1)}`);
-    ringCenter.querySelector('.galring__pct')!.textContent = `${Math.round(pct * 100)}%`;
-    bigB.textContent = String(reached);
-    bigNum.querySelector('.galov__of')!.textContent = ` / ${total}`;
-    const [c1, c2] = Array.from(ovCaps.children);
-    if (c1) c1.textContent = `五局共 ${total} 种结局`;
-    if (c2) c2.textContent = `已收录 ${reached} 种`;
-    // 五印进度
+    statBig.textContent = String(reached);
+    statOf.textContent = ` / ${total}`;
+    statFill.style.width = total > 0 ? `${(reached / total) * 100}%` : '0';
+    // 五印计数
     for (const s of SEALS) {
       const ofSeal = flat.filter((e) => e.seal === s.name);
       const got = ofSeal.filter((e) => e.rec).length;
-      const row = sealRows.get(s.name);
-      if (!row) continue;
-      row.fill.style.width = ofSeal.length ? `${(got / ofSeal.length) * 100}%` : '0';
-      row.num.textContent = `${got}/${ofSeal.length}`;
+      const num = sealRows.get(s.name);
+      if (num) num.textContent = `${got}/${ofSeal.length}`;
     }
   });
 
@@ -211,39 +288,58 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
   };
 }
 
-/** 填一节剧本:返回该节全部条目(供左栏聚合统计) */
-function fillSection(sec: HTMLElement, data: ScenarioData | null): Entry[] | null {
-  const prog = sec.querySelector('.galsec__prog');
-  if (!data) {
-    if (prog) prog.textContent = '剧本数据加载失败';
-    return null;
-  }
-  const recs = endingRecords(data.SCENARIO.id);
-  const total = countEndings(data.ENDINGS);
-  const reached = Object.keys(recs).length;
-  if (prog) prog.textContent = `结局 ${reached}/${total}`;
+/** 左栏立绘卡:封面铺底 + 金线外框,卡底叠人物名/年代/结局进度(结构与存档页一致) */
+function portrait(meta: ScenarioMeta, entries: Entry[] | null | undefined): HTMLElement {
+  const card = el('div', 'saves__portrait');
+  const cover = el('img', 'saves__cover') as HTMLImageElement;
+  cover.src = COVERS[meta.key] ?? '';
+  cover.alt = meta.protag;
+  cover.draggable = false;
+  const frame = el('img', 'saves__frame') as HTMLImageElement;
+  frame.src = imgFrame;
+  frame.alt = '';
+  frame.draggable = false;
 
-  const entries = el('div', 'galsec__entries');
+  const plate = el('div', 'saves__plate');
+  const total = entries ? entries.length : meta.endings;
+  const reached = entries ? entries.filter((e) => e.rec).length : 0;
+  plate.append(
+    lbl(meta.protag.split('').join(' '), 'saves__name u-kai'),
+    lbl(`${meta.era} · ${meta.chapters} 章`, 'saves__era'),
+    lbl(entries ? `结局 ${reached}/${total}` : '载入中…', 'saves__status'),
+  );
+  card.append(cover, frame, plate);
+  return card;
+}
+
+/** 从剧本数据铺出全部结局条目(本体 + 变体),不建 DOM */
+function buildEntries(data: ScenarioData): Entry[] {
+  const recs = endingRecords(data.SCENARIO.id);
   const out: Entry[] = [];
-  const push = (key: string, name: string, sealName: string, zhuan: string, variant = false): void => {
-    const rec = recs[key];
-    out.push({ key, name, seal: sealName, zhuan, rec });
-    entries.append(entry(key, name, sealName, zhuan, rec, variant));
-  };
   for (const [id, def] of Object.entries(data.ENDINGS)) {
-    push(id, def.name, def.seal, def.zhuan ?? '');
+    out.push({ key: id, name: def.name, seal: def.seal, intro: def.brief ?? brief(def.zhuan ?? ''), zhuan: def.zhuan ?? '', rec: recs[id] });
     for (const [vk, v] of Object.entries(def.variants ?? {})) {
-      push(`${id}:${vk}`, v.name, def.seal, v.zhuan ?? '', true);
+      out.push({ key: `${id}:${vk}`, name: v.name, seal: def.seal, intro: v.brief ?? brief(v.zhuan ?? ''), zhuan: v.zhuan ?? '', rec: recs[`${id}:${vk}`] });
     }
   }
-  sec.append(entries);
   return out;
 }
 
-/** 一张结局卡:已达成 = 实线白底卡(印 + 名 + 太史公曰摘录 + 达成次数/最佳 + 评级);
- * 未达成 = 虚线浅底卡(? + 未达成)。两卡同底图尺寸,筛选切换不跳动。
- * 变体卡带 galent--variant 从属缩进;data-ending 落结局键供测试与排查。 */
-function entry(key: string, name: string, sealName: string, zhuan: string, rec: EndingRec | undefined, variant: boolean): HTMLElement {
+/**
+ * 兜底简介:数据没有 brief 字段时,取赞文首句(去「太史公曰：」前缀,截到第一个句读)。
+ * 只给已达成卡用 —— 未达成卡仍只留谜面,不剧透。
+ */
+function brief(zhuan: string): string {
+  const t = zhuan.replace(/^太史公曰[::]?\s*/, '');
+  const m = t.match(/^[^。；;！!？?]+[。；;！!？?]?/);
+  return (m ? m[0] : t).trim();
+}
+
+/** 一张结局卡:已达成 = 实线白底卡(印 + 名 + 简介 + 达成次数/最佳 + 评级),可点击弹出结算详情;
+ * 未达成 = 虚线浅底卡(? + 未达成)。两卡同底图尺寸。
+ * 变体卡带 galent--variant 类(不再缩进,宽度与本体卡统一);data-ending 落结局键供测试与排查。 */
+function entry(ent: Entry, variant: boolean, onDetail: (e: Entry) => void): HTMLElement {
+  const { key, name, seal: sealName, rec } = ent;
   const row = el('div', `galent${variant ? ' galent--variant' : ''}${rec ? '' : ' is-unknown'}`);
   row.dataset.ending = key;
   row.dataset.seal = sealName;
@@ -262,12 +358,21 @@ function entry(key: string, name: string, sealName: string, zhuan: string, rec: 
   icon.alt = rec.s || sealName;
   icon.draggable = false;
   const col = el('div', 'galent__col');
-  col.append(
-    lbl(rec.n || name, 'galent__name u-kai'),
-    lbl(zhuan, 'galent__quote u-dim'),
-    lbl(`达成 ${rec.c} 回 · 最佳 ${rec.b}`, 'galent__meta u-dim'),
-  );
+  col.append(lbl(rec.n || name, 'galent__name u-kai'));
+  if (ent.intro) col.append(lbl(ent.intro, 'galent__quote u-dim'));
+  col.append(lbl(`达成 ${rec.c} 回 · 最佳 ${rec.b}`, 'galent__meta u-dim'));
   row.append(icon, col);
-  if (rec.g) row.append(lbl(rec.g, `galent__grade u-kai${rec.g === 'S' ? ' is-s' : ''}`));
+  if (rec.g) row.append(lbl(rec.g, `galent__grade u-kai${rec.g === '甲上' ? ' is-top' : ''}`));
+  row.classList.add('is-done');
+  row.setAttribute('role', 'button');
+  row.tabIndex = 0;
+  const fire = (e: Event): void => {
+    e.preventDefault();
+    onDetail(ent);
+  };
+  row.addEventListener('click', fire);
+  row.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') fire(e);
+  });
   return row;
 }

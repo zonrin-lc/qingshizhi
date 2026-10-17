@@ -13,8 +13,8 @@ import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
 import { renderRadar } from '../ui/radar';
 import { castOf, renderCast, bigPortrait } from '../ui/cast';
 import { voice } from './voice';
-import { clearAutos } from './saves';
-import { saveCollection, recordEnding } from './collection';
+import { clearAutos, type SecRec, type SecTag } from './saves';
+import { recordEnding } from './collection';
 
 /** 右栏要显示的属性(Lua 版「身外」那一组) */
 const SHOWN_ATTRS: AttrKey[] = ['caifu', 'shengwang', 'quanshi', 'zhengji', 'junxin', 'weiji'];
@@ -24,6 +24,56 @@ const ACTION_TYPE_BADGE: Record<string, string> = { 进取: 't-jin', 守成: 't-
 
 /** 险招的门槛缺口 */
 type Risk = { rate: number; unmet: { name: string; need: number; have: number }[] };
+
+/**
+ * 把一段文本切成句子(逐行渐显的中间结构):
+ * 在 。！？；… 后断句,紧随的闭引号(”’」』)并入前句;无标点尾巴自成一句。
+ * 切不出句子时原样返回(保底一句,调用方不会拿到空数组)。
+ */
+const SENT_RE = /[^。！？；…]+[。！？；…]*[”’」』]*/g;
+function splitSentences(text: string): string[] {
+  const out = (text.match(SENT_RE) ?? []).filter((s) => s.length > 0);
+  return out.length ? out : [text];
+}
+
+/**
+ * 逐行渐显(2026-10-17 拍板:由逐句改为按排版逐行)的字符拆分:
+ * 连续 ASCII 字母数字不拆(拆了会引入原本不存在的断行机会,量出来的行是错的),
+ * 汉字/标点/空白逐字一个 span。
+ */
+const CH_RE = /[A-Za-z0-9]+|\s|./gu;
+
+/** 把句子 span 的文本拆成字符级 span.prose__ch(全部 is-off 占位,版面不抖),
+ *  返回字符 span 序列,供 revealSegs 分行。 */
+function splitToChars(sent: HTMLElement): HTMLElement[] {
+  const text = sent.textContent ?? '';
+  sent.textContent = '';
+  const out: HTMLElement[] = [];
+  for (const m of text.matchAll(CH_RE)) {
+    const c = el('span', 'prose__ch is-off', m[0]);
+    sent.append(c);
+    out.push(c);
+  }
+  return out;
+}
+
+/** 按 offsetTop 把字符 span 聚成视觉行(±1px 容忍)。必须在元素已挂载、已排版后调。 */
+function groupIntoLines(chars: HTMLElement[]): HTMLElement[][] {
+  const lines: HTMLElement[][] = [];
+  let cur: HTMLElement[] = [];
+  let top: number | null = null;
+  for (const c of chars) {
+    const t = c.offsetTop;
+    if (top === null || Math.abs(t - top) > 1) {
+      if (cur.length) lines.push(cur);
+      cur = [];
+      top = t;
+    }
+    cur.push(c);
+  }
+  if (cur.length) lines.push(cur);
+  return lines;
+}
 
 export class Session {
   readonly game: Game;
@@ -49,6 +99,8 @@ export class Session {
   private choiceHost: { sec: HTMLElement; body: HTMLElement; head: HTMLElement | null } | null = null;
   /** renderRound 延迟发牌的重入令牌:选中牌翻背面期间又进新回合时作废旧定时器 */
   private dealToken = 0;
+  /** 结算动画序列的重入令牌:飞卡/翻牌/自动推进的延时步都验它,dispose 或新结算即作废 */
+  private settleToken = 0;
   private readonly onFinish: (() => void) | null;
   /** 剧本 key(写自动档用);与选择页轻量表的 key 一致 */
   private readonly scenKey: string;
@@ -88,6 +140,7 @@ export class Session {
    */
   dispose(): void {
     this.skipReveal();
+    this.settleToken += 1;
     this.backBtn.remove();
     this.main.removeEventListener('pointerdown', this.onSkipPointer);
   }
@@ -99,19 +152,7 @@ export class Session {
     return s && ch ? { s, c: ch.id } : null;
   }
 
-  /**
-   * 顺序播一段配音。切片名 <base><suffix><N>,N 从 1 起。
-   * 找不到切片就什么都不做 —— 试点只做了李斯 c1,其余章节无声是预期行为。
-   */
-  private speakSeq(base: string, count: number, suffix = ''): void {
-    const ctx = this.voiceCtx();
-    if (!ctx || !voice.enabled) return;
-    const names: string[] = [];
-    for (let i = 1; i <= count; i += 1) names.push(`${base}${suffix}${i}`);
-    if (!names.length) return;
-    voice.enqueue(ctx.s, ctx.c, names[0] as string, names.slice(1));
-  }
-
+  /** 播一条合并配音。切片不存在就静默 —— 未配音的剧本/节点无声是预期行为。 */
   private speakOne(clip: string): void {
     const ctx = this.voiceCtx();
     if (!ctx || !voice.enabled) return;
@@ -195,6 +236,9 @@ export class Session {
       ],
       '回 溯',
       () => {
+        // 作废结算动画序列的延时步(飞字收尾/翻牌/自动推进),否则回溯后旧定时器
+        // 会拿着结算时的 CardResult 误触 routeAfterCard,把相位拽回去
+        this.settleToken += 1;
         if (g.backtrack()) this.renderIntro(true);
       },
     );
@@ -226,35 +270,21 @@ export class Session {
 
   // ---------- 叙事 ----------
 
-  /** 把带 ⟦词条⟧ 的文本渲染成节点;词条可点,点开看释义 */
+  /**
+   * 把文本渲染成段落。⟦词条⟧ 标记一律按纯文本渲染
+   * (2026-10-16 拍板:对局页隐藏词条功能,不可点、不收录)。
+   * 句子逐句包 span.prose__sent;渐显时 revealSegs 再把句子拆成字符级
+   * span.prose__ch 按视觉行逐行亮(2026-10-17 拍板)。
+   * 不进渐显的调用方(结算/回显)保持句子级纯文本,直接全显。
+   */
   private prose(text: string, cls = 'prose'): HTMLElement {
     const p = el('p', cls);
     for (const run of parseRuns(text)) {
-      if (!run.gloss) {
-        p.append(document.createTextNode(run.text));
-      } else {
-        const term = run.gloss;
-        const node = el('button', 'gloss', run.text);
-        node.type = 'button';
-        node.title = this.data.GLOSSARY[term] ?? '词条';
-        node.addEventListener('click', () => this.showGloss(term));
-        p.append(node);
+      for (const sent of splitSentences(run.text)) {
+        p.append(el('span', 'prose__sent', sent));
       }
     }
     return p;
-  }
-
-  private showGloss(term: string): void {
-    const entry = this.data.GLOSSARY[term];
-    if (!entry) return;
-    const isNew = !this.game.gloss.includes(term);
-    // 新词条立刻落跨局收藏(对齐 Lua game.lua showGloss):收藏是跨局的,
-    // 只在结局写回会让中途退出的玩家丢掉本局新收录的词条
-    if (isNew) {
-      this.game.gloss.push(term);
-      saveCollection(this.game);
-    }
-    this.showSettle(`词条 ｜ ${term}${isNew ? '（新收录）' : ''}`, null, [], entry);
   }
 
   private clearMain(): void {
@@ -282,8 +312,8 @@ export class Session {
   }
 
   /**
-   * 选定一张牌后的选项区(2026-10-16 拍板):其余行动卡即刻翻到背面,
-   * 选中的留正面(is-chosen),到下回合 renderRound 发新牌前才翻。
+   * 选定一张牌后的选项区:其余行动卡即刻翻到背面,
+   * 选中的留正面(is-chosen),到结算动画收尾才翻(2026-10-17 拍板)。
    * 翻面是伪 3D:先侧立(is-flipped),半程换卡背贴图(is-back)再落回,不换 DOM。
    */
   private flipOpts(keep: HTMLElement | null): void {
@@ -304,6 +334,35 @@ export class Session {
     window.setTimeout(() => c.classList.add('is-back'), reduce ? 0 : 240);
   }
 
+  /**
+   * 出牌瞬间的飞卡残影(2026-10-17 拍板):克隆牌面从选项区飞向文本区中央,
+   * 落定即散;原卡留在选项区(is-chosen),到结算收尾才翻背面。
+   */
+  private flyCardGhost(cardEl: HTMLElement): void {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    const from = cardEl.getBoundingClientRect();
+    const to = this.main.getBoundingClientRect();
+    const ghost = cardEl.cloneNode(true) as HTMLElement;
+    ghost.classList.add('card-ghost');
+    ghost.classList.remove('is-chosen');
+    ghost.style.left = `${from.left}px`;
+    ghost.style.top = `${from.top}px`;
+    ghost.style.width = `${from.width}px`;
+    ghost.style.height = `${from.height}px`;
+    document.body.append(ghost);
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height * 0.42 - (from.top + from.height / 2);
+    const anim = ghost.animate(
+      [
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.55)`, opacity: 0 },
+      ],
+      { duration: 560, easing: 'cubic-bezier(.3,.6,.3,1)' },
+    );
+    anim.onfinish = () => ghost.remove();
+  }
+
   // ---------- 叙事渐显 ----------
 
   /**
@@ -317,23 +376,20 @@ export class Session {
     if (Number.isFinite(ms) && ms > 0) Session.segInterval = ms;
   }
 
-  private revealing: { box: HTMLElement; items: HTMLElement[]; i: number; timer: number; done?: () => void } | null = null;
+  private revealing: { steps: (() => void)[]; i: number; timer: number; done?: () => void } | null = null;
 
   /**
-   * 立刻显示所有剩余段落并收尾。玩家点一下屏幕就该是这个反应,
-   * 否则一段段等 0.65 秒很折磨。对齐 Lua Shell.cancelReveal / TapReveal。
+   * 立刻显示所有剩余内容并收尾。玩家点一下屏幕就该是这个反应,
+   * 否则一句句等 0.65 秒很折磨。对齐 Lua Shell.cancelReveal / TapReveal。
    */
   skipReveal(): void {
     const rv = this.revealing;
     if (!rv) return;
     this.revealing = null;
     clearInterval(rv.timer);
-    // i 的含义是「下一个要追加的下标」,所以先追加再前进。
-    // 顺序反了会每隔一段漏掉一条,而且循环末尾还会 append(undefined),
-    // 那个 undefined 会被当成文本节点直接插进正文里。
-    while (rv.i < rv.items.length) {
-      const it = rv.items[rv.i] as HTMLElement;
-      rv.box.append(it);
+    // i 的含义是「下一个要执行的步进下标」,先执行再前进。
+    while (rv.i < rv.steps.length) {
+      rv.steps[rv.i]!();
       rv.i += 1;
     }
     rv.done?.();
@@ -345,9 +401,16 @@ export class Session {
   }
 
   /**
-   * 逐段浮现。段落先放第一段,其余按间隔追加,最后调 done。
+   * 逐行浮现(2026-10-17 拍板:由逐句改为按排版逐行)。
+   * prose 段落的句子先拆成字符级 span 并打 is-off(visibility:hidden 占位,
+   * 版面不抖动),追加进容器后按 offsetTop 聚成视觉行,每个间隔亮一行;
+   * 非 prose 元素(题注/分割线等)整项出。全部亮完调 done。
    * done 里才挂选项/继续按钮 —— 所以在渐显结束前点不到那些按钮,
    * 这跟 Lua 版一致,也顺带防止玩家在没读完时就做了选择。
+   *
+   * 行分组要在追加进容器后才量得出来(offsetTop 需要真实排版),
+   * 所以首行步进会把后续行的步进当场补进 rv.steps —— skipReveal 的
+   * while 循环与定时器的 i>=length 判断都天然兼容这种增长。
    *
    * box 是段落容器(prose-body),不是 main:main 只允许挂 castbox/prose-body,
    * 往 main 里直接塞段落会破坏版式不变量(chain 测试盯着这条)。
@@ -355,28 +418,58 @@ export class Session {
   private revealSegs(box: HTMLElement, items: HTMLElement[], done?: () => void): void {
     this.skipReveal();
     if (!items.length) { done?.(); return; }
+    // i = 下一个要执行的步进下标。steps 会随分行测量增长(见上)。
+    const rv: NonNullable<Session['revealing']> = { steps: [], i: 0, timer: 0, done };
+    for (const it of items) {
+      const sents = [...it.querySelectorAll<HTMLElement>('.prose__sent')];
+      if (sents.length === 0) {
+        rv.steps.push(() => {
+          box.append(it);
+          this.scrollMainBottom();
+        });
+        continue;
+      }
+      const chars = sents.flatMap((s) => splitToChars(s));
+      rv.steps.push(() => {
+        box.append(it);
+        const lines = groupIntoLines(chars);
+        const revealLine = (k: number): void => {
+          for (const c of lines[k] ?? []) c.classList.remove('is-off');
+          this.scrollMainBottom();
+        };
+        revealLine(0);
+        // 后续行插到当前步进之后(不是队尾):否则下一段会在本段亮完前先追加
+        const rest: (() => void)[] = [];
+        for (let k = 1; k < lines.length; k += 1) {
+          const kk = k;
+          rest.push(() => revealLine(kk));
+        }
+        rv.steps.splice(rv.i + 1, 0, ...rest);
+      });
+    }
     // 系统开了「减少动态效果」就别演了,直接全给出来
     if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      for (const it of items) box.append(it);
+      while (rv.i < rv.steps.length) {
+        rv.steps[rv.i]!();
+        rv.i += 1;
+      }
       done?.();
       return;
     }
-    // i = 下一个要追加的下标。items[0] 当场出,定时器接着补后面的。
-    const rv: NonNullable<Session['revealing']> = { box, items, i: 1, timer: 0, done };
+    // 第一步当场出,定时器接着补后面的。
     this.revealing = rv;
-    box.append(items[0] as HTMLElement);
-    this.scrollMainBottom();
+    rv.steps[rv.i]!();
+    rv.i += 1;
     rv.timer = window.setInterval(() => {
       if (this.revealing !== rv) return; // 已被取消/换页
-      if (rv.i >= rv.items.length) {
+      if (rv.i >= rv.steps.length) {
         this.revealing = null;
         clearInterval(rv.timer);
         rv.done?.();
         return;
       }
-      box.append(rv.items[rv.i] as HTMLElement);
+      rv.steps[rv.i]!();
       rv.i += 1;
-      this.scrollMainBottom();
     }, Session.segInterval);
   }
 
@@ -388,14 +481,31 @@ export class Session {
     box.scrollTop = box.scrollHeight;
   }
 
+  /** 文本区底部停靠带(2026-10-17 拍板):抉择/随机事件/关键事件的选项卡与「继续」钮
+   *  统一钉在画卷可视底部。挂在 prose-body 末尾(不挂进小节正文):
+   *  短内容被 live 小节的 flex-grow 顶到底;长内容靠 sticky bottom 吸住可视下沿,
+   *  往上回读正文时选项仍可用。同一时刻只有一条 dock,先清旧再加新。 */
+  private dock(): HTMLElement {
+    const story = this.storyEl ?? this.ensureStory([]);
+    this.clearDock();
+    const d = el('div', 'dock');
+    story.append(d);
+    return d;
+  }
+
+  /** 摘走停靠带:选项落定/新小节推出时调用,旧选项与一次性按钮随带一起失效 */
+  private clearDock(): void {
+    if (!this.storyEl) return;
+    for (const d of Array.from(this.storyEl.querySelectorAll(':scope > .dock'))) d.remove();
+  }
+
   /**
    * 出场立绘:大立绘 + 圆像排。
    *
    * 大立绘展示「当前在场」的角色:⟦NPC⟧ 标记推出、且有大立绘的第一个;
    * 无出场角色时展示主角(2026-10-14 用户拍板:出现这个人物就展示他的立绘)。
-   * 圆像排第一个是主角、其后是出场角色;点圆像切换大立绘焦点,
-   * 点大立绘开当前焦点角色的词条。没有大立绘的角色(liubang/jibu)
-   * 只有圆像,点了直接开词条。
+   * 圆像排第一个是主角、其后是出场角色;点圆像切换大立绘焦点。
+   * (2026-10-16 起对局页隐藏词条功能:立绘/圆像不再点开词条。)
    */
   private castBox(segs: readonly string[]): HTMLElement {
     const box = el('div', 'castbox');
@@ -410,9 +520,6 @@ export class Session {
       img = el('img', 'portrait__img') as HTMLImageElement;
       img.src = src0;
       img.alt = focus;
-      // 点像开焦点角色的词条(无论主角还是 NPC,同口径)
-      img.style.cursor = 'pointer';
-      img.addEventListener('click', () => this.showGloss(focus));
       p.append(img);
     }
     const tag = lbl(`— ${focus} —`, 'portrait__name');
@@ -429,7 +536,7 @@ export class Session {
       tag.textContent = `— ${name} —`;
       for (const c of chips) c.classList.toggle('is-on', c.title === name);
     };
-    const row = renderCast([lead, ...others], focus, setFocus, (n) => this.showGloss(n));
+    const row = renderCast([lead, ...others], focus, setFocus);
     if (row) {
       chips = [...row.children] as HTMLElement[];
       box.append(row);
@@ -469,9 +576,10 @@ export class Session {
     const story = this.storyEl ?? this.ensureStory([]);
     for (const s of story.querySelectorAll('.sec')) {
       s.classList.add('is-collapsed');
-      // 收起即失效:旧小节里的一次性「继 续」若留着,重开旧节点击会误触当前相位的 proceed
-      for (const b of s.querySelectorAll('.btn--primary')) b.remove();
     }
+    // 收起即失效:上一相位的一次性「继 续」/选项卡都在停靠带里,推新小节前整带摘除,
+    // 否则留着它,点击会误触当前相位的 proceed
+    this.clearDock();
     const sec = el('section', 'sec');
     let head: HTMLElement | null = null;
     if (title) {
@@ -487,6 +595,84 @@ export class Session {
     // 玩家只看到一片旧空白(2026-10-14 截图反馈)。等一帧让浏览器先排完版再量。
     requestAnimationFrame(() => this.scrollMainBottom());
     return { sec, body, head };
+  }
+
+  /**
+   * 刮下当前卷轴上的题签历史(v2.3.0):每个带题签的小节记一条
+   * {题签(含「——所选」), 属性胶囊, 正文纯文本},存档时随槽位元数据存下,
+   * 读档后由 restoreHistory 摆回。无题签的小节(回合相位的关键事件提示条)
+   * 是活控件,不记入。按钮(继续/选项卡)不落历史:它们属于当时那一刻的相位。
+   */
+  collectHistory(): SecRec[] {
+    const out: SecRec[] = [];
+    if (!this.storyEl) return out;
+    for (const sec of Array.from(this.storyEl.querySelectorAll('.sec'))) {
+      const head = sec.querySelector('.sec__head');
+      if (!head) continue;
+      const tags: SecTag[] = Array.from(head.querySelectorAll<HTMLElement>('.chgrow')).map((row) => {
+        const v = row.querySelector('.chgrow__v');
+        return {
+          k: row.dataset.attr ?? '',
+          name: row.querySelector('.chgrow__k')?.textContent ?? '',
+          v: v?.textContent ?? '',
+          up: v?.classList.contains('is-up') ?? false,
+        };
+      });
+      // 题签文本:克隆后摘掉胶囊,剩下的就是题字(含「——所选」后缀)
+      const headClone = head.cloneNode(true) as HTMLElement;
+      headClone.querySelector('.chglist')?.remove();
+      const t = (headClone.textContent ?? '').trim();
+      // 正文:逐块取纯文本,跳过按钮;每节封顶 2000 字,本地存储不是无底洞
+      const bodyEl = sec.querySelector('.sec__body');
+      const paras: string[] = [];
+      for (const node of Array.from(bodyEl?.children ?? [])) {
+        if (node.tagName === 'BUTTON') continue;
+        const txt = (node.textContent ?? '').trim();
+        if (txt) paras.push(txt);
+      }
+      out.push({ t, tags, body: paras.join('\n').slice(0, 2000) });
+    }
+    return out;
+  }
+
+  /**
+   * 读档时把题签历史铺回卷轴(已收起态,可点开重读正文)。
+   * 在相位渲染之后调用:插到 live 小节之前,保住时间序。
+   * 去重规则:当前相位会重推一个带题签的小节(章首/事件/抉择/结尾事件),
+   * 刮下来的末条就是它的前身,丢弃;回合/结算/历史修正相位不重推题签小节,全保留。
+   * 章末结算是整页重建(clearMain)且题签结构不同,历史摆不进去,直接跳过。
+   */
+  private restoreHistory(ui?: SecRec[]): void {
+    if (!ui || ui.length === 0 || this.game.phase === 'summary') return;
+    const reRenders = ['intro', 'event', 'choice', 'endEvent'].includes(this.game.phase);
+    const recs = reRenders ? ui.slice(0, -1) : ui;
+    if (recs.length === 0) return;
+    const story = this.storyEl ?? this.ensureStory([]);
+    const firstSec = story.querySelector('.sec');
+    for (const r of recs) story.insertBefore(this.historySec(r), firstSec);
+  }
+
+  /** 一条恢复出来的历史小节:收起态,题签 + 属性胶囊 + 纯文本正文(无渐显、无按钮) */
+  private historySec(r: SecRec): HTMLElement {
+    const sec = el('section', 'sec is-collapsed');
+    const head = el('button', 'sec__head u-kai', r.t);
+    head.setAttribute('type', 'button');
+    head.addEventListener('click', () => sec.classList.toggle('is-collapsed'));
+    if (r.tags.length > 0) {
+      const wrap = el('span', 'chglist chglist--tags');
+      for (const t of r.tags) {
+        const tag = el('span', 'chgrow');
+        tag.dataset.attr = t.k;
+        tag.append(el('span', 'chgrow__k', t.name), el('span', `chgrow__v ${t.up ? 'is-up' : 'is-down'}`, t.v));
+        wrap.append(tag);
+      }
+      head.append(wrap);
+    }
+    sec.append(head);
+    const body = el('div', 'sec__body');
+    for (const para of r.body.split('\n').filter(Boolean)) body.append(el('p', 'prose', para));
+    sec.append(body);
+    return sec;
   }
 
   /** 结算的属性增减列表(showSettle 浮层与内联结算共用);行带 data-attr 供飞行动画定位 */
@@ -524,21 +710,24 @@ export class Session {
     return wrap;
   }
 
-  /** 落定后封题签:追加「——所选」小字与属性胶囊;胶囊同时做飞字锚点 */
-  private sealHead(head: HTMLElement | null, suffix: string, changes: ChangeView[]): void {
+  /** 落定后封题签:追加「——所选」小字与属性胶囊;胶囊默认同时做飞字锚点,
+   * 行动卡结算传 fly:false —— 飞字改由正文下的属性变化清单发起(2026-10-17 拍板) */
+  private sealHead(head: HTMLElement | null, suffix: string, changes: ChangeView[], opts?: { fly?: boolean }): void {
     if (!head) return;
     if (suffix) head.append(el('span', 'sec__result u-dim', `——${suffix}`));
     const tags = this.chgTags(changes);
     if (tags) {
       head.append(tags);
-      this.flyChanges(tags);
+      if (opts?.fly !== false) this.flyChanges(tags);
     }
   }
 
-  /** 属性变化动效:结算行高亮 + 浮字飞到右栏对应属性条;reduced-motion 只高亮不飞 */
+  /** 属性变化动效:结算行高亮 + 浮字飞到右栏对应属性条;reduced-motion 只高亮不飞。
+   * 逐条错峰起飞(2026-10-17 二拍):一条一条看清,不再一窝蜂糊过去 */
   private flyChanges(list: HTMLElement): void {
     requestAnimationFrame(() => {
       const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let idx = 0;
       for (const row of list.querySelectorAll<HTMLElement>('.chgrow')) {
         row.classList.add('is-flash');
         const k = row.dataset.attr ?? '';
@@ -546,24 +735,30 @@ export class Session {
           ?? this.stage.querySelector<HTMLElement>('.stage__side .radar');
         if (!hit) continue;
         const trow = (hit.closest('.kv') as HTMLElement | null) ?? hit;
-        trow.classList.add('is-flash');
-        window.setTimeout(() => trow.classList.remove('is-flash'), 1200);
+        const delay = idx * 150;
+        idx += 1;
+        window.setTimeout(() => trow.classList.add('is-flash'), reduced ? 0 : delay + 950);
+        window.setTimeout(() => trow.classList.remove('is-flash'), (reduced ? 0 : delay + 950) + 2400);
         if (reduced) continue;
         const from = row.getBoundingClientRect();
-        const to = trow.getBoundingClientRect();
         const vEl = row.querySelector('.chgrow__v');
         const ghost = el('span', `flychg ${vEl?.classList.contains('is-down') ? 'is-down' : 'is-up'}`,
           `${row.querySelector('.chgrow__k')?.textContent ?? ''} ${vEl?.textContent ?? ''}`);
         ghost.style.left = `${from.left + from.width / 2}px`;
         ghost.style.top = `${from.top + from.height / 2}px`;
+        ghost.style.visibility = 'hidden';
         document.body.append(ghost);
-        const dx = to.left + to.width / 2 - (from.left + from.width / 2);
-        const dy = to.top + to.height / 2 - (from.top + from.height / 2);
-        const anim = ghost.animate(
-          [{ transform: 'translate(-50%,-50%) scale(1)', opacity: 0.95 },
-           { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.7)`, opacity: 0.15 }],
-          { duration: 720, easing: 'cubic-bezier(.25,.7,.3,1)' });
-        anim.onfinish = () => ghost.remove();
+        window.setTimeout(() => {
+          const to = trow.getBoundingClientRect();
+          const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+          const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+          ghost.style.visibility = '';
+          const anim = ghost.animate(
+            [{ transform: 'translate(-50%,-50%) scale(1)', opacity: 0.95 },
+             { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.7)`, opacity: 0.15 }],
+            { duration: 1150, easing: 'cubic-bezier(.25,.7,.3,1)' });
+          anim.onfinish = () => ghost.remove();
+        }, delay);
       }
     });
   }
@@ -572,7 +767,8 @@ export class Session {
 
   private showSettle(title: string, text: string | null, changes: ChangeView[], body?: string): void {
     clear(this.overlay);
-    this.overlay.className = 'overlay overlay--settle';
+    // 深色蒙版弹框(2026-10-17 拍板):与章末/最终结算同口径,不再铺水墨底图
+    this.overlay.className = 'overlay overlay--dim';
     const box = el('div', 'overlay__box panel-dialog--tall');
     if (title) box.append(lbl(title, 'overlay__title u-kai u-strong'));
     if (text) box.append(this.prose(text, 'prose overlay__text'));
@@ -622,7 +818,8 @@ export class Session {
     this.evtHost = null;
     this.choiceHost = null;
 
-    // 章首不再自动写档(2026-10-15 二次拍板):自动档只在玩家点「返回」并确认后写,
+    // 章首不再自动写档(2026-10-15 二次拍板):自动档只在玩家点「返回」时写
+    // (2026-10-17 起:未满 5 轮不写,有空位自动写,满员才确认覆盖),
     // 关页/刷新由暂存(pagehide)兜底,章首静默写会冲乱「每剧本 6 条」的语义。
 
     // 章首硬重置累积正文,新章从干净卷轴起;经营轮数同步归零
@@ -647,12 +844,12 @@ export class Session {
       items.push(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
     }
     // 回溯也要配音:但重念一遍 intro 很吵,只在正常进入时念。
-    // base 要带上结尾下划线 —— 切片名是 intro_1,不是 intro1
-    if (!fromBacktrack) this.speakSeq('intro_', (ch.intro ?? []).length);
+    // intro 各段已合并成一条切片(2026-10-17 合并口径)
+    if (!fromBacktrack) this.speakOne('intro');
     this.revealSegs(body, items, () => {
-      // 继续钮跟在剧情文本下面、居中(2026-10-15 拍板),不进底部选项区;
+      // 继续钮钉在画卷可视底部(2026-10-17 拍板,dock 沉底),不进底部选项区;
       // 选项区保持卡背占位(ensureStory → idleOpts 已铺)。
-      body.append(btn('继 续', {
+      this.dock().append(btn('继 续', {
         variant: 'primary',
         onClick: (e) => {
           // 一次性按钮:与其他内联继续同口径,点击即摘,避免旧节重开时误触
@@ -712,7 +909,7 @@ export class Session {
       body.append(p);
     }
 
-    // 上回合选定的牌留到下回合开始前才翻背面(2026-10-16 拍板):翻完再发新牌。
+    // 上回合选定的牌在结算动画收尾已翻背面(2026-10-17 拍板),此处兜底翻完再发新牌。
     // dealToken 防重入:520ms 内若又进了一次 renderRound,旧定时器作废。
     const chosen = this.opts.querySelector<HTMLElement>('.card--action.is-chosen');
     const dealToken = (this.dealToken += 1);
@@ -731,12 +928,13 @@ export class Session {
         if (e.risky) body.append(lbl(this.riskText(e.risky), 'card__risk u-warn'));
         if (e.locked && e.reason) body.append(lbl(`🔒 ${e.reason}`, 'card__lock u-zhu'));
         if (e.diminishing) body.append(lbl(`已用 ${e.usedCount ?? 0} 次 · 收益递减`, 'card__warn u-warn'));
-        // 行动卡类型皮肤（进取/守成/兑换/保身/抉择）：数据驱动 prot ACTIONS[].type，
-        // 治病卡无 type 走默认纸面+边框，不挂角签
-        const typeCls = a?.type ? ACTION_TYPE_BADGE[a.type] : undefined;
+        // 行动卡类型皮肤（进取/守成/兑换/保身/抉择）：数据驱动 prot ACTIONS[].type；
+        // 治病卡由引擎现组（prot/engine.js __cure__，不在 ACTIONS），按「保身」挂签(2026-10-17 拍板)
+        const aType = a?.type ?? (a?.id === '__cure__' ? '保身' : undefined);
+        const typeCls = aType ? ACTION_TYPE_BADGE[aType] : undefined;
         const c = card({ cls: `card--action${typeCls ? ` ${typeCls}` : ''}`, locked: e.locked, onClick: () => this.doPlayCard(i) });
         c.dataset.offerIdx = String(i);
-        if (a?.type && typeCls) c.append(el('span', `card__badge ${typeCls}`, a.type));
+        if (aType && typeCls) c.append(el('span', `card__badge ${typeCls}`, aType));
         c.append(body);
         this.opts.append(c);
       }
@@ -811,10 +1009,13 @@ export class Session {
     const host = this.pushSec(inserted ? `际遇 · 随机事件——${ev.title}` : `关键事件 · ${ev.title}`);
     this.evtHost = host;
     const { body } = host;
-    // 配音切片名:事件内用 <事件id>_s<N>;随机事件走 rand/<id>_s<N>
-    // 随机事件试点没做配音,查不到就是静默,不影响游玩
-    if (inserted) this.speakSeq(`rand/${g.eventId}`, (ev.segs ?? []).length, '_s');
-    else this.speakSeq(ev.id, (ev.segs ?? []).length, '_s');
+    // 配音(2026-10-17 合并口径):主线事件播 <事件id>(segs 已合并为一条);
+    // 危机插入(id 以 C- 开头)播 _shared 的 crisis_<id>;随机事件(R-*)不配音。
+    if (inserted) {
+      if (g.eventId?.startsWith('C-')) this.speakOne(`crisis_${g.eventId}`);
+    } else {
+      this.speakOne(ev.id);
+    }
     // 选项等渐显结束再挂:没读完就做选择不是我们要的
     const items = (ev.segs ?? []).map((seg) => this.prose(seg));
     // 偶遇/随机事件(含危机插入)与关键事件:选项都内联在文本区、跟在剧情文本下居中,
@@ -822,13 +1023,14 @@ export class Session {
     // 「赵高来访」「蒙嘉之门」等 5 选项事件在底部会撑出第 5 张卡,内联竖排无此约束)。
     if (inserted) this.inlineEvtBody = body;
     else this.inlineEvtBody = null;
-    this.revealSegs(body, items, () => this.renderEventOptsInline(body));
+    this.revealSegs(body, items, () => this.renderEventOptsInline());
   }
 
-  /** 事件选项(偶遇/随机/关键事件同口径,2026-10-15):挂在事件小节正文里,等渐显完再挂;
+  /** 事件选项(偶遇/随机/关键事件同口径,2026-10-15):挂进文本区底部停靠带,等渐显完再挂;
    *  底部选项区保持卡背占位不清(选项区常驻,2026-10-15) */
-  private renderEventOptsInline(body: HTMLElement): void {
+  private renderEventOptsInline(): void {
     const opts = this.game.getOptions();
+    const dock = this.dock();
     for (let i = 0; i < opts.length; i += 1) {
       const o = opts[i];
       if (!o) continue;
@@ -843,7 +1045,7 @@ export class Session {
         onClick: () => this.doChoose(i),
       });
       c.append(cardBody);
-      body.append(c);
+      dock.append(c);
     }
     this.scrollMainBottom();
   }
@@ -869,23 +1071,33 @@ export class Session {
 
     const items = (v.segs ?? []).map((seg) => this.prose(seg));
     this.revealSegs(body, items, () => {
+      // 抉择卡剧情配音:segs 已合并为一条 choice_<id>(2026-10-17 合并口径)
+      this.speakOne(`choice_${v.id}`);
       // 次级事件(抉择卡)选项也内联在文本区、跟在剧情文本下(2026-10-16 拍板),
       // 与际遇/关键事件同口径;底部选项区不动——其余卡出牌时已翻背面,
       // 选中的抉择卡留正面到下回合发牌前(2026-10-16 拍板)
+      const dock = this.dock();
       for (let i = 0; i < v.options.length; i += 1) {
         const o = v.options[i];
         if (!o) continue;
-        const c = card({ cls: 'card--opt card--tappable', onClick: () => this.doChooseCardOpt(i) });
+        // 财富见底锁(2026-10-16):引擎 getChoiceCard 已按财富 ≤ 0 打上 locked/reason
+        const locked = !!o.locked;
+        const c = card({
+          cls: `card--opt${locked ? '' : ' card--tappable'}`,
+          locked,
+          onClick: () => this.doChooseCardOpt(i),
+        });
         const optBody = el('div', 'card__body');
         optBody.append(lbl(o.t, 'card__title u-kai'));
+        if (locked && o.reason) optBody.append(el('div', 'card__lock u-zhu', `🔒 ${o.reason}`));
         c.append(optBody);
-        body.append(c);
+        dock.append(c);
       }
       const skip = card({ cls: 'card--opt card--tappable', onClick: () => this.doCancelChoice() });
       const skipBody = el('div', 'card__body');
       skipBody.append(lbl('且搁置', 'card__title u-dim'));
       skip.append(skipBody);
-      body.append(skip);
+      dock.append(skip);
       this.scrollMainBottom();
     });
   }
@@ -893,14 +1105,15 @@ export class Session {
   // ---------- 章末结算 ----------
 
   renderSummary(summary: SummaryView): void {
-    this.skin('summary', 'summary');
+    // 章末结算改弹框(2026-10-17 拍板):对局页留在原地,深色蒙版上叠窄幅卷轴弹框,
+    // 不再整页重建(clearMain/clearOpts 都不动)。
+    // 读档直接落在 summary 相位时底层还没渲染过,补出空卷轴与皮肤垫底。
+    this.skin('game', 'game');
+    this.ensureStory([]);
     this.renderTop();
-    this.clearMain();
-    this.clearOpts();
-
-    const body = this.proseBody();
-    this.main.append(body);
-
+    clear(this.overlay);
+    this.overlay.className = 'overlay overlay--dim';
+    const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary');
 
     body.append(lbl('章 末 结 算', 'u-dim u-center chapter__sub'));
     body.append(lbl(`${this.shortTitle(summary.chapter)} 终`, 'page-title'));
@@ -940,34 +1153,43 @@ export class Session {
       body.append(strip);
     }
 
-    this.opts.append(
+    const row = el('div', 'overlay__row');
+    row.append(
       btn(summary.nextTitle ? '进 入 下 一 章' : '继 续', {
         variant: 'primary',
-        onClick: () => this.route(this.game.proceedSummary()),
+        onClick: () => {
+          this.hideOverlay();
+          this.route(this.game.proceedSummary());
+        },
       }),
     );
+    body.append(row);
+    this.overlay.append(body);
+    this.overlay.hidden = false;
   }
 
   // ---------- 结局 ----------
 
   renderEnding(): void {
-    this.skin('ending', 'ending');
+    // 最终结算改弹框(2026-10-17 拍板):与章末结算同口径,对局页原地压深色蒙版;
+    // 读档直落 ending 相位时先补出底层卷轴与皮肤
+    this.skin('game', 'game');
+    this.ensureStory([]);
     this.renderTop();
-    this.clearMain();
-    this.clearOpts();
     const e = this.game.ending;
-    const body = this.proseBody();
-    this.main.append(body);
-    if (!e) {
-      body.append(lbl('局终。', 'u-dim'));
-      return;
-    }
+    if (!e) return;
+    // 结局「太史公曰」配音:ending_<id>[_<变体>](2026-10-17 合并口径)
+    this.speakOne(`ending_${e.id}${e.variant ? `_${e.variant}` : ''}`);
 
     // 结局落地(对齐 Lua game.lua renderEnding):跨局收藏写回(含结局达成记录),
     // 并清掉该剧本的自动档 —— 已结束的局不该再从「继续旅程」里复活。在这里做而
     // 不是在退出时做,是因为玩家可能直接停在结局页关掉浏览器。
     const prog = recordEnding(this.game);
     clearAutos(this.scenKey);
+
+    clear(this.overlay);
+    this.overlay.className = 'overlay overlay--dim';
+    const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--ending');
 
     body.append(lbl(`〔${e.seal} · ${e.diffName}〕`, 'u-zhu u-center chapter__sub'));
     body.append(lbl(e.name, 'page-title'));
@@ -1000,7 +1222,17 @@ export class Session {
     if (e.zhuan) body.append(lbl(e.zhuan, 'prose u-qing'));
     if (e.epilogue) body.append(this.prose(e.epilogue, 'prose u-qing'));
 
-    this.opts.append(btn('返 回 主 页', { variant: 'primary', onClick: () => this.onFinish?.() }));
+    const btnRow = el('div', 'overlay__row');
+    btnRow.append(btn('返 回 主 页', {
+      variant: 'primary',
+      onClick: () => {
+        this.hideOverlay();
+        this.onFinish?.();
+      },
+    }));
+    body.append(btnRow);
+    this.overlay.append(body);
+    this.overlay.hidden = false;
   }
 
   // ---------- 章末事件 ----------
@@ -1014,6 +1246,8 @@ export class Session {
       return;
     }
     this.ensureStory(ev.segs ?? []);
+    // 章末事件配音:segs 已合并为一条 <事件id>(如 cj-yaojia,2026-10-17 合并口径)
+    this.speakOne(ev.id);
     const { body } = this.pushSec(ev.title);
     body.append(el('div', 'rule'));
 
@@ -1021,20 +1255,25 @@ export class Session {
     // 且等剧情渐显完再挂,免得没读完就点了
     const items = (ev.segs ?? []).map((seg) => this.prose(seg));
     this.revealSegs(body, items, () => {
+      const dock = this.dock();
       for (let i = 0; i < ev.options.length; i += 1) {
         const o = ev.options[i];
         if (!o) continue;
+        // 门槛 = req 硬门槛 + 财富见底锁(2026-10-16:财富 ≤ 0 时扣财选项不可执行)
         const gate = this.reqCheck(o.req);
+        const broke = this.game.attrs.caifu <= 0 && ((o.eff?.attrs?.caifu ?? 0) < 0);
+        const ok = gate.ok && !broke;
+        const reason = gate.ok ? (broke ? '财富见底，无力为之' : null) : gate.reason;
         const cardBody = el('div', 'card__body');
         cardBody.append(lbl(o.t, 'card__title u-kai'));
-        if (!gate.ok) cardBody.append(el('div', 'card__lock u-zhu', `🔒 ${gate.reason ?? ''}`));
+        if (!ok) cardBody.append(el('div', 'card__lock u-zhu', `🔒 ${reason ?? ''}`));
         const c = card({
-          cls: `card--opt${gate.ok ? ' card--tappable' : ''}`,
-          locked: !gate.ok,
+          cls: `card--opt${ok ? ' card--tappable' : ''}`,
+          locked: !ok,
           onClick: () => this.doEndEventChoose(i),
         });
         c.append(cardBody);
-        body.append(c);
+        dock.append(c);
       }
       this.scrollMainBottom();
     });
@@ -1054,7 +1293,7 @@ export class Session {
       body.append(list);
       this.flyChanges(list);
     }
-    body.append(btn('继 续', {
+    this.dock().append(btn('继 续', {
       variant: 'primary',
       onClick: (e) => {
         // 一次性按钮:小节收起后按钮仍留在 DOM,重复点击会在新相位里误触 proceed
@@ -1076,6 +1315,9 @@ export class Session {
 
   private renderCorrection(c: { title: string; segs: string[]; changes?: ChangeView[] } | null | undefined): void {
     this.showSettle(`历史修正 ｜ ${c?.title ?? ''}`, (c?.segs ?? []).join(''), c?.changes ?? []);
+    // 修正配音:corr_<N>,N 是 CORRECTIONS 里的下标(修正浮层不带 id,按 title 反查)
+    const idx = c ? this.game.d.CORRECTIONS.findIndex((corr) => corr.title === c.title) : -1;
+    if (idx >= 0) this.speakOne(`corr_${idx}`);
     this.pendingAfterSettle = () => this.route(this.game.correctionContinue());
   }
 
@@ -1097,7 +1339,7 @@ export class Session {
       else this.renderEvent();
       return;
     }
-    // 选定即翻:其余行动卡翻背面,这张留正面到下回合发牌前(2026-10-16 拍板);
+    // 选定即翻:其余行动卡翻背面,这张留正面到结算动画收尾才翻(2026-10-17 拍板);
     // key 不占底部选项位(是文本区提示条),无卡可翻
     this.flipOpts(cardEl ?? null);
     if (r.kind === 'choice') {
@@ -1105,7 +1347,7 @@ export class Session {
       return;
     }
     // xushi 不走这里(走 doXushi)
-    this.afterCardSettle(r, cardName);
+    this.afterCardSettle(r, cardName, cardEl ?? null);
   }
 
   private doChoose(i: number): void {
@@ -1116,8 +1358,11 @@ export class Session {
       this.thaw('这个选项眼下走不通（已试过或条件已变）。');
       return;
     }
-    // 选项结果配音:选了第 i 个(0 起)就播 <事件id>_o<i+1>
-    if (this.game.eventId && !r.forcedEnding) this.speakOne(`${this.game.eventId}_o${i + 1}`);
+    // 选项结果配音:只有危机事件(C-*)有结算切片 crisis_<id>_o<N>;
+    // 主线/随机事件的选项结算不配音(2026-10-17 拍板)
+    if (this.game.eventId?.startsWith('C-') && !r.forcedEnding) {
+      this.speakOne(`crisis_${this.game.eventId}_o${i + 1}`);
+    }
     // 险招要亮骰点(Lua 的 riskTitle):掷骰 63 ＞ 50 · 败 / 硬核的「成算五成 · 败」。
     const title = [
       r.risk ? this.game.riskTitle(r) : '',
@@ -1135,8 +1380,8 @@ export class Session {
       this.route(this.game.proceed());
       return;
     }
-    // 事件落定:先摘走内联选项卡(结果续在其后,旧卡不留),选项区回到卡背占位(2026-10-15)
-    for (const c of Array.from(host.body.querySelectorAll('.card--opt'))) c.remove();
+    // 事件落定:先摘走停靠带(结果续进小节正文,旧选项不留),选项区回到卡背占位(2026-10-15)
+    this.clearDock();
     // 有选定牌时选项区不动(它留到下回合发牌前才翻);否则回到卡背占位
     if (!this.opts.querySelector('.card--action.is-chosen')) this.idleOpts();
     const appendResult = (): void => {
@@ -1157,14 +1402,14 @@ export class Session {
         host.body.append(list);
         this.flyChanges(list);
       }
-      this.renderEventOptsInline(host.body);
+      this.renderEventOptsInline();
       this.scrollMainBottom();
       return;
     }
     appendResult();
     this.sealHead(host.head, optText, r.changes);
     this.evtHost = null;
-    host.body.append(btn('继 续', {
+    this.dock().append(btn('继 续', {
       variant: 'primary',
       onClick: (e) => {
         // 一次性按钮:小节收起后按钮仍留在 DOM,重复点击会在新相位里误触 proceed
@@ -1176,11 +1421,11 @@ export class Session {
   }
 
   /** 偶遇/随机事件的内联结算:结果直接续在事件小节正文后(不再单开「结果」小节),
-   * 属性增减以胶囊封进题签;险招失败可原地重选(失败回显暂写正文,落定才封题签) */
+   * 属性增减以胶囊封进题签;险招失败可原地重选(失败回显暂写正文,落定才封题签)。
+   * 落定后不再有「继 续」钮(2026-10-17 拍板):结果亮出后自动推进。 */
   private doChooseInline(r: CardResult, evtBody: HTMLElement, title: string): void {
-    for (const c of Array.from(evtBody.querySelectorAll('.card--opt'))) c.remove();
+    this.clearDock();
     const appendResult = (host: HTMLElement): void => {
-      // 剧情与结果之间一道金线分层
       host.append(el('div', 'rule'));
       if (title) host.append(lbl(title, 'u-warn u-strong'));
       host.append(this.prose(r.text));
@@ -1193,33 +1438,35 @@ export class Session {
         evtBody.append(list);
         this.flyChanges(list);
       }
-      this.renderEventOptsInline(evtBody);
+      this.renderEventOptsInline();
       this.scrollMainBottom();
       return;
     }
     appendResult(evtBody);
     this.sealHead(this.evtHost?.head ?? null, '', r.changes);
-    const contBtn = btn('继 续', {
-      variant: 'primary',
-      onClick: (e) => {
-        (e.currentTarget as HTMLButtonElement).remove();
-        this.route(this.game.proceed());
-      },
-    });
-    evtBody.append(contBtn);
     this.inlineEvtBody = null;
     this.evtHost = null;
     this.scrollMainBottom();
+    // 自动推进:留足一拍给玩家看清逐条飞字与右栏高亮(2026-10-17 二拍放慢);
+    // 令牌防止回溯/离场后旧定时器误触
+    const token = (this.settleToken += 1);
+    window.setTimeout(() => {
+      if (token !== this.settleToken) return;
+      this.route(this.game.proceed());
+    }, 2600);
   }
 
   private doChooseCardOpt(i: number): void {
-    // 选项文本要在 choose 前取:题签封「——所选」用
+    // 选项文本与卡 id 要在 choose 前取(落定后 getChoiceCard 可能已变):题签封「——所选」、结算配音用
+    const cardId = this.game.getChoiceCard()?.id ?? '';
     const optText = this.game.getChoiceCard()?.options[i]?.t ?? '';
     const r = this.game.chooseCardOption(i);
     if (!r) {
       this.thaw('这一抉择眼下走不通（状态已变）。');
       return;
     }
+    // 抉择卡结算配音:choice_<id>_o<N>(2026-10-17 合并口径)
+    if (cardId) this.speakOne(`choice_${cardId}_o${i + 1}`);
     // 抉择落定:结果续进抉择小节正文,题签封「——所选 +属性胶囊」,不新开小节、不弹浮层
     const host = this.choiceHost;
     // 底部选项区不动:其余卡在出牌时已翻背面,选中的留到下回合发牌前(2026-10-16 拍板)
@@ -1227,8 +1474,8 @@ export class Session {
       this.routeAfterCard(r);
       return;
     }
-    // 先摘走内联选项卡(含「且搁置」),结果续在其后,旧卡不留(2026-10-16 内联化)
-    for (const c of Array.from(host.body.querySelectorAll('.card--opt'))) c.remove();
+    // 先摘走停靠带(含「且搁置」),结果续进抉择小节正文(2026-10-16 内联化)
+    this.clearDock();
     // 剧情与结果之间一道金线分层
     host.body.append(el('div', 'rule'));
     if (r.risk) this.diceTitle(host.body, this.game.riskTitle(r));
@@ -1236,7 +1483,7 @@ export class Session {
     if (r.achNew) host.body.append(lbl(r.achNew, 'intro-note u-gold'));
     this.sealHead(host.head, optText, r.changes);
     this.choiceHost = null;
-    host.body.append(btn('继 续', {
+    this.dock().append(btn('继 续', {
       variant: 'primary',
       onClick: (e) => {
         (e.currentTarget as HTMLButtonElement).remove();
@@ -1254,30 +1501,67 @@ export class Session {
       this.thaw('蓄势只在一个关键事件内生效一次。');
       return;
     }
-    // 与行动卡同口径:其余卡翻背面,蓄势卡留到下回合发牌前(2026-10-16 拍板)
+    // 与行动卡同口径:其余卡翻背面,蓄势卡留到结算动画收尾才翻(2026-10-17 拍板)
     this.flipOpts(xcard ?? null);
-    this.afterCardSettle(r, '蓄势 · 静观其变');
+    this.afterCardSettle(r, '蓄势 · 静观其变', xcard ?? null);
   }
 
-  /** 行动/蓄势牌的收尾:新开「经营 · 第N轮——卡名」小节内联结算(2026-10-14 起不再弹浮层);
-   * 轮数在此递增——只有真正做了经营动作,卷轴上才出现这一轮 */
-  private afterCardSettle(r: CardResult, cardName: string): void {
-    // 结算期间底部不再铺卡背占位:其余卡已在出牌时翻背面,
-    // 选中的留正面到下回合发牌前(2026-10-16 拍板),继续钮内联在正文里
-    const { body, head } = this.pushSec(`经营 · 第 ${(this.roundNo += 1)} 轮——${cardName}`);
-    // 险招优先亮骰点(对齐 Lua:卡名让位给 riskTitle),带摇骰动画
-    if (r.risk) this.diceTitle(body, this.game.riskTitle(r));
-    body.append(this.prose(r.text));
-    if (r.achNew) body.append(lbl(r.achNew, 'intro-note u-gold'));
-    this.sealHead(head, '', r.changes);
-    body.append(btn('继 续', {
-      variant: 'primary',
-      onClick: (e) => {
-        (e.currentTarget as HTMLButtonElement).remove();
-        this.routeAfterCard(r);
-      },
-    }));
-    this.scrollMainBottom();
+  /**
+   * 行动/蓄势牌的收尾(2026-10-17 拍板版,不再有「继 续」钮):
+   * 出牌残影先飞进文本区,落定后新开「经营 · 第N轮——卡名」小节——
+   * 题签渐入 → 正文逐行渐显 → 属性变化列在文本之下并逐条飞向右栏对应行
+   * (右栏先翻到新值,行级高亮 + 数值弹出) → 选中的卡翻回背面 → 自动推进。
+   * 轮数在此递增——只有真正做了经营动作,卷轴上才出现这一轮。
+   * 读档恢复走 resume() 的 settle 分支直接 proceed,这套动画只在正常打牌路径播。
+   */
+  private afterCardSettle(r: CardResult, cardName: string, cardEl: HTMLElement | null = null): void {
+    // 结算期间底部不再铺卡背占位:其余卡已在出牌时翻背面,选中的留正面到收尾才翻
+    const token = (this.settleToken += 1);
+    // 轮数在出牌成功时即刻递增,不等飞卡落定:存档/暂存以 roundNo 判定进度,
+    // 残影窗口(560ms)里离场不能丢掉这一轮
+    const round = (this.roundNo += 1);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const begin = (): void => {
+      if (token !== this.settleToken) return;
+      const { body, head } = this.pushSec(`经营 · 第 ${round} 轮——${cardName}`);
+      // 题签渐入:飞卡落定后标题先浮出,正文再逐行来
+      head?.classList.add('is-enter');
+      // 险招优先亮骰点(对齐 Lua:卡名让位给 riskTitle),带摇骰动画
+      if (r.risk) this.diceTitle(body, this.game.riskTitle(r));
+      const items: HTMLElement[] = [this.prose(r.text)];
+      if (r.achNew) items.push(lbl(r.achNew, 'intro-note u-gold'));
+      this.revealSegs(body, items, () => {
+        if (token !== this.settleToken) return;
+        // 文本落定:题签封属性胶囊(题签历史的锚),属性变化清单列在文本之下
+        this.sealHead(head, '', r.changes, { fly: false });
+        const list = this.chgList(r.changes);
+        if (list) {
+          body.append(list);
+          // 右栏先翻到新值,飞字落点即新数值所在行;is-flash 做整行高亮 + 数值弹出
+          this.renderTop();
+          this.flyChanges(list);
+        }
+        this.scrollMainBottom();
+        // 收尾:飞字落定后选中的卡翻回背面,翻面半程后自动推进到下一相位
+        window.setTimeout(() => {
+          if (token !== this.settleToken) return;
+          const chosen = this.opts.querySelector<HTMLElement>('.card--action.is-chosen');
+          if (chosen) this.flipCardToBack(chosen);
+          window.setTimeout(() => {
+            if (token !== this.settleToken) return;
+            this.routeAfterCard(r);
+          }, chosen && !reduce ? 560 : 0);
+        }, list && !reduce ? 2100 : 120);
+      });
+      this.scrollMainBottom();
+    };
+    // 有出牌残影时等它落定(560ms)再开结算小节,视觉上是「卡飞进卷轴、卷起一段新文书」
+    if (cardEl && !reduce) {
+      this.flyCardGhost(cardEl);
+      window.setTimeout(begin, 560);
+    } else {
+      begin();
+    }
   }
 
   /** 牌落定后的相位路由:强制结局 > 强制关键事件 > 引擎给的路由(默认回回合) */
@@ -1351,10 +1635,12 @@ export class Session {
   /**
    * 读档恢复(v2.2.0 轮次存档):引擎 importSave 已把状态摆回存档那一刻,
    * 这里按相位把页面渲染回同一位置;roundNo 随槽位元数据写回。
+   * ui(v2.3.0)是存档时刮下的题签历史:先把它作为已收起的小节铺回卷轴,
+   * 再渲染当前相位 —— 读档不该把玩家已经走过的经营轮次从卷轴上抹掉。
    * 旧版章首档(v1)经 importSave 落在 intro 相位,走 renderIntro,行为同旧。
    * settle 相位是「结算已出、待推进」,直接 proceed 到下一相位(结算回显不重播)。
    */
-  resume(roundNo = 0): void {
+  resume(roundNo = 0, ui?: SecRec[]): void {
     this.roundNo = roundNo;
     const g = this.game;
     switch (g.phase) {
@@ -1384,6 +1670,9 @@ export class Session {
         this.renderIntro();
         break;
     }
+    // 题签历史在相位渲染之后铺:章首/结算会整页重建,先渲染再插到 live 小节之前,
+    // 才不会被 clearMain 抹掉
+    this.restoreHistory(ui);
   }
 
   /**

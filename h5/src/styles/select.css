@@ -38,7 +38,8 @@
 .seltop__logo {
   display: flex;
   align-items: center;
-  gap: 1.1vh;
+  /* 圆纹与文字间距:0(2026-10-17 拍板,素材自带留白) */
+  gap: 0;
 }
 .seltop__emblem {
   /* 圆徽 400×400,高 = 书法标题高的 2/3(拍板);
@@ -75,6 +76,19 @@
 }
 
 /* ---------- 主体行 ---------- */
+/* ---------- 页首标题(全站统一 .page-title/.page-rule,2026-10-17 拍板加入) ----------
+ * 绝对定位脱出文档流:主体行(.selscen 的 --cardH 算式)按满视口高推导,
+ * 标题若占位会把难度条/漩涡顶出屏底 */
+.selhead {
+  position: absolute;
+  top: 3vh;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .selrow {
   flex: 1 1 auto;
   min-height: 0;
@@ -199,6 +213,14 @@
   display: flex;
   flex-direction: column;
 }
+/* 朝代切换:右栏整体淡入(select.ts 在 onChange 时重挂此类) */
+.selright.is-swap {
+  animation: selright-swap 0.9s ease both;
+}
+@keyframes selright-swap {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* ---------- 剧本卡:手风琴 + 抽屉(2026-10-15 改版) ---------- */
 .selscen {
@@ -316,8 +338,8 @@
   transition: font-size 0.38s ease;
 }
 .scard2.is-on .scard2__name {
-  color: var(--zhu);
-  font-size: 3vh;
+  /* 选中:字号不变,颜色改金(2026-10-17 拍板,原朱红+放大) */
+  color: var(--gold);
 }
 
 /* 准备中(未开卷朝代):占满舞台高度 */
@@ -325,25 +347,27 @@
 /* 外壳做高度动画(0 → 24vh),内容横排居中,像从卡条下方展开;无背景框(拍板摘除) */
 .seldrawer {
   flex: 0 0 auto;
-  /* 2026-10-15 拍板:难度区域从卡条下缘再稍稍往下挪 */
-  margin-top: 2.6vh;
+  /* 2026-10-15 拍板:难度区域从卡条下缘再稍稍往下挪;10-17 多次微调(→ 3vh) */
+  margin-top: 3vh;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   transition: max-height 0.38s ease, opacity 0.3s ease;
 }
 .seldrawer.is-open {
-  max-height: 24vh;
+  max-height: 30vh;
   opacity: 1;
 }
 .seldrawer__in {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  /* 顶对齐:胶囊在胶囊列(capsule+注释)的顶部,漩涡用 margin-top 对准胶囊中心;
+     padding-top 给漩涡超出胶囊中心的上方部分留位,免得被 .seldrawer 的 overflow 裁掉 */
+  padding-top: max(0px, calc((120px - var(--collapsedW) * 151 / 560) / 2));
+  align-items: flex-start;
   justify-content: center;
   flex-wrap: wrap;
   gap: 3.2vh;
-  padding: 0.6vh 0 0;
 }
 .seldrawer__caps {
   display: flex;
@@ -368,10 +392,12 @@
   line-height: 1.4;
 }
 .seldrawer .selenter {
-  width: 6.5vh;
-  height: 6.5vh;
-  /* 「入 局」标签悬在按钮正下方(top:100%),预留它的高度,免得被 overflow 裁掉 */
-  margin-bottom: 4vh;
+  /* 固定 120px(2026-10-17 拍板);margin-top 把漩涡中心对齐到左边难度胶囊的中心
+     (胶囊高 = 宽 × 151/560),再往右挪(行 gap 3.2vh + 这里 9vh) */
+  width: 120px;
+  height: 120px;
+  margin-top: calc((var(--collapsedW) * 151 / 560 - 120px) / 2);
+  margin-left: 9vh;
 }
 
 /* ---------- 难度胶囊(横排条内横排) ---------- */
@@ -389,9 +415,7 @@
   justify-content: center;
   transition: transform 0.16s ease;
 }
-.seldiff__cap:hover {
-  transform: translateY(-4px);
-}
+/* 交互与全站按钮统一(base.css 共享规则:hover 放大 1.05) */
 .seldiff__cap.is-on {
   background-image: url('../assets/lua/diff-on.webp');
 }
@@ -414,12 +438,13 @@
   background: none;
   cursor: pointer;
   overflow: visible;
+  transition: transform 0.16s ease;
 }
 .selenter__spin {
   position: absolute;
   inset: 0;
   display: block;
-  /* 反向自转:spin -0.70 rad/s → 一周约 9s */
+  /* 正向自转:一周约 9s(2026-10-17 拍板由反转改为正转) */
   animation: selspin 8.98s linear infinite;
   will-change: transform;
 }
@@ -432,39 +457,27 @@
 }
 @keyframes selspin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+  to { transform: rotate(360deg); }
 }
 @keyframes selbreath {
   0%, 100% { transform: scale(0.978); }
   50% { transform: scale(1.022); }
 }
 .selenter__lbl {
+  /* 「开始」白色常显,悬在漩涡正中(2026-10-17 拍板) */
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
   font-family: var(--font-kai);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: var(--ink-soft);
-  letter-spacing: 0.3em;
-  /* 横排条里漩涡只有 6.5vh 宽,字加字距会折行;强制一行、向两边自然溢出 */
+  color: #fff;
+  letter-spacing: 0.1em;
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.22s ease;
+  text-shadow: 0 1px 6px rgba(60, 42, 10, 0.65);
   pointer-events: none;
-}
-.selenter:hover .selenter__lbl,
-.selenter:focus-visible .selenter__lbl {
-  opacity: 1;
-}
-/* 触屏无 hover:「入 局」操作提示常显(2026-10-14 用户拍板) */
-@media (hover: none) {
-  .selenter__lbl {
-    opacity: 1;
-  }
 }
 
 /* ---------- 窄屏:纵排滚动 ---------- */
@@ -517,11 +530,5 @@
   .scard2__name {
     font-size: 1.5vh;
   }
-  .scard2.is-on .scard2__name {
-    font-size: 1.9vh;
-  }
-  .seldrawer .selenter {
-    width: 7.5vh;
-    height: 7.5vh;
-  }
+  /* 窄屏选中态字号同样不变(仅颜色变金,继承上方 .scard2.is-on 规则) */
 }

@@ -8,6 +8,9 @@
  *   中心盘垫在环图之下(环带内缘压住盘边),内容切换等轮盘停稳后淡入;
  * - 拖拽跟手 → 松手惯性 → 欠阻尼弹簧吸附(冲过再回摆)→ 整体归位;
  *   拖拽位移极小视为点击,按点到的方位直接选;中心盘为中枢死区。
+ * - 空闲巡游:20s 无任何点击后盘面顺时针 3°/s 自转(朝代名固定不动),
+ *   指针扫入左上触发区即按 秦→汉→唐→宋→明 顺序选中下一朝代(指针顺势
+ *   继续顺时针摆到新朝代名上);选中后继续巡游,直到任意点击打断。
  *
  * 与 Lua 的差异只在渲染层:NanoVG 即时绘制换成 DOM + CSS transform,
  * 每帧只写 transform/位置,不重排布局。
@@ -51,8 +54,15 @@ const RE_TAU = 0.6;
 const RE_SNAP = 0.002;
 const POINT_K = 62.0;
 const POINT_C = 15.0;
+// 空闲巡游:无点击 AUTO_IDLE_MS 后启动,盘面顺时针 AUTO_SPEED(rad/s,屏幕 y 向下正角即顺时针),
+// 朝代名固定不动;指针扫入左上 TRIGGER_ANG 附近 TRIGGER_WIN(step 比例)窗口即自动选中所指朝代。
+// 测试钩子:window.__QS_WHEEL_AUTO_IDLE__(毫秒)/ __QS_WHEEL_AUTO_SPEED__(度每秒),正数生效。
+const AUTO_IDLE_MS = 20000;
+const AUTO_SPEED = Math.PI / 60;
+const TRIGGER_ANG = TOP - Math.PI / 4;
+const TRIGGER_WIN_RATIO = 0.12;
 
-type Phase = 'idle' | 'drag' | 'settle' | 'point' | 'reorient';
+type Phase = 'idle' | 'drag' | 'settle' | 'point' | 'reorient' | 'auto';
 
 export function createWheel(opts: {
   items: WheelItem[];
@@ -79,6 +89,25 @@ export function createWheel(opts: {
   /** 中心盘内容待刷新:等轮盘停稳(归位完成)再淡入切换(2026-10-15 拍板) */
   let diskDirty = false;
   const reFrom = { base: 0, nameOff: 0 };
+
+  // ---------- 空闲巡游 ----------
+  const win = window as unknown as { __QS_WHEEL_AUTO_IDLE__?: number; __QS_WHEEL_AUTO_SPEED__?: number };
+  const autoIdleMs = typeof win.__QS_WHEEL_AUTO_IDLE__ === 'number' && win.__QS_WHEEL_AUTO_IDLE__ > 0
+    ? win.__QS_WHEEL_AUTO_IDLE__ : AUTO_IDLE_MS;
+  const autoSpeed = typeof win.__QS_WHEEL_AUTO_SPEED__ === 'number' && win.__QS_WHEEL_AUTO_SPEED__ > 0
+    ? win.__QS_WHEEL_AUTO_SPEED__ * Math.PI / 180 : AUTO_SPEED;
+  const triggerWin = step * TRIGGER_WIN_RATIO;
+  /** 巡游中标志;选中归位后仍 true 会立即继续巡游,直到任意点击打断 */
+  let attract = false;
+  /** 最近一次任意点击的时间(performance.now 与 rAF ts 同时钟) */
+  let lastInteract = performance.now();
+  function onAnyPointer(): void {
+    attract = false;
+    lastInteract = performance.now();
+    // 正在巡游时点击:不归选新项,平滑归位回当前朝代
+    if (phase === 'auto') beginReorient();
+  }
+  document.addEventListener('pointerdown', onAnyPointer, true);
 
   // ---------- DOM ----------
   const root = el('div', 'dwheel');
@@ -254,6 +283,20 @@ export function createWheel(opts: {
     const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0;
     last = ts;
     if (dt > 0 && phase !== 'drag') {
+      if (phase === 'idle') {
+        if (!attract && ts - lastInteract >= autoIdleMs) attract = true;
+        if (attract) phase = 'auto';
+      }
+      if (phase === 'auto') {
+        // 只转盘面(指针),朝代名固定在各自方位不动;
+        // 指针扫入左上触发窗即按顺序选下一朝代(秦→汉→唐→宋→明),
+        // point 相会让指针顺势继续顺时针摆到新朝代名上,全程不反转
+        base += autoSpeed * dt;
+        if (Math.abs(angDiff(pointerAng(), TRIGGER_ANG)) < triggerWin) {
+          // 内部触发不重置巡游计时:归位后继续巡游
+          select((index + 1) % items.length);
+        }
+      }
       if (phase === 'settle') {
         if (Math.abs(baseVel) > 0.05) {
           base += baseVel * dt;
@@ -318,11 +361,17 @@ export function createWheel(opts: {
 
   return {
     el: root,
-    select,
+    // 外部指定(点击/程序调用)视为一次交互:打断巡游并重置空闲计时
+    select(i: number): void {
+      attract = false;
+      lastInteract = performance.now();
+      select(i);
+    },
     get index() { return index; },
     destroy() {
       alive = false;
       cancelAnimationFrame(raf);
+      document.removeEventListener('pointerdown', onAnyPointer, true);
       root.remove();
     },
   };

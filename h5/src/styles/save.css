@@ -1,8 +1,11 @@
 /* ============================================================================
- * 存档页
+ * 存档页 v2(2026-10-16 第三次拍板,对齐 assets/image/save/ 参考素材)
  *
- * 版式:标题 + 金线 + 剧本选项卡 + 槽位列。
- * 槽位行用 panel/save-tab.webp 作底(带右侧菱形箭头)。
+ * 版式:标题 + 金线;左栏立绘卡(封面 + save/frame 金线外框)+ 5 枚缩略图;
+ * 右栏摘要条(save/bar,「硬核难度不可存档」提示跟在剧名后)+ 6 槽位
+ * (save/slot | save/slot-empty)或空态引导卡(save/guide)+ 暂存区(暂字
+ * save/badge-temp,题签与说明同行)。
+ * 面板底图全部走 border-image 九宫格拉伸;按钮用 save/btn-gold / btn-plain。
  * ==========================================================================*/
 
 /* ---------- 提示条 ---------- */
@@ -30,93 +33,229 @@
   gap: var(--sp-md);
   height: 100%;
   padding: var(--sp-lg) var(--sp-xl);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* ---------- 标题 ----------
- * 标题与分隔线样式已统一为 base.css 的 .page-title / .page-rule(2026-10-16 拍板) */
+ * 标题与分隔线样式统一为 base.css 的 .page-title / .page-rule */
 .saves__head {
   position: relative;
   text-align: center;
+  flex: none;
 }
 .saves__hint {
   font-size: var(--fs-cap);
   color: var(--ink-dim);
 }
 
-/* ---------- 剧本选项卡 ---------- */
-.saves__tabs {
+/* ---------- 主体两栏 ---------- */
+.saves__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--sp-xl);
+  align-items: stretch;
+}
+
+/* ---------- 左栏:立绘卡 + 缩略图 ---------- */
+.saves__left {
+  flex: none;
+  width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+  min-height: 0;
+}
+
+/* 立绘卡:封面铺底,金线外框压顶,底部渐变上叠字。
+ * 尺寸只由栏宽推导(flex 布局下 aspect-ratio + flex-grow 会让宽度溢出栏位,
+ * 压住右栏——2026-10-17 截图复查踩过),高度随比例走 */
+.saves__portrait {
+  position: relative;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 7 / 9;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  box-shadow: 0 0.6rem 1.6rem rgba(42, 37, 29, 0.25);
+}
+.saves__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.saves__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.saves__plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--sp-lg) var(--sp-md) var(--sp-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: linear-gradient(to top, rgba(26, 22, 18, 0.78) 0%, rgba(26, 22, 18, 0.45) 55%, transparent 100%);
+  text-shadow: 0 1px 2px rgba(26, 22, 18, 0.6);
+}
+.saves__plate .txt {
+  color: #f2ead8;
+}
+.saves__name {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: 0.35em;
+}
+.saves__era {
+  font-size: var(--fs-note);
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+.saves__status {
+  font-size: var(--fs-cap);
+  letter-spacing: 0.1em;
+  opacity: 0.85;
+  color: var(--gold-hi) !important;
+}
+
+/* 缩略图排:5 枚,save/thumb(-on) 细金线/朱框 */
+.saves__thumbs {
+  flex: none;
   display: flex;
   gap: var(--sp-xs);
-  justify-content: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
 }
 .stab {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: var(--sp-xs) var(--sp-lg) var(--sp-xs) var(--sp-md);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--paper-card);
+  width: 3.4rem;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  color: var(--ink-soft);
-  transition: border-color 0.15s ease;
+  transition: transform 0.16s ease;
 }
-.stab:hover {
-  border-color: var(--gold);
+.stab__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  /* 常态细金线框(save/thumb):九宫格拉伸,角饰不糊 */
+  border-image: url('../assets/save/thumb.webp') 12 fill / 4px stretch;
+  filter: saturate(0.55) brightness(0.92);
+  transition: filter 0.15s ease;
 }
-.stab.is-on {
-  border-color: var(--gold);
-  background: var(--paper-card-sel);
-  color: var(--zhu);
+.stab.is-on .stab__img {
+  border-image-source: url('../assets/save/thumb-on.webp');
+  filter: none;
+  /* 选中高光(2026-10-17 拍板):金色外晕 + 提亮 */
+  box-shadow: 0 0 0.55rem rgba(196, 160, 90, 0.85), 0 0 1.2rem rgba(196, 160, 90, 0.35);
+  filter: brightness(1.08);
 }
-.stab__name {
-  font-family: var(--font-kai);
-  font-size: var(--fs-ui);
-  letter-spacing: 0.1em;
-}
-.stab__cnt {
-  font-size: var(--fs-cap);
-  color: var(--ink-dim);
-}
-/* 右侧小箭头装饰 */
-.stab__arrow {
+/* 选中点:朱点压右上角(对齐参考图) */
+.stab.is-on::after {
+  content: '';
   position: absolute;
-  right: -0.5rem;
-  top: 50%;
-  width: 0.75rem;
-  height: 0.75rem;
-  transform: translateY(-50%) rotate(45deg);
-  border-top: 1px solid var(--gold);
-  border-right: 1px solid var(--gold);
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--zhu);
+  box-shadow: 0 0 0 2px var(--paper-card);
+}
+/* 计数文字:存档链路测试要读它找「0 个档」页签,但不能显示在缩略图上
+ * (2026-10-17 拍板)——留在 DOM 里、视觉隐藏 */
+.stab .stab__cnt {
+  display: none;
 }
 
-/* ---------- 槽位 ---------- */
+/* ---------- 右栏 ---------- */
+.saves__right {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  overflow-y: auto;
+  padding-right: var(--sp-xs);
+}
+
+/* 摘要条(save/bar 九宫格) */
+.saves__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  padding: var(--sp-sm) var(--sp-lg);
+  border-image: url('../assets/save/bar.webp') 30 fill / 12px stretch;
+}
+.saves__barl {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  min-width: 0;
+}
+.saves__barname {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: var(--ink-heavy);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.saves__barhint {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.saves__barr {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-xs);
+  flex: none;
+}
+.saves__barcap {
+  font-size: var(--fs-cap);
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+}
+.saves__barnum {
+  font-size: var(--fs-title);
+  color: var(--ink-strong);
+}
+.saves__barfar {
+  font-size: var(--fs-ui);
+  color: var(--zhu);
+}
+
+/* ---------- 槽位(save/slot | save/slot-empty 九宫格) ---------- */
 .saves__list {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: var(--sp-xs);
-  max-width: 46rem;
-  margin: 0 auto;
-  width: 100%;
 }
 .slot {
   display: grid;
-  grid-template-columns: 2rem 1fr auto;
+  grid-template-columns: 2.2rem 1fr auto;
   align-items: center;
   gap: var(--sp-sm);
-  padding: var(--sp-xs) var(--sp-sm);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-sm);
-  background: var(--paper-card);
+  padding: var(--sp-xs) var(--sp-md);
+  /* 空档与有档同高(2026-10-17 拍板):两行题签 + 上下边距实测 3.1rem */
+  min-height: 3.1rem;
+  border-image: url('../assets/save/slot.webp') 32 fill / 12px stretch;
 }
 .slot.is-empty {
-  background: transparent;
-  border-style: dashed;
-  border-color: var(--line);
+  border-image-source: url('../assets/save/slot-empty.webp');
 }
 .slot__idx {
   font-family: var(--font-kai);
@@ -133,61 +272,123 @@
   font-size: var(--fs-note);
   color: var(--ink);
 }
-.slot__meta {
-  font-size: var(--fs-cap);
-  color: var(--ink-dim);
-}
 .slot__acts {
   display: flex;
   gap: var(--sp-xs);
 }
-.slot__btn {
+/* 槽位按钮:btn-gold(读取/主) / btn-plain(删除/次),240x72 九宫格 */
+.saves .slot__btn,
+.saves .saves__start {
   min-width: 4.5rem;
-  padding: var(--sp-xs) var(--sp-sm);
+  padding: var(--sp-xs) var(--sp-md);
+  border: none;
+  background: transparent;
+  font-size: var(--fs-ui);
+  letter-spacing: 0.15em;
+}
+.saves .btn--primary {
+  border-image: url('../assets/save/btn-gold.webp') 20 fill / 10px 14px stretch;
+  /* hover 放大时 border-image 切片落在小数像素上会裂出细缝,
+   * 垫一层与贴图填充区同色的底,接缝就看不出来了(2026-10-17) */
+  background-color: #9f7630;
+  color: #fff8ea;
+  text-shadow: 0 1px 1px rgba(90, 60, 20, 0.5);
+}
+.saves .btn--ghost {
+  border-image: url('../assets/save/btn-plain.webp') 20 fill / 10px 14px stretch;
+  background-color: #fbf7f1;
+  color: var(--ink-soft);
+}
+
+/* ---------- 空态引导卡(save/guide 九宫格) ---------- */
+.saves__guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-xl) var(--sp-xl) var(--sp-lg);
+  border-image: url('../assets/save/guide.webp') 40 fill / 18px stretch;
+  text-align: center;
+}
+.saves__guideseal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: var(--r-sm);
+  background: rgba(138, 106, 52, 0.14);
+  border: 1px solid var(--line);
+  font-size: var(--fs-h2);
+  color: var(--ink-dim);
+}
+.saves__guidetitle {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--ink-heavy);
+  letter-spacing: 0.4em;
+}
+.saves__guiderule {
+  width: 6rem;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
+}
+.saves__guidetext {
   font-size: var(--fs-note);
-  letter-spacing: 0.1em;
-  border-image-width: 20px 24px;
-  border-image-slice: 38 44 38 44 fill;
+}
+.saves__guidehints {
+  font-size: var(--fs-cap);
+  letter-spacing: 0.05em;
+  border-top: 1px dashed var(--line-soft);
+  padding-top: var(--sp-sm);
+  margin-top: var(--sp-xs);
+}
+.saves__start {
+  font-size: var(--fs-ui) !important;
+  padding: var(--sp-sm) var(--sp-xl) !important;
 }
 
 /* ---------- 过滤为空 ---------- */
 .saves__empty {
   text-align: center;
   font-size: var(--fs-note);
-  padding: var(--sp-sm) 0;
+  padding: var(--sp-xs) 0;
 }
 
-/* ---------- 暂存区(2026-10-15):与槽位同版式,标题分隔 ---------- */
+/* ---------- 暂存区:题签复用摘要条剧名样式 + bar 同款边框,说明与题签同行 ---------- */
 .saves__stash {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: var(--sp-xs);
-  max-width: 46rem;
-  margin: var(--sp-md) auto 0;
-  width: 100%;
-  border-top: 1px solid var(--line-soft);
-  padding-top: var(--sp-sm);
+  border-top: 1px dashed var(--line-soft);
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-lg);
 }
-.saves__stash .saves__stashtitle {
-  font-size: var(--fs-title);
-  color: var(--ink-strong);
-  letter-spacing: 0.3em;
-  text-align: center;
-}
-.saves__stash .saves__hint {
-  text-align: center;
-  margin-bottom: var(--sp-xs);
+.saves__stashhead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-lg);
+  border-image: url('../assets/save/bar.webp') 30 fill / 12px stretch;
 }
 .slot--stash {
-  border-style: dashed;
+  border-image-source: url('../assets/save/slot-empty.webp');
 }
-.slot--stash .slot__idx {
-  font-size: var(--fs-ui);
-  color: var(--qing);
+.slot__idx--stash {
+  width: 2.2rem;
+  height: 1.3rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-note);
+  color: #f2ead8;
+  background: url('../assets/save/badge-temp.webp') center / 100% 100% no-repeat;
 }
 
 /* ---------- 删除二次确认浮层 ---------- */
-/* fixed 而非 absolute:.saves 自身可滚动,absolute 会跟着内容滚走 */
+/* fixed 而非 absolute:右栏可滚动,absolute 会跟着内容滚走 */
 .saves__confirm {
   position: fixed;
   inset: 0;
@@ -225,21 +426,38 @@
   justify-content: center;
 }
 
-/* ---------- 窄屏 ----------
- * (.page-title 的窄屏字号在 base.css 里统一收口) */
+/* ---------- 窄屏 ---------- */
 @media (max-width: 880px) {
   .saves {
     padding: var(--sp-sm);
     gap: var(--sp-sm);
+    overflow-y: auto;
   }
-  .saves__hint {
-    display: none;
+  .saves__body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .saves__left {
+    width: 100%;
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .saves__portrait {
+    flex: 1;
+    max-height: 14rem;
+  }
+  .saves__thumbs {
+    flex-direction: column;
+    justify-content: flex-start;
   }
   .stab {
-    padding: var(--sp-xs) var(--sp-sm);
+    width: 2.8rem;
+  }
+  .saves__right {
+    overflow: visible;
   }
   .slot {
-    grid-template-columns: 1.4rem 1fr;
+    grid-template-columns: 1.6rem 1fr;
   }
   .slot__acts {
     grid-column: 1 / -1;

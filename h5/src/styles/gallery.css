@@ -1,9 +1,10 @@
 /* ============================================================================
- * 青史图鉴(2026-10-16 按效果图重排)
+ * 青史图鉴(2026-10-17 对齐存档页重排:立绘卡 + 缩略图切换剧本)
  *
- * 版式:标题 + 金线;左栏三块九宫格 panel(收集总览环 / 印章收集条 / 筛选),
- * 右栏按剧本分节的结局卡片。已达成 = gallery-ecard 实线白底;
- * 未达成 = gallery-lock 虚线浅底,两卡同尺寸,筛选切换不跳动。
+ * 版式:标题 + 金线;左栏完全复用存档页 saves__left/saves__thumbs 一套;
+ * 右栏顶部聚合条(收集总览 + 印章收集,纯文字、紧凑),其下是当前选中剧本
+ * 的结局卡片。已达成 = gallery-ecard 实线白底;未达成 = gallery-lock 虚线
+ * 浅底,两卡固定同高。页面本体不滚动,结局列表自己出滚动条(对局页同款)。
  * 素材全部来自 assets/gallery/(交付透明 PNG,slice 值对着源图量过)。
  * ==========================================================================*/
 
@@ -15,11 +16,13 @@
   gap: var(--sp-md);
   height: 100%;
   padding: var(--sp-lg) var(--sp-xl);
-  overflow-y: auto;
+  /* 页面固定,滚动只发生在结局列表 */
+  overflow: hidden;
 }
 
 .gallery__head {
   position: relative;
+  flex: none;
   text-align: center;
 }
 .gallery__hint {
@@ -27,178 +30,136 @@
   color: var(--ink-dim);
 }
 
-/* ---------- 主体:左栏 | 右栏 ---------- */
+/* ---------- 主体:左栏立绘(存档页 saves__left 一套) | 右栏聚合 + 分节 ---------- */
 .gallery__body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-lg);
+  align-items: stretch;
+  gap: var(--sp-xl);
 }
-
-.gallery__side {
-  flex: 0 0 15rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-md);
+/* 立绘卡在栏内顶端对齐,别被 stretch 拉高 */
+.gallery__portrait {
+  flex: none;
 }
 .gallery__main {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-lg);
+  gap: var(--sp-md);
 }
 
-/* ---------- 左栏 panel:三块共用 gallery-panel 九宫格 ---------- */
+/* ---------- 聚合条:总览 + 印章收集 横排,紧凑 ---------- */
+.gallery__aggr {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-md);
+}
+.gallery__aggr .galpanel {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---------- 左栏 panel:两块共用 gallery-panel 九宫格 ---------- */
 .galpanel {
   border-image: url('../assets/gallery/gallery-panel.png') 40 fill;
   border-image-width: 14px;
   border-style: solid;
-  padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+  padding: var(--sp-xs) var(--sp-md) var(--sp-sm);
 }
 .galpanel__cap {
-  font-size: var(--fs-cap);
-  color: var(--ink-dim);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  color: var(--ink-soft);
   letter-spacing: 0.3em;
-  padding-bottom: var(--sp-xs);
-  margin-bottom: var(--sp-sm);
+  padding-bottom: 2px;
+  margin-bottom: var(--sp-xs);
   border-bottom: 1px solid var(--line-soft);
 }
 
-/* ---------- 收集总览环 ----------
- * ring-track.png 240×240:环带中心半径实测 106px、带宽约 12px,
- * SVG 弧按同一半径叠加,不为每个百分比出图(素材交付说明)。 */
-.galring {
-  position: relative;
-  width: 7.2rem;
-  height: 7.2rem;
-  margin: 0 auto;
-  background: url('../assets/gallery/ring-track.png') center / 100% 100% no-repeat;
+/* ---------- 收集总览(数字 + 宽进度条,同行) ---------- */
+.galstat {
+  padding: var(--sp-xs) 0;
 }
-.galring svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  /* 弧从 12 点位起笔 */
-  transform: rotate(-90deg);
-}
-.galring__arc {
-  fill: none;
-  stroke: var(--gold);
-  /* 240 底图里带宽 12px */
-  stroke-width: 12;
-  stroke-linecap: round;
-  /* 初值 0,数据到齐后由 JS 写 dasharray */
-  stroke-dasharray: 0 666;
-}
-.galring__center {
-  position: absolute;
-  inset: 0;
+.galstat__row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1px;
+  gap: var(--sp-sm);
 }
-.galring__pct {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--ink-heavy);
-}
-.galring__pctcap {
-  font-size: var(--fs-cap);
-}
-
-.galov__big {
-  text-align: center;
-  margin-top: var(--sp-xs);
-}
-.galov__big b {
+.galstat__n {
+  flex: none;
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--ink-heavy);
 }
-.galov__of {
+.galstat__of {
+  flex: none;
   font-size: var(--fs-title);
 }
-.galov__caps {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: var(--fs-cap);
-  margin-top: 2px;
-}
-
-/* ---------- 印章收集 ---------- */
-.galseal {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-xs);
-  padding: 2px 0;
-}
-.galseal__icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  flex: none;
-}
-.galseal__name {
-  flex: none;
-  width: 2.2em;
-  font-size: var(--fs-ui);
-  color: var(--ink-strong);
-}
-.galseal__track {
+/* 进度条复用对局页身外属性条(art.css .stage__side .kv .meter)的一套 */
+.galstat__track {
   flex: 1 1 auto;
-  height: 3px;
-  background: var(--line-soft);
-  border-radius: 2px;
+  height: 12px;
+  background: rgba(138, 106, 52, 0.16);
+  border-radius: 6px;
   overflow: hidden;
 }
-.galseal__fill {
+.galstat__fill {
   display: block;
   height: 100%;
   width: 0;
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--gold-hi), var(--gold));
+  border-radius: 6px;
   transition: width 0.5s ease;
+}
+
+/* ---------- 印章收集(图标 + n/m,五枚撑满整行与左侧进度条对齐) ---------- */
+.galseals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 区域整体往下让一档,与左侧面板视觉对齐 */
+  padding: var(--sp-md) 0 var(--sp-xs);
+}
+.galseal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.galseal__icon {
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: none;
 }
 .galseal__num {
   flex: none;
-  width: 3.2em;
-  text-align: right;
-  font-size: var(--fs-cap);
+  font-size: var(--fs-body);
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- 筛选 ---------- */
-.galfilter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-xs);
+/* ---------- 剧本分节 ----------
+ * 列表容器吃掉右栏剩余高度,自己滚动(对局页 prose-body 同款滚动条) */
+.gallery__secs {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: var(--sp-xs);
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
 }
-.galfilter__chip {
-  padding: 1px var(--sp-sm);
-  font-size: var(--fs-ui);
-  font-family: var(--font-kai);
-  color: var(--ink-soft);
+.gallery__secs::-webkit-scrollbar {
+  width: 6px;
+}
+.gallery__secs::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 3px;
+}
+.gallery__secs::-webkit-scrollbar-track {
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  cursor: pointer;
 }
-.galfilter__chip:hover {
-  color: var(--ink-strong);
-  border-color: var(--gold);
-}
-.galfilter__chip.is-on {
-  color: var(--zhu);
-  border-color: var(--zhu);
-  font-weight: 700;
-}
-
-/* ---------- 剧本分节 ---------- */
 .galsec__head {
   display: flex;
   align-items: baseline;
@@ -237,14 +198,15 @@
   gap: var(--sp-sm);
 }
 
-/* ---------- 结局卡 ---------- */
+/* ---------- 结局卡:固定同高,达成/未达成样式统一 ---------- */
 .galent {
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
   padding: var(--sp-xs) var(--sp-sm);
   min-width: 0;
-  min-height: 3.6rem;
+  height: 4.6rem;
+  box-sizing: border-box;
   border-image: url('../assets/gallery/gallery-ecard.png') 30 fill;
   border-image-width: 10px;
   border-style: solid;
@@ -296,9 +258,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 变体卡:从属缩进,左缘让出一档表示挂在本体结局之下 */
+/* 变体卡不再缩进(2026-10-17 拍板:记录宽度统一),类名保留供测试与排查 */
 .galent--variant {
-  margin-left: var(--sp-lg);
+  /* 与本体卡同宽同位 */
 }
 .galent__meta {
   font-size: var(--fs-cap);
@@ -310,23 +272,55 @@
   font-weight: 700;
   color: var(--ink-dim);
 }
-.galent__grade.is-s {
+.galent__grade.is-top {
   color: var(--zhu);
 }
 
-/* ---------- 窄屏:左栏落到顶上,条目单列 ---------- */
+/* 已达成卡可点出结算详情 */
+.galent.is-done {
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.galent.is-done:hover,
+.galent.is-done:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(42, 37, 29, 0.18);
+  outline: none;
+}
+
+/* ---------- 结局结算详情浮层 ---------- */
+.galdetail {
+  width: min(30rem, 100%);
+}
+.galdetail__zhuan {
+  text-align: left;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/* ---------- 窄屏:左栏落到顶上(复用存档页类名,这里只改方向),聚合条纵排,条目单列 ---------- */
 @media (max-width: 60rem) {
+  .gallery {
+    overflow-y: auto;
+  }
   .gallery__body {
     flex-direction: column;
   }
-  .gallery__side {
-    flex: none;
+  .gallery .saves__left {
     width: 100%;
     flex-direction: row;
-    flex-wrap: wrap;
+    align-items: flex-start;
   }
-  .galpanel {
-    flex: 1 1 12rem;
+  .gallery__portrait {
+    flex: 0 0 12rem;
+  }
+  .gallery .saves__thumbs {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .gallery__aggr {
+    flex-direction: column;
   }
   .galsec__entries {
     grid-template-columns: minmax(0, 1fr);

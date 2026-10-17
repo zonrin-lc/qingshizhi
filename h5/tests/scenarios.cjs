@@ -28,6 +28,10 @@ for (const m of meta) {
   checks.push([`${m.key}: sub 一致`, (m.sub || '') === (sc.sub || '')]);
   checks.push([`${m.key}: noSave 一致`, !!m.noSave === !!sc.noSave]);
   checks.push([`${m.key}: chapters 一致`, m.chapters === (d.CHAPTERS || []).length]);
+  checks.push([`${m.key}: era 一致`, (m.era || '') === (sc.era || '')]);
+  checks.push([`${m.key}: protag 一致`, (m.protag || '') === (sc.protag || '')]);
+  checks.push([`${m.key}: endings 一致`,
+    m.endings === Object.values(d.ENDINGS || {}).reduce((n, e) => n + 1 + Object.keys((e && e.variants) || {}).length, 0)]);
 }
 
 // 反向:prot 下每本 JSON 都得有对应的轻量条目,否则新增剧本会被静默漏掉

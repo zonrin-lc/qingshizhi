@@ -34,15 +34,18 @@ ${STEP_SNIPPET}
     if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
     if (g.phase === 'round') {
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
-      if (c) { c.click(); played += 1; await sleep(30); await step(); await sleep(10); }
-      else { advanceOnce(); await sleep(8); }
+      // 结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等发牌落定
+      if (c) { c.click(); played += 1; await waitDeal(); await step(); await sleep(10); }
+      // 结算动画窗口里无可点元素,高频空转只烧迭代预算——拉长睡眠(同 ending.cjs)
+      else { advanceOnce(); await sleep(60); }
     } else if (g.phase === 'event' || g.phase === 'choice') {
       // choice 相位也要点,否则循环空转、永远打不出第二张牌
       // 偶遇/随机事件的选项内联在文本区,选择器要带上 .stage__main
       const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
-      if (c) { c.click(); await sleep(12); await step(); await sleep(8); }
-      else { advanceOnce(); await sleep(8); }
-    } else { advanceOnce(); await sleep(8); }
+      // 随机事件落定后无「继 续」(2026-10-17 拍板),自动推进要等相位离开 settle
+      if (c) { c.click(); await sleep(12); await waitSettle(); await step(); await sleep(8); }
+      else { advanceOnce(); await sleep(60); }
+    } else { advanceOnce(); await sleep(60); }
   }
   const before = { phase: g.phase, caixue: g.attrs.caixue, caifu: g.attrs.caifu,
                    weiji: g.attrs.weiji, ch: g.chapterIdx, played,
@@ -95,7 +98,7 @@ const UI_FLOW = `(async () => {
   const counts = () => ({ tabs: qa('.stab').length, slots: qa('.saves__list .slot').length,
                           filled: qa('.saves__list .slot:not(.is-empty)').length });
   const base = counts();
-  const hint = (q('.saves__hint') || {}).textContent || '';
+  const hint = (q('.saves__bar .saves__barhint') || {}).textContent || '';
   const slotCh = (q('.saves__list .slot:not(.is-empty) .slot__ch') || {}).textContent || '';
   const storedOf = () => {
     const o = JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}');
@@ -130,68 +133,74 @@ const UI_FLOW = `(async () => {
            before, confirmShown, afterCancel, afterDel, storedBefore, stored };
 })()`;
 
-/** 退出存档:打牌 → 点顶栏「返回」弹确认框 → 存档退出 → 主菜单「继 续 旅 程」→ 回到存档那一刻;
- *  顺带验满员覆盖文案与「不存退出」路径 */
+/** 退出存档(2026-10-17 三次拍板):
+ *  ① 本章经营满 5 轮才谈存档;未满就返回:不弹框不写档,直接退;
+ *  ② 有空位时点「返回」不再问,自动存档直接落选择页;
+ *  ③ 满 6 条时才弹「覆盖最早一条」确认框,可选不存退出 */
 const AUTO_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
-  const g = window.__QS__.game;
 ${STEP_SNIPPET}
+  const g = () => window.__QS__.game;
   const lisiCnt = () => (JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}').lisi || []).length;
 
-  // 打两张牌让属性变化
-  let played = 0;
-  for (let n = 0; n < 60 && played < 2; n++) {
+  // 打满 5 轮经营并落回回合相位再存:结算/事件途中的相位依赖点击时序,断言要稳
+  // (v2.2.0 读档回到存档相位)
+  for (let n = 0; n < 800 && (window.__QS__.session.roundNo < 5 || g().phase !== 'round'); n++) {
     if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
-    if (g.phase === 'round') {
+    if (g().phase === 'round') {
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
-      if (c) { c.click(); played += 1; await sleep(30); }
-      else { advanceOnce(); await sleep(8); }
-    } else if (g.phase === 'event') {
+      // 结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等发牌落定
+      if (c) { c.click(); await waitDeal(); }
+      else { advanceOnce(); await sleep(60); }
+    } else if (g().phase === 'event' || g().phase === 'choice') {
+      // 偶遇/抉择的选项内联在文本区,选择器要带上 .stage__main
+      // 随机事件落定后无「继 续」(2026-10-17 拍板),自动推进要等相位离开 settle
       const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
-      if (c) { c.click(); await sleep(10); } else { advanceOnce(); await sleep(8); }
-    } else { advanceOnce(); await sleep(8); }
+      if (c) { c.click(); await sleep(10); await waitSettle(); } else { advanceOnce(); await sleep(60); }
+    } else { advanceOnce(); await sleep(60); }
   }
-  // 落到回合相位再存:结算/事件途中的相位依赖点击时序,断言要稳(v2.2.0 读档回到存档相位)
-  for (let n = 0; n < 60 && g.phase !== 'round'; n++) {
-    if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
-    if (g.phase === 'event' || g.phase === 'choice') {
-      const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
-      if (c) { c.click(); await sleep(10); } else { advanceOnce(); await sleep(8); }
-    } else { advanceOnce(); await sleep(8); }
-  }
-  const before = { caixue: g.attrs.caixue, caifu: g.attrs.caifu, played, ch: g.chapterIdx,
-                   phase: g.phase, roundNo: (window.__QS__.session || {}).roundNo ?? 0 };
+  const before = { caixue: g().attrs.caixue, caifu: g().attrs.caifu, ch: g().chapterIdx,
+                   phase: g().phase, roundNo: window.__QS__.session.roundNo };
 
-  // 顶到 6 条满员,验确认框的覆盖文案(UI_FLOW 删过一条,这里补回 6)
-  while (lisiCnt() < 6) { window.__QS__.saveGame(); await sleep(2); }
-  const cntBefore = lisiCnt();
-
-  // 点顶栏「返回」:应弹「是否存档」确认框;满员时主按钮是「覆 盖 并 退 出」
+  // ① 有空位(UI_FLOW 删过一条 → 5/6):返回不弹框,自动存档直接落到选择页
+  const cntPreAuto = lisiCnt();
   q('.pageback').click();
-  await sleep(120);
-  const confirmShown = !!q('.saves__confirm');
-  const primaryText = (q('.saves__confirm .btn--primary') || {}).textContent || '';
-  const fullHint = ((q('.saves__confirm') || {}).textContent || '').includes('覆盖最早');
+  await sleep(350);
+  const autoNoDialog = !q('.saves__confirm');
+  const atSelect1 = !!q('.seltop');
+  const cntAfterAuto = lisiCnt();
+  const lisi1 = (JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}').lisi || []);
+  const auto = lisi1.length ? lisi1[lisi1.length - 1] : null; // 存储序旧→新,末尾最新
 
-  // 存档并退出 → 选择页;满员覆盖,总数仍 6
-  q('.saves__confirm .btn--primary')?.click();
-  await sleep(300);
-  const atSelect = !!q('.seltop');
-  const lisi = (JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}').lisi || []);
-  const auto = lisi.length ? lisi[lisi.length - 1] : null; // 存储序旧→新,末尾最新
-  const cntAfter = lisi.length;
-
-  // 回主菜单,点「继 续 旅 程」→ 回到章首
+  // 继续旅程 → 回到存档那一刻
   window.__QS__.goMenu();
   await sleep(250);
   const resumeShown = !!q('.menu__item--continue') && !q('.menu__item--continue').disabled;
   q('.menu__item--continue')?.click();
   await sleep(400);
-  const g2 = window.__QS__.game;
+  const g2 = g();
   const back = { phase: g2.phase, ch: g2.chapterIdx, caixue: g2.attrs.caixue, caifu: g2.attrs.caifu };
+  // v2.3.0:读档应把存档时卷轴上的题签历史(经营轮次)摆回来
+  const heads = qa('.stage__main .sec .sec__head').map(h => h.textContent || '');
+  const histRounds = heads.filter(t => t.includes('经营 · 第')).length;
 
-  // 「不存退出」路径:再点返回 → 不存 → 选择页,档数不变
+  // ③ 满员(①已补到 6 条)时再点返回 → 弹「覆盖最早一条」确认框 → 覆盖退出,总数仍 6
+  q('.pageback').click();
+  await sleep(120);
+  const confirmShown = !!q('.saves__confirm');
+  const primaryText = (q('.saves__confirm .btn--primary') || {}).textContent || '';
+  const fullHint = ((q('.saves__confirm') || {}).textContent || '').includes('覆盖最早');
+  q('.saves__confirm .btn--primary')?.click();
+  await sleep(300);
+  const atSelect = !!q('.seltop');
+  const cntAfter = lisiCnt();
+
+  // 「不存退出」路径:再续上 → 返回 → 不存 → 选择页,档数不变
+  window.__QS__.goMenu();
+  await sleep(250);
+  q('.menu__item--continue')?.click();
+  await sleep(400);
   q('.pageback').click();
   await sleep(120);
   const confirm2 = !!q('.saves__confirm');
@@ -201,13 +210,25 @@ ${STEP_SNIPPET}
   const noSaveSelect = !!q('.seltop');
   const cntPostNo = lisiCnt();
 
+  // ① 的另一面:新开一局立刻返回(未满 5 轮),不弹框、不写档、直接落在选择页
+  q('.selenter')?.click();
+  await sleep(900);
+  q('.pageback').click();
+  await sleep(250);
+  const earlyNoDialog = !q('.saves__confirm');
+  const earlyAtSelect = !!q('.seltop');
+  const earlyCnt = lisiCnt();
+
   return {
-    before, cntBefore, confirmShown, primaryText, fullHint, atSelect,
+    before, cntPreAuto, autoNoDialog, atSelect1, cntAfterAuto,
     autoExists: !!auto, autoChapter: auto ? auto.chapterTitle : '', autoScen: auto ? auto.scenName : '',
     autoRound: auto ? (auto.roundNo ?? -1) : -1,
-    cntAfter, resumeShown,
+    resumeShown,
     backPhase: back.phase, backCh: back.ch, backCaixue: back.caixue, backCaifu: back.caifu,
+    histRounds,
+    confirmShown, primaryText, fullHint, atSelect, cntAfter,
     confirm2, noSaveSelect, cntPreNo, cntPostNo,
+    earlyNoDialog, earlyAtSelect, earlyCnt,
   };
 })()`;
 
@@ -255,19 +276,16 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['取消删除后档案还在', uiRes.afterCancel === uiRes.before],
     ['确认删除后档案消失', uiRes.afterDel === uiRes.before - 1],
     ['删除已落到 localStorage', uiRes.stored === uiRes.storedBefore - 1],
-    ['界面写明「精确到经营轮次」与硬核不可存',
-      uiRes.hint.includes('经营轮次') && uiRes.hint.includes('硬核')],
+    ['摘要条剧名后带「硬核不可存档」提示', uiRes.hint.includes('硬核')],
     ['槽位题签带经营轮次(v2.2.0)',
       (b.roundNo ?? 0) > 0 ? uiRes.slotCh.includes(`经营至第 ${b.roundNo} 轮`) : true,
       `roundNo=${b.roundNo} 题签「${uiRes.slotCh}」`],
-    ['退出前打到了中途', ab.played >= 1],
-    ['返回时弹出存档确认框', autoRes.confirmShown === true],
-    ['满员时确认框提示覆盖最早',
-      autoRes.fullHint === true && (autoRes.primaryText || '').replace(/\s/g, '').includes('覆盖'),
-      `主按钮「${autoRes.primaryText}」`],
-    ['存档退出后落在选择页', autoRes.atSelect === true],
-    ['存档退出后自动档写入(覆盖不膨胀)', autoRes.autoExists === true && autoRes.cntAfter === 6,
-      `实际 ${autoRes.cntAfter}`],
+    ['退出前打满了 5 轮经营(2026-10-17 新门槛)', ab.roundNo >= 5, `实际 ${ab.roundNo}`],
+    ['有空位时返回不弹框、自动存档直退选择页',
+      autoRes.autoNoDialog === true && autoRes.atSelect1 === true &&
+      autoRes.cntAfterAuto === autoRes.cntPreAuto + 1,
+      `存前 ${autoRes.cntPreAuto} 存后 ${autoRes.cntAfterAuto} 弹框=${autoRes.autoNoDialog}`],
+    ['自动存档写入了新档', autoRes.autoExists === true],
     ['自动档记下了章节', typeof autoRes.autoChapter === 'string' && autoRes.autoChapter.length > 0],
     ['自动档记下了经营轮次', autoRes.autoRound === ab.roundNo,
       `档 ${autoRes.autoRound} 局 ${ab.roundNo}`],
@@ -278,9 +296,21 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['继续上局还原到存档那一刻的属性(不是回章首)',
       autoRes.backCaixue === ab.caixue && autoRes.backCaifu === ab.caifu,
       `存时 ${ab.caixue}/${ab.caifu} 续上 ${autoRes.backCaixue}/${autoRes.backCaifu}`],
+    ['读档后卷轴恢复经营轮次题签(v2.3.0)', autoRes.histRounds >= 1,
+      `恢复出 ${autoRes.histRounds} 条`],
+    ['满员时再返回才弹确认框', autoRes.confirmShown === true],
+    ['满员确认框提示覆盖最早',
+      autoRes.fullHint === true && (autoRes.primaryText || '').replace(/\s/g, '').includes('覆盖'),
+      `主按钮「${autoRes.primaryText}」`],
+    ['覆盖退出后落在选择页且总数仍 6', autoRes.atSelect === true && autoRes.cntAfter === 6,
+      `实际 ${autoRes.cntAfter}`],
     ['不存退出也弹确认框', autoRes.confirm2 === true],
     ['不存退出落在选择页且不写档',
       autoRes.noSaveSelect === true && autoRes.cntPostNo === autoRes.cntPreNo],
+    ['未满 5 轮返回不弹框不写档、直接退',
+      autoRes.earlyNoDialog === true && autoRes.earlyAtSelect === true &&
+      autoRes.earlyCnt === autoRes.cntPostNo,
+      `弹框=${autoRes.earlyNoDialog} 档数 ${autoRes.earlyCnt}≠${autoRes.cntPostNo}`],
     ['控制台无错误', errs.length === 0],
   ]);
   if (!ok) {
@@ -291,6 +321,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     console.log('  读档 ', JSON.stringify(loadRes));
     console.log('  页面 ', JSON.stringify(uiRes));
     console.log('  退出 ', JSON.stringify(autoRes).slice(0, 600));
+    errs.forEach((e) => console.log('  错误 ' + e));
   }
   return ok;
 })

@@ -63,12 +63,9 @@ export class Bgm {
   /** 非空表示正在剧本双轨轮播中 */
   private rotateKey: string | null = null;
   private wanted = true;
-  /**
-   * 音量:由设置项驱动(轻 0.3 / 标准 0.6 / 响 0.9),不是写死的。
-   * 以前硬编码 0.32,那是我自己拍的;档位跟 Lua 的 home.lua 对齐,
-   * 两套实现不该对"背景乐该多响"有两套答案。
-   */
-  private volume = 0.6;
+  /** 音量:由设置项驱动(设置页 0-100 滑杆,默认 0.06),不是写死的;
+   *  这里的初值只是设置加载前的兜底 */
+  private volume = 0.06;
   private failed = false;
   /** 自动播放被拒后,是否已挂上手势补播监听 */
   private unlockBound = false;

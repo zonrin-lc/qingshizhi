@@ -7,14 +7,14 @@
  * 验收点:
  *   1. 暂存真的能写进 localStorage(qingshi.stash.v1)
  *   2. 连写 3 份后只剩最新 1 份
- *   3. pagehide(关页)会刷新这份暂存
+ *   3. pagehide(关页)会刷新这份暂存(与「返回」同口径:本章经营未满 5 轮不暂存)
  *   4. 退出对局(goMenu,不经过「返回」确认框)不动暂存、不写自动档
  *   5. 刷新后暂存还在,存档页能看到「暂存」区
  *   6. 从存档页读暂存,回到暂存那一刻的相位(v2.2.0 轮次存档)
  */
 const { withPage, report, STEP_SNIPPET } = require('./lib/harness.cjs');
 
-/** 打一张牌制造进度,然后连写 3 份暂存验「只留最近一条」,再分别验 pagehide 与退出路径 */
+/** 打满 5 轮经营(2026-10-17 起未满 5 轮不暂存)制造进度,然后连写 3 份暂存验「只留最近一条」,再分别验 pagehide 与退出路径 */
 const STASH_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
@@ -23,12 +23,17 @@ ${STEP_SNIPPET}
 
   for (let i = 0; i < 160 && g.phase !== 'round'; i++) { await sleep(6); advanceOnce(); }
   let played = 0;
-  for (let n = 0; n < 80 && played < 1; n++) {
+  for (let n = 0; n < 800 && played < 5; n++) {
     if (ovOpen()) { q('.overlay .btn--primary')?.click(); await sleep(5); continue; }
     if (g.phase === 'round') {
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
-      if (c) { c.click(); played += 1; await sleep(30); }
+      // 结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等发牌落定
+      if (c) { c.click(); played += 1; await waitDeal(); }
       else { advanceOnce(); await sleep(8); }
+    } else if (g.phase === 'event' || g.phase === 'choice') {
+      const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
+      // 随机事件落定后无「继 续」(2026-10-17 拍板),自动推进要等相位离开 settle
+      if (c) { c.click(); await sleep(10); await waitSettle(); } else { advanceOnce(); await sleep(8); }
     } else { advanceOnce(); await sleep(8); }
   }
   const ch = g.chapterIdx;
@@ -90,8 +95,11 @@ const LOAD_FLOW = `(async () => {
   const stashCh = (q('.saves__stash .slot--stash .slot__ch') || {}).textContent || '';
   if (loadBtn) { loadBtn.click(); await sleep(900); }
   const g = window.__QS__ && window.__QS__.game;
+  // v2.3.0:读暂存也应把题签历史摆回卷轴
+  const heads = [...document.querySelectorAll('.stage__main .sec .sec__head')].map(h => h.textContent || '');
+  const histRounds = heads.filter(t => t.includes('经营 · 第')).length;
   return {
-    persisted, stashShown, stashRows, stashTitle, stashCh,
+    persisted, stashShown, stashRows, stashTitle, stashCh, histRounds,
     loaded: !!g,
     phase: g ? g.phase : '',
     ch: g ? g.chapterIdx : -1,
@@ -107,7 +115,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
   const errs = consoleErrors();
 
   const ok = report('暂存链路', [
-    ['对局中打出了牌(有真实进度)', stash.played >= 1],
+    ['对局中打满了 5 轮经营(2026-10-17 门槛)', stash.played >= 5, `实际 ${stash.played}`],
     ['暂存写入成功', stash.firstOk === true],
     ['连写后只留最近 1 条', stash.lenAfter3 === 1, `实际 ${stash.lenAfter3}`],
     ['关页(pagehide)会刷新暂存', stash.hideLen === 1 && stash.hideNewestAt > stash.prevNewestAt,
@@ -124,6 +132,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['读暂存回到暂存那一刻的相位(v2.2.0)', res.phase === stash.phaseAtStash,
       `存时 ${stash.phaseAtStash} 读后 ${res.phase}`],
     ['读暂存回到存时的章节', res.ch === stash.ch],
+    ['读暂存后卷轴恢复经营轮次题签(v2.3.0)', res.histRounds >= 1, `恢复出 ${res.histRounds} 条`],
     ['控制台无错误', errs.length === 0],
   ]);
   if (!ok) {
