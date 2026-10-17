@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 《青史志》按钮 · 匾额形(按参考图重做)
+ *
+ * 形制特征(三张参考图共有):
+ *   ① 横向长条,两端收成尖角(像匾额/画轴)
+ *   ② 四角圆润,上下边中部略微起伏
+ *   ③ 双线描边:外粗金线 + 内细线
+ *   ④ 左右各一枚菱形饰(双层菱形 + 中心小方)
+ *
+ * 三套 = 三种配色,形制完全一致:
+ *   壹 · 赤金  选中=旧金渐变  未选中=米白纸底
+ *   贰 · 朱砂  选中=朱红渐变  未选中=米白纸底
+ *   叁 · 青玉  选中=青碧渐变  未选中=米白纸底
+ *
+ * 形制用 SVG 画(preserveAspectRatio=none 拉伸),菱形用 DOM 绝对定位——
+ * 菱形跟着 SVG 一起拉会变形,必须独立。
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --line:#c6b492;--line-soft:#d6c8ae;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2e2820;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:840px;overflow:hidden;padding:28px 40px 24px;
+  background:url('/workspace/assets/image/menu_bg_center_20261016112729.png') center/cover no-repeat,#e9dfc9}
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(180deg,rgba(250,245,233,.95),rgba(250,245,233,.88) 45%,rgba(250,245,233,.93))}
+.wrap{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
+
+.head{text-align:center;margin-bottom:16px}
+.head__t{font-family:var(--disp);font-size:20px;letter-spacing:.36em;color:var(--ink-heavy);text-indent:.36em}
+.head__s{margin-top:5px;font-size:10px;letter-spacing:.18em;color:var(--ink-dim)}
+
+/* ---------- 一套 ---------- */
+.set{padding:13px 0 15px;border-top:1px solid rgba(198,180,146,.4)}
+.set:last-child{border-bottom:1px solid rgba(198,180,146,.4)}
+.set__bar{display:flex;align-items:baseline;gap:11px;margin-bottom:11px;padding-left:2px}
+.set__no{font-family:var(--disp);font-size:12px;letter-spacing:.16em}
+.set__name{font-family:var(--disp);font-size:14px;color:var(--ink-strong);letter-spacing:.1em}
+.set__desc{font-size:9.5px;color:var(--ink-dim);letter-spacing:.06em;margin-left:auto}
+
+.rows{display:flex;flex-direction:column;gap:9px}
+.row{display:flex;align-items:center;gap:16px}
+.row__cap{flex:0 0 58px;font-size:9.5px;letter-spacing:.12em;color:var(--ink-dim);text-align:right}
+
+/* ═══════════ 匾额按钮 ═══════════ */
+.plaque{position:relative;flex:1 1 auto;border:0;background:none;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:filter .16s ease}
+.plaque:hover{filter:brightness(1.05)}
+
+/* 形制:SVG 拉伸。两片 path 分别是外框与内线 */
+.plaque__shape{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.plaque__outline{fill:none}
+.plaque__inner{fill:none}
+
+/* 文字 */
+.plaque__t{position:relative;font-family:var(--kai);font-size:1.06rem;font-weight:700;
+  letter-spacing:.34em;text-indent:.34em;white-space:nowrap}
+.plaque--sub .plaque__t{font-size:.94rem;letter-spacing:.3em;text-indent:.3em}
+
+/* 菱形饰:外层 + 内层,居中于形制中轴 */
+.gem{position:absolute;top:50%;width:18px;height:18px;transform:translateY(-50%) rotate(45deg);
+  pointer-events:none}
+.gem::before{content:'';position:absolute;inset:0;border:1.6px solid currentColor;border-radius:1px}
+.gem::after{content:'';position:absolute;inset:5px;border:1.2px solid currentColor}
+.gem--l{left:40px}
+.gem--r{right:40px}
+.plaque--sub .gem{width:15px;height:15px}
+.plaque--sub .gem::after{inset:4px}
+.plaque--sub .gem--l{left:36px}
+.plaque--sub .gem--r{right:36px}
+
+/* 主按钮尺寸 */
+.plaque--main{height:78px}
+/* 次按钮尺寸 */
+.plaque--sub{height:62px}
+
+/* ═══════════ 配色:赤金 ═══════════ */
+.c-gold .plaque--on .plaque__fill{fill:url(#gradGold)}
+.c-gold .plaque--on .plaque__outline{stroke:#8a6524}
+.c-gold .plaque--on .plaque__inner{stroke:rgba(255,244,214,.55)}
+.c-gold .plaque--on .plaque__t{color:#2c2110;text-shadow:0 1px 0 rgba(255,248,224,.45)}
+.c-gold .plaque--on .gem{color:#8a6524}
+.c-gold .plaque--off .plaque__fill{fill:url(#gradPaper)}
+.c-gold .plaque--off .plaque__outline{stroke:#c0a874}
+.c-gold .plaque--off .plaque__inner{stroke:rgba(192,168,116,.62)}
+.c-gold .plaque--off .plaque__t{color:#4a4033}
+.c-gold .plaque--off .gem{color:#b89a63}
+
+/* ═══════════ 配色:朱砂 ═══════════ */
+.c-verm .plaque--on .plaque__fill{fill:url(#gradVerm)}
+.c-verm .plaque--on .plaque__outline{stroke:#8c2f1e}
+.c-verm .plaque--on .plaque__inner{stroke:rgba(255,226,206,.5)}
+.c-verm .plaque--on .plaque__t{color:#fdf3e4;text-shadow:0 1px 2px rgba(60,16,8,.4)}
+.c-verm .plaque--on .gem{color:#e8c98a}
+.c-verm .plaque--off .plaque__fill{fill:url(#gradPaper)}
+.c-verm .plaque--off .plaque__outline{stroke:#c0a874}
+.c-verm .plaque--off .plaque__inner{stroke:rgba(192,168,116,.62)}
+.c-verm .plaque--off .plaque__t{color:#4a4033}
+.c-verm .plaque--off .gem{color:#b89a63}
+
+/* ═══════════ 配色:青玉 ═══════════ */
+.c-jade .plaque--on .plaque__fill{fill:url(#gradJade)}
+.c-jade .plaque--on .plaque__outline{stroke:#1f5a52}
+.c-jade .plaque--on .plaque__inner{stroke:rgba(222,246,238,.48)}
+.c-jade .plaque--on .plaque__t{color:#f0faf6;text-shadow:0 1px 2px rgba(12,48,42,.42)}
+.c-jade .plaque--on .gem{color:#a8d8ca}
+.c-jade .plaque--off .plaque__fill{fill:url(#gradPaper)}
+.c-jade .plaque--off .plaque__outline{stroke:#c0a874}
+.c-jade .plaque--off .plaque__inner{stroke:rgba(192,168,116,.62)}
+.c-jade .plaque--off .plaque__t{color:#4a4033}
+.c-jade .plaque--off .gem{color:#b89a63}
+
+/* 投影:压在纸面上要有厚度 */
+.plaque--on{filter:drop-shadow(0 3px 7px rgba(96,74,36,.26))}
+</style></head>
+<body>
+<div class="stage">
+  <!-- 渐变定义:所有按钮共用 -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <!-- 旧金:亮金区间占 40%,底部压深边 -->
+      <linearGradient id="gradGold" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#f0d79c"/>
+        <stop offset="18%"  stop-color="#d9b467"/>
+        <stop offset="42%"  stop-color="#c69c46"/>
+        <stop offset="72%"  stop-color="#a87f31"/>
+        <stop offset="100%" stop-color="#7d5c22"/>
+      </linearGradient>
+      <!-- 朱砂 -->
+      <linearGradient id="gradVerm" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#c9573c"/>
+        <stop offset="40%"  stop-color="#b0432f"/>
+        <stop offset="100%" stop-color="#83301f"/>
+      </linearGradient>
+      <!-- 青玉 -->
+      <linearGradient id="gradJade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#4d9184"/>
+        <stop offset="40%"  stop-color="#3a7a6e"/>
+        <stop offset="100%" stop-color="#265750"/>
+      </linearGradient>
+      <!-- 米白纸底 -->
+      <linearGradient id="gradPaper" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#faf5e9"/>
+        <stop offset="55%"  stop-color="#f2e9d6"/>
+        <stop offset="100%" stop-color="#e8dcc3"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="wrap">
+    <div class="head">
+      <div class="head__t">匾 额 按 钮</div>
+      <div class="head__s">两端收圆 · 双线描边 · 左右菱饰 · 三套配色</div>
+    </div>
+
+    <!-- 形制 path 复用:外框 / 内线 -->
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <!-- 匾额形制:上下边平直,两端收成尖角。
+             全用圆弧会让端头变成半圆、整条沦为胶囊;直线段交于中点才有尖角。 -->
+        <path id="plqOuter" d="M0,100 L20,58 Q38,38 76,32 L924,32 Q962,38 980,58 L1000,100 L980,142 Q962,162 924,168 L76,168 Q38,162 20,142 Z"/>
+        <path id="plqInner" d="M16,100 L34,66 Q49,50 84,45 L916,45 Q951,50 966,66 L984,100 L966,134 Q951,150 916,155 L84,155 Q49,150 34,134 Z"/>
+      </defs>
+    </svg>
+
+    <!-- ══════════ 壹 · 赤金 ══════════ -->
+    <div class="set c-gold">
+      <div class="set__bar">
+        <span class="set__no" style="color:#a87f31">壹</span>
+        <span class="set__name">赤 金</span>
+        <span class="set__desc">选中=旧金渐变 · 未选中=米白纸底</span>
+      </div>
+      <div class="rows">
+        <div class="row">
+          <span class="row__cap">主按钮</span>
+          <button class="plaque plaque--main plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+          <button class="plaque plaque--main plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+        </div>
+        <div class="row">
+          <span class="row__cap">次按钮</span>
+          <button class="plaque plaque--sub plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+          <button class="plaque plaque--sub plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 贰 · 朱砂 ══════════ -->
+    <div class="set c-verm">
+      <div class="set__bar">
+        <span class="set__no" style="color:#b0432f">贰</span>
+        <span class="set__name">朱 砂</span>
+        <span class="set__desc">选中=朱红渐变 · 未选中=米白纸底</span>
+      </div>
+      <div class="rows">
+        <div class="row">
+          <span class="row__cap">主按钮</span>
+          <button class="plaque plaque--main plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+          <button class="plaque plaque--main plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+        </div>
+        <div class="row">
+          <span class="row__cap">次按钮</span>
+          <button class="plaque plaque--sub plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+          <button class="plaque plaque--sub plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 叁 · 青玉 ══════════ -->
+    <div class="set c-jade">
+      <div class="set__bar">
+        <span class="set__no" style="color:#3a7a6e">叁</span>
+        <span class="set__name">青 玉</span>
+        <span class="set__desc">选中=青碧渐变 · 未选中=米白纸底</span>
+      </div>
+      <div class="rows">
+        <div class="row">
+          <span class="row__cap">主按钮</span>
+          <button class="plaque plaque--main plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+          <button class="plaque plaque--main plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">开 始 游 戏</span>
+          </button>
+        </div>
+        <div class="row">
+          <span class="row__cap">次按钮</span>
+          <button class="plaque plaque--sub plaque--on">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+          <button class="plaque plaque--sub plaque--off">
+            <svg class="plaque__shape" viewBox="0 0 1000 200" preserveAspectRatio="none">
+              <use class="plaque__fill" href="#plqOuter"/>
+              <use class="plaque__outline" href="#plqOuter" stroke-width="3"/>
+              <use class="plaque__inner" href="#plqInner" stroke-width="1.4"/>
+            </svg>
+            <span class="gem gem--l"></span><span class="gem gem--r"></span>
+            <span class="plaque__t">查 看 存 档</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body></html>
