@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "provider": "elevenlabs",
+  "character_name": "连通性探测",
+  "character_description": "成年男性，中低音，沉稳旁白，测试连通性用，专业录音棚音质。",
+  "audition_line": "这是一句用于探测语音服务连通性的测试文本，长度超过一百个字符以满足接口的最低要求，仅用于确认上游接口当前是否可达。",
+  "created_at": "2026-10-17T04:45:33.659Z",
+  "recommended_index": 1,
+  "candidates": [
+    {
+      "index": 1,
+      "provider": "elevenlabs",
+      "generated_voice_id": "yZ3fTGDFzDh5km09rH4m",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_431a7df8ca8ca31f_candidate_1_1792212332540.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_431a7df8ca8ca31f_candidate_1_1792212332540.mp3",
+      "duration_seconds": 26.359375,
+      "description": "成年男性，中低音，沉稳旁白，测试连通性用，专业录音棚音质。"
+    }
+  ],
+  "use_voice_design": true
+}
