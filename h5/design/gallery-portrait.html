@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<style>
+/* ============================================================================
+ * 青史图鉴 · 加入人物立绘与切换
+ *
+ * 原型问题:左栏只有三块统计面板,右栏「李斯·仓鼠之局」与左栏无视觉联系;
+ *           想看别的剧本只能一路往下滚。
+ *
+ * 改版:
+ *   ① 左栏顶部加入**当前人物立绘**(373×560 完整人物图,自带水墨背景)
+ *   ② 立绘下方一排**人物切换缩略图**,点谁看谁
+ *   ③ 切人时:立绘、剧本名、收集统计、右栏结局列表**同时**换
+ *   ④ 左栏面板压缩:总览环缩小、五印条合并,给立绘让出竖向空间
+ *
+ * 布局:左栏 300px 固定(立绘 + 切换 + 统计),右栏自适应(该人物结局卡)
+ * ==========================================================================*/
+@font-face{font-family:'QS Display';src:url('/workspace/h5/design/fonts/serif-900.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Serif';src:url('/workspace/h5/design/fonts/serif-500.woff2') format('woff2');font-display:block}
+@font-face{font-family:'QS Sans';src:url('/workspace/h5/design/fonts/sans-400.woff2') format('woff2');font-display:block}
+
+:root{
+  --ink-heavy:#1a1612;--ink-strong:#2a251d;--ink:#3e372c;
+  --ink-soft:#605646;--ink-dim:#847864;
+  --zhu:#b0432f;--zhu-hi:#9e3422;--gold:#8a6a34;--gold-hi:#c4a05a;
+  --xunshi:#6b7a86;--gouhuo:#8a7a53;--wenjian:#527159;--nitian:#b34a36;--baiju:#7b6b72;
+  --line:#c6b492;--line-soft:#d6c8ae;--paper:#f6efe0;
+  --kai:'QS Serif','KaiTi',serif;--disp:'QS Display',serif;--sans:'QS Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2e2820;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--kai)}
+
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:url('/workspace/assets/image/menu_bg_center_20261016112729.png') center/cover no-repeat,#e9dfc9}
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(120% 92% at 50% 38%,rgba(250,245,233,.88),rgba(250,245,233,.66) 68%,rgba(250,245,233,.54) 100%)}
+
+/* ---------- 顶栏 ---------- */
+.top{position:absolute;top:14px;left:0;right:0;z-index:4;display:flex;align-items:center;padding:0 24px}
+.top__back{width:56px;height:56px;flex:0 0 auto;
+  background:url('/workspace/h5/src/assets/lua/back-btn.webp') center/contain no-repeat}
+.top__mid{position:absolute;left:50%;transform:translateX(-50%);text-align:center}
+.top__t{font-family:var(--disp);font-size:26px;letter-spacing:.46em;color:var(--ink-heavy);text-indent:.46em}
+.top__rule{margin:6px auto 0;width:250px;height:8px;
+  background:linear-gradient(90deg,transparent,var(--gold) 22%,var(--gold) 78%,transparent) center/100% 1px no-repeat}
+.top__rule::after{content:'';display:block;width:7px;height:7px;margin:-4px auto 0;background:var(--gold);transform:rotate(45deg)}
+.top__hint{position:absolute;right:24px;top:20px;font-size:10px;letter-spacing:.14em;color:var(--ink-dim);text-align:right;line-height:1.8}
+
+/* ---------- 主体 ---------- */
+.body{position:absolute;top:88px;left:0;right:0;bottom:12px;z-index:3;display:flex;gap:18px;padding:0 24px}
+
+/* ============ 左栏 ============ */
+.side{flex:0 0 292px;display:flex;flex-direction:column;gap:7px;min-height:0}
+
+/* 立绘框 */
+.portrait{position:relative;flex:0 0 auto;height:206px;border-radius:11px;overflow:hidden;
+  border:1px solid var(--line);box-shadow:0 8px 20px rgba(70,54,32,.2);background:#e6dcc6}
+.portrait__img{width:100%;height:100%;object-fit:cover;object-position:center 14%;display:block}
+.portrait__veil{position:absolute;left:0;right:0;bottom:0;height:58%;
+  background:linear-gradient(0deg,rgba(28,24,18,.84),rgba(28,24,18,.32) 48%,rgba(28,24,18,0))}
+.portrait__tag{position:absolute;left:10px;top:10px;padding:3px 10px;border-radius:999px;
+  font-size:10px;letter-spacing:.14em;color:#f7f0e0;background:rgba(28,24,18,.5);
+  border:1px solid rgba(247,240,224,.26)}
+.portrait__name{position:absolute;left:14px;bottom:12px;font-family:var(--disp);font-size:26px;
+  color:#fdf7ea;letter-spacing:.14em;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.portrait__sub{position:absolute;left:14px;bottom:-2px;font-size:10px;
+  color:rgba(253,247,234,.76);letter-spacing:.1em}
+.portrait__prog{position:absolute;right:13px;bottom:14px;text-align:right}
+.portrait__prog b{font-family:var(--disp);font-weight:400;font-size:21px;color:var(--gold-hi)}
+.portrait__prog i{font-style:normal;font-size:10px;color:rgba(253,247,234,.7);margin-left:3px}
+
+/* 人物切换 */
+.picker{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.pk{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden;cursor:pointer;
+  border:1px solid var(--line-soft);background:#e6dcc6;padding:0}
+.pk img{width:100%;height:100%;object-fit:cover;object-position:center 14%;display:block;
+  filter:grayscale(.74) brightness(.84)}
+.pk__n{position:absolute;left:0;right:0;bottom:0;padding:2px 0 3px;text-align:center;
+  font-size:9.5px;letter-spacing:.06em;color:rgba(253,247,234,.9);
+  background:linear-gradient(0deg,rgba(28,24,18,.82),rgba(28,24,18,0))}
+.pk.is-on{border-color:var(--zhu);box-shadow:0 0 0 2px rgba(176,67,47,.34)}
+.pk.is-on img{filter:none}
+.pk.is-on .pk__n{color:#fff;background:linear-gradient(0deg,rgba(158,52,34,.94),rgba(158,52,34,0))}
+
+/* 统计:总览环 + 五印,压成两块紧凑面板 */
+.panel{background:rgba(255,255,255,.52);border:1px solid var(--line-soft);border-radius:10px;padding:8px 11px}
+.panel__cap{font-size:9.5px;letter-spacing:.24em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.panel__cap::after{content:'';flex:1 1 auto;height:1px;background:var(--line-soft)}
+
+.ov{display:flex;align-items:center;gap:11px}
+.ov__svg{width:54px;height:54px;flex:0 0 auto}
+.ov__bg{fill:none;stroke:rgba(198,180,146,.5);stroke-width:8}
+.ov__fg{fill:none;stroke:var(--gold);stroke-width:8;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.ov__mid{font-family:var(--disp);font-size:16px;fill:var(--ink-heavy);text-anchor:middle}
+.ov__big{font-family:var(--disp);font-size:21px;color:var(--ink-heavy);line-height:1}
+.ov__big em{font-style:normal;font-size:10.5px;color:var(--ink-dim)}
+.ov__note{font-size:9.5px;color:var(--ink-soft);letter-spacing:.05em;margin-top:4px;line-height:1.6}
+
+.seals{display:flex;flex-direction:column;gap:5px}
+.srow{display:grid;grid-template-columns:24px 28px 1fr auto;align-items:center;gap:6px}
+.srow__icon{width:24px;height:24px;border-radius:4px;display:block}
+.srow__k{font-size:10px;color:var(--ink)}
+.srow__track{height:3.5px;border-radius:2px;background:rgba(198,180,146,.42);overflow:hidden}
+.srow__track i{display:block;height:100%;border-radius:2px}
+.srow__n{font-size:9.5px;color:var(--ink-dim);letter-spacing:.02em}
+
+/* ============ 右栏 ============ */
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:9px;min-height:0}
+
+/* 当前剧本条 */
+.secbar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:10px 15px;
+  background:rgba(255,255,255,.56);border:1px solid var(--line-soft);border-radius:10px}
+.secbar__seal{width:34px;height:34px;border-radius:6px;background:var(--zhu);color:#f7f0e0;
+  display:grid;place-items:center;font-family:var(--disp);font-size:14px;flex:0 0 auto}
+.secbar__name{font-family:var(--disp);font-size:15px;color:var(--ink-heavy);letter-spacing:.1em}
+.secbar__sub{font-size:10px;color:var(--ink-soft);letter-spacing:.06em;margin-top:3px}
+.secbar__sp{flex:1 1 auto}
+.secbar__bar{width:130px;height:4px;border-radius:2px;background:rgba(198,180,146,.45);overflow:hidden}
+.secbar__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-hi),var(--gold))}
+.secbar__cnt{font-size:10.5px;color:var(--ink-dim);letter-spacing:.06em}
+
+/* 结局卡网格 */
+.grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;
+  grid-auto-rows:min-content;gap:7px;overflow:hidden;align-content:start}
+.ent{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;padding:8px 11px;
+  border-radius:8px;background:rgba(255,255,255,.7);border:1px solid var(--line-soft);position:relative}
+.ent__seal{width:29px;height:29px;border-radius:5px;display:grid;place-items:center;
+  font-family:var(--disp);font-size:10px;color:#f7f0e0}
+.ent__n{font-family:var(--disp);font-size:12.5px;color:var(--ink-heavy);letter-spacing:.05em}
+.ent__q{margin-top:3px;font-size:9.5px;line-height:1.5;color:var(--ink-soft);
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.ent__meta{margin-top:2px;font-size:9px;color:var(--ink-dim)}
+.ent__g{position:absolute;right:9px;top:7px;font-family:var(--disp);font-size:12.5px}
+/* 未达成 */
+.ent--unk{background:rgba(246,240,228,.36);border:1px dashed var(--line)}
+.ent--unk .ent__seal{background:rgba(198,180,146,.28);color:rgba(96,86,70,.5)}
+.ent--unk .ent__n{color:var(--ink-dim);letter-spacing:.28em;font-size:12px}
+.ent--unk .ent__q{color:var(--ink-dim);opacity:.8}
+
+/* 底部提示 */
+.foot{flex:0 0 auto;text-align:center;font-size:10px;letter-spacing:.14em;color:var(--ink-dim);
+  padding-top:7px;border-top:1px solid var(--line-soft)}
+</style></head>
+<body>
+<div class="stage">
+
+  <div class="top">
+    <div class="top__back"></div>
+    <div class="top__mid">
+      <div class="top__t">青 史 图 鉴</div>
+      <div class="top__rule"></div>
+    </div>
+    <div class="top__hint">各本结局达成情况 · 跨局累计<br>未达成的结局只留残迹</div>
+  </div>
+
+  <div class="body">
+    <!-- ===== 左栏:立绘 + 切换 + 统计 ===== -->
+    <aside class="side">
+      <div class="portrait">
+        <img class="portrait__img" src="/workspace/h5/src/assets/char/hanxin.webp" alt="韩信">
+        <div class="portrait__veil"></div>
+        <div class="portrait__tag">兵 仙 之 局</div>
+        <div class="portrait__name">韩 信</div>
+        <div class="portrait__sub">成也萧何,败也萧何</div>
+        <div class="portrait__prog"><b>4</b><i>/ 13</i></div>
+      </div>
+
+      <div class="picker">
+        <button class="pk" type="button"><img src="/workspace/h5/src/assets/char/lisi.webp" alt="李斯"><span class="pk__n">李斯</span></button>
+        <button class="pk" type="button"><img src="/workspace/h5/src/assets/char/jingke.webp" alt="荆轲"><span class="pk__n">荆轲</span></button>
+        <button class="pk is-on" type="button"><img src="/workspace/h5/src/assets/char/hanxin.webp" alt="韩信"><span class="pk__n">韩信</span></button>
+        <button class="pk" type="button"><img src="/workspace/h5/src/assets/char/xiangyu.webp" alt="项羽"><span class="pk__n">项羽</span></button>
+        <button class="pk" type="button"><img src="/workspace/h5/src/assets/char/chensheng.webp" alt="陈胜"><span class="pk__n">陈胜</span></button>
+      </div>
+
+      <div class="panel">
+        <div class="panel__cap">收 集 总 览</div>
+        <div class="ov">
+          <svg class="ov__svg" viewBox="0 0 100 100">
+            <circle class="ov__bg" cx="50" cy="50" r="42"></circle>
+            <circle class="ov__fg" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="203"></circle>
+            <text class="ov__mid" x="50" y="55">23%</text>
+          </svg>
+          <div>
+            <div class="ov__big">4 <em>/ 17</em></div>
+            <div class="ov__note">此局共 17 种结局<br>已收录 4 种</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__cap">印 章 收 集</div>
+        <div class="seals">
+          <div class="srow">
+            <img class="srow__icon" src="/workspace/assets/image/gallery/seal-xunshi.png" alt="">
+            <span class="srow__k">循史</span>
+            <span class="srow__track"><i style="width:100%;background:var(--xunshi)"></i></span>
+            <span class="srow__n">1/1</span>
+          </div>
+          <div class="srow">
+            <img class="srow__icon" src="/workspace/assets/image/gallery/seal-gouhuo.png" alt="">
+            <span class="srow__k">苟活</span>
+            <span class="srow__track"><i style="width:50%;background:var(--gouhuo)"></i></span>
+            <span class="srow__n">1/2</span>
+          </div>
+          <div class="srow">
+            <img class="srow__icon" src="/workspace/assets/image/gallery/seal-wenjian.png" alt="">
+            <span class="srow__k">稳健</span>
+            <span class="srow__track"><i style="width:50%;background:var(--wenjian)"></i></span>
+            <span class="srow__n">1/2</span>
+          </div>
+          <div class="srow">
+            <img class="srow__icon" src="/workspace/assets/image/gallery/seal-nitian.png" alt="">
+            <span class="srow__k">逆天</span>
+            <span class="srow__track"><i style="width:50%;background:var(--nitian)"></i></span>
+            <span class="srow__n">1/2</span>
+          </div>
+          <div class="srow">
+            <img class="srow__icon" src="/workspace/assets/image/gallery/seal-baiju.png" alt="">
+            <span class="srow__k">败局</span>
+            <span class="srow__track"><i style="width:0%;background:var(--baiju)"></i></span>
+            <span class="srow__n">0/1</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== 右栏:该人物结局 ===== -->
+    <section class="main">
+      <div class="secbar">
+        <div class="secbar__seal">韩</div>
+        <div>
+          <div class="secbar__name">韩信 · 兵仙之局</div>
+          <div class="secbar__sub">成也萧何,败也萧何 · 容错中</div>
+        </div>
+        <div class="secbar__sp"></div>
+        <div class="secbar__bar"><i style="width:31%"></i></div>
+        <div class="secbar__cnt">结局 4 / 13</div>
+      </div>
+
+      <div class="grid">
+        <div class="ent">
+          <span class="ent__seal" style="background:var(--xunshi)">循史</span>
+          <div>
+            <div class="ent__n">未央之叹</div>
+            <div class="ent__q">太史公曰:功高不赏,信之不反,而卒死于妇人之手……</div>
+            <div class="ent__meta">达成 2 回 · 最佳 A</div>
+          </div>
+          <span class="ent__g" style="color:var(--xunshi)">A</span>
+        </div>
+
+        <div class="ent">
+          <span class="ent__seal" style="background:var(--gouhuo)">苟活</span>
+          <div>
+            <div class="ent__n">解兵归淮阴</div>
+            <div class="ent__q">太史公曰:交出兵符,闭门谢客,终老于故里……</div>
+            <div class="ent__meta">达成 1 回 · 最佳 B</div>
+          </div>
+          <span class="ent__g" style="color:var(--gouhuo)">B</span>
+        </div>
+
+        <div class="ent">
+          <span class="ent__seal" style="background:var(--wenjian)">稳健</span>
+          <div>
+            <div class="ent__n">淮阴侯终</div>
+            <div class="ent__q">太史公曰:军功与忠悃两全,寿终于侯位……</div>
+            <div class="ent__meta">达成 1 回 · 最佳 A</div>
+          </div>
+          <span class="ent__g" style="color:var(--wenjian)">A</span>
+        </div>
+
+        <div class="ent">
+          <span class="ent__seal" style="background:var(--nitian)">逆天</span>
+          <div>
+            <div class="ent__n">三分天下</div>
+            <div class="ent__q">太史公曰:拒不受印,鼎足而三,天下遂成三分之势……</div>
+            <div class="ent__meta">达成 1 回 · 最佳 S</div>
+          </div>
+          <span class="ent__g" style="color:var(--nitian)">S</span>
+        </div>
+
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+        <div class="ent ent--unk">
+          <span class="ent__seal">?</span>
+          <div>
+            <div class="ent__n">未 达 成</div>
+            <div class="ent__q">此结局尚未在任一局中达成</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot">点击上方人物切换查看 · 未达成的结局只留残迹,不剧透名字与赞文</div>
+    </section>
+  </div>
+</div>
+</body></html>
