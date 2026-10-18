@@ -8,44 +8,45 @@
   "version": "1.0.1",
   "taptap_publish": {
     "title": "青史志",
-    "description": "重生历史人物，从第一道岔口起，你的每次选择都在对抗历史惯性：顺之者安，逆之者险。李斯/荆轲/韩信/项羽/陈胜，五局青史，等你改笔。",
-    "category": "strategy",
+    "description": "重生历史人物的多剧本历史偏移模拟器。扮演历史人物，在每个历史岔口做出抉择——顺之者安，逆之者险。每个结局都从规则与选择的相互作用中涌现，终局凝成一篇仿《史记》体的个人史传。秦、汉、唐、宋、明诸卷陆续开卷，悠悠千载等你改写入史。",
+    "category": "word",
     "screen_orientation": "landscape",
     "collection_type": "sce",
-    "trial_note": "文字卡牌策略，横屏体验最佳。",
+    "trial_note": "各位好，我是《青史志》的开发者。\n做这个游戏，是因为看了太多历史穿越爽剧——主角一落地就无所不知、无往不利，历史像一张任人涂改的草稿纸。看着看着，我心里冒出一个较真的问题：如果真的穿越了，会怎样？你真的能对抗历史惯性吗？\n我不觉得答案会是爽剧那样。没有手机、没有地图，周围每个人都按自己的利益行事；你知道\"原本的他会怎么选\"，可每偏离一步，时代都会用它自己的方式把你往回推——同僚的猜忌、局势的逼迫、命运的巧合。历史不是背景板，它是一个有惯性的对手。\n《青史志》就是把这个\"较真\"做成的游戏。它也回应着这次「涌现」的主题——在我看来，真正的涌现不是随机生成的热闹，而是没人写过、却合理发生的命运：游戏里没有预设的分支表，结局全部从规则的相互作用中长出来，涌现出未知的走向。\n终局是一篇史书。打完一局，你会拿到一段仿《史记》体的\"太史公曰\"。穿越剧的结尾都是主角赢了，而这里，史书只记录你真实走过的那条路。\n首发的秦卷五局只是开始，汉、唐、宋、明会陆续开卷。\n如果你也曾对着屏幕里的穿越剧想\"换了我，未必做得更好\"——来试试看。",
     "app_platforms": "1,2",
     "app_id": 955568,
     "developer_id": 429502,
     "miniapp_id": "tapmchoamavbimdoiv",
-    "gameplay_demo_video_source": "https://tapcode-sce.spark.xd.com/videos/m_n643/1790947630723-rec_308671c9-1ace-460d-9660-33b551899afc.mp4"
+    "gameplay_demo_video_source": "https://tapcode-sce.spark.xd.com/videos/548e0936-86fd-4010-86ae-232eb849f703/1792339864573-uploaded_da26efbd.mp4",
+    "release_phase": "public_test"
   },
   "assets": {
-    "icon": "./game_material/ICON_2026-10-02T13-28-06_01.png",
+    "icon": "./_uploads/7ec48354056575ca1a84dc677bf65b0bbc8de46148b084e9b5b3afe6b61e2715.png",
     "screenshots": [
-      "./game_material/SCREENSHOT_2026-10-02T13-28-06_01.png",
-      "./game_material/SCREENSHOT_2026-10-02T13-28-06_02.png",
-      "./game_material/SCREENSHOT_2026-10-02T13-28-06_03.png"
+      "./_uploads/0a6b0d853bdad37c22475813688bd8a7f1f7f8be51599b1649af573135a29fc3.png",
+      "./_uploads/89066627a47cc7b9cc823158b57fd6e333770332c99b5f1de909355fe8d32aa9.png",
+      "./_uploads/aa7268d65d6d889581a064ac63dcdf015f3d1aff1f1794dd8782c9ff6d7e08df.png",
+      "./_uploads/c5dd40f775c9483781849bc604e2493f82a84818a81b6843102a8d3c825f7d64.png"
     ],
-    "promotional_image": "./game_material/PROMO_2026-10-02T13-28-06_01.jpg",
+    "promotional_image": "./_uploads/65f7e37fe97e202a52672a685a087e561df582b849d35e25166f7a84a412faa0.png",
     "source_screenshots": [
       "_uploads/9fb4625406f00e8ab2e3f9d8f27a14553bc79c8505447f5cb073d577106f3fec.png"
     ],
-    "icon_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/ICON_2026-10-02T13-28-06_01.png",
+    "icon_url": "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/7ec48354056575ca1a84dc677bf65b0bbc8de46148b084e9b5b3afe6b61e2715.png",
     "screenshot_urls": [
-      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_01.png",
-      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_02.png",
-      "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SCREENSHOT_2026-10-02T13-28-06_03.png"
+      "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/0a6b0d853bdad37c22475813688bd8a7f1f7f8be51599b1649af573135a29fc3.png",
+      "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/89066627a47cc7b9cc823158b57fd6e333770332c99b5f1de909355fe8d32aa9.png",
+      "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/aa7268d65d6d889581a064ac63dcdf015f3d1aff1f1794dd8782c9ff6d7e08df.png",
+      "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/c5dd40f775c9483781849bc604e2493f82a84818a81b6843102a8d3c825f7d64.png"
     ],
-    "promotional_image_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/PROMO_2026-10-02T13-28-06_01.jpg",
-    "cover_horizontal": "./game_material/COVER_HORIZONTAL_2026-10-02T13-29-31_01.png",
-    "cover_horizontal_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/COVER_HORIZONTAL_2026-10-02T13-29-31_01.png",
-    "cover_vertical": "./game_material/COVER_VERTICAL_2026-10-02T13-29-49_01.png",
-    "cover_vertical_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/COVER_VERTICAL_2026-10-02T13-29-49_01.png",
-    "square_promotional_image": "./game_material/SQUARE_PROMO_2026-10-02T13-30-56_01.jpg",
-    "square_promotional_image_url": "https://tapcode-sce.spark.xd.com/assets/game_material/涌现纪元/SQUARE_PROMO_2026-10-02T13-30-56_01.jpg"
+    "promotional_image_url": "https://tapcode-sce.spark.xd.com/assets/game_material/m_n643/65f7e37fe97e202a52672a685a087e561df582b849d35e25166f7a84a412faa0.png",
+    "cover_vertical": "./.project/game_material/COVER_VERTICAL_2026-10-18T16-46-23_01.png",
+    "cover_vertical_url": "https://tapcode-sce.spark.xd.com/assets/game_material/青史志/COVER_VERTICAL_2026-10-18T16-46-23_01.png",
+    "cover_horizontal": "./.project/game_material/COVER_HORIZONTAL_2026-10-18T16-46-23_01.png",
+    "cover_horizontal_url": "https://tapcode-sce.spark.xd.com/assets/game_material/青史志/COVER_HORIZONTAL_2026-10-18T16-46-23_01.png"
   },
   "metadata": {
-    "updated_at": "2026-10-02T13:36:49.501Z",
-    "promo_dependent_hash": "debec769c346fc0dc009653ab3e638be"
+    "updated_at": "2026-10-18T16:47:40.286Z",
+    "promo_dependent_hash": "047a7874a11d0af3e76d4380ab6a8bc0"
   }
 }
