@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-配音转码:assets/audio/voice/*.ogg → h5/src/assets/voice/<剧本>/<章>/<片段>.{webm,m4a}
+配音转码:assets/audio/voice/*.ogg → h5/src/assets/voice/<剧本>/<章>/<片段>.webm
 
 命名与 JSON 的对应关系(已对全库 162 个节点 + 全部随机事件校验通过):
     <key>_c<章id>_intro_<N>        → chapter.intro[N]
@@ -16,7 +16,11 @@
 
 码率:源是 mono vorbis 96 kb/s。
     opus 32k mono 实测降到约 40%(24k 能到 50%,但齿音上能听出来,不值)
-    aac 48k mono 作为 Safari 兜底
+
+为什么只出 webm(2026-10-20 用户拍板):
+    原本另备一套 aac/m4a 作 Safari 兜底,但配音 600 条让 m4a 一套多背 173 MB,
+    而目标平台是 TapTap 容器(WebView 支持 opus)。需要 Safari 直开时再加回来,
+    源 ogg 一直在 assets/audio/voice/。
 
 先按剧本+章做试点,而不是一次转 249 MB:
     全量 opus 后约 100 MB,一轮全流程出问题就得整体回退。
@@ -82,7 +86,6 @@ def main() -> int:
     ap.add_argument("--chapter", default="c1")
     ap.add_argument("--all", action="store_true", help="转全部章(会产出约 100 MB)")
     ap.add_argument("--opus", default="32k")
-    ap.add_argument("--aac", default="48k")
     ap.add_argument("--list", action="store_true", help="只列切片,不转码")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -123,14 +126,14 @@ def main() -> int:
         return 2
 
     total_in = total_out = 0
-    written: dict[str, int] = {"webm": 0, "m4a": 0}
+    written: dict[str, int] = {"webm": 0}
     for src, ch, name in jobs:
         key = src.name.split("_")[0]
         dst_dir = OUT / key / ch
         dst_dir.mkdir(parents=True, exist_ok=True)
         in_kb = src.stat().st_size / 1024
         total_in += in_kb
-        for ext, codec, br in (("webm", "libopus", args.opus), ("m4a", "aac", args.aac)):
+        for ext, codec, br in (("webm", "libopus", args.opus),):
             dst = dst_dir / f"{name}.{ext}"
             cmd = [ff, "-hide_banner", "-loglevel", "error", "-y", "-i", str(src),
                    "-c:a", codec, "-b:a", br, "-ac", "1", "-vn", str(dst)]
@@ -143,16 +146,14 @@ def main() -> int:
                 written[ext] += dst.stat().st_size
         print(f"  {ch}/{name:<12} {in_kb:6.0f} KB")
 
-    print(f"\n{len(jobs)} 条 × 2 格式")
+    print(f"\n{len(jobs)} 条 · webm 单格式")
     if not args.dry_run:
-        # 按格式分别报,不要把两种格式加起来跟源比 —— 那必然显示"变大了",
-        # 而运行时只会下载其中一种。真实成本是单格式那一行。
+        # 单格式,直接跟源比即可
         print(f"源 vorbis   {total_in/1024:6.2f} MB  单条均 {total_in/len(jobs):5.0f} KB")
-        for ext, label in (("webm", "opus"), ("m4a", "aac")):
+        for ext, label in (("webm", "opus"),):
             # written 是字节,total_in 是 KB —— 分母要补 *1024,否则百分比会大 1000 倍
             print(f"{label:<10} {written[ext]/1024/1024:6.2f} MB  单条均 {written[ext]/len(jobs)/1024:5.0f} KB"
                   f"  (源的 {written[ext]/(total_in*1024)*100:.0f}%)")
-        print("→ 运行时只下载其中一种格式")
     return 0
 
 

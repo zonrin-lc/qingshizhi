@@ -8,6 +8,9 @@
  *   3. 播放策略对不对:页面加载即下 idle(进游戏就播);
  *      入局后下 inst 并后台预载 vocal,双轨轮播(不开单曲循环);
  *      回选择页切回 idle 循环。
+ *
+ * 2026-10-20 起音频只出 webm(opus),m4a 那套已砍(见 game/audio.ts 头注)。
+ * AUDIO_RE 仍同时匹配两种后缀:多匹配的那一边用来断言「m4a 不该再出现」。
  */
 const fs = require('fs');
 const path = require('path');
@@ -52,14 +55,15 @@ const check = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << $
 // ---------- 构建产物(纯 Node) ----------
 // files/distAudio/base/size 已在上面按 BGM 过滤后定义。
 
-check('产物齐全(11 首)', distAudio.length === WANT.length * 2, `实到 ${distAudio.length} 个`);
+check('产物齐全(11 首)', distAudio.length === WANT.length, `实到 ${distAudio.length} 个`);
 for (const w of WANT) check(`  ${w} 有 webm`, size(w, '.webm') > 0);
-check('每首都有 m4a 兜底', WANT.every((w) => size(w, '.m4a') > 0));
+check('只出 webm 单格式(无 m4a 产物)', distAudio.every((f) => f.endsWith('.webm')),
+  distAudio.filter((f) => !f.endsWith('.webm')).join(', '));
 check('无 0 字节产物', distAudio.every((f) => fs.statSync(path.join(AUD, f)).size >= 1024));
 // 注意:不要断言「inst 一定小于 vocal」。实测 hanxin 的纯音乐版(1496 KB)
 // 反而比语音版(1469 KB)大——混音密度是内容属性,不是缺陷。
-// 预算按实测最差值定:aac 在持续音上会超出 -b:a 目标,64k 实测能到 ~77 kb/s;
-// 2026-10-17 重编码后最差值为 jingke-vocal.m4a 2243 KB,预算随之校准到 2.25 MiB。
+// 预算按实测最差值定;2026-10-17 重编码后最差值为 jingke-vocal.m4a 2243 KB。
+// m4a 砍掉后最差值回落到 webm 一侧,预算保留 2.25 MiB 不收紧(留余量)。
 check(
   '产物都在预算内(≤2.25 MiB)',
   distAudio.every((f) => fs.statSync(path.join(AUD, f)).size <= 2.25 * 1024 * 1024),
@@ -90,6 +94,8 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   add('入局确实拉了 BGM', reqs.length > 0, '一个音频请求都没有');
   add('音频请求全部 200', reqs.every((r) => r.status === 200),
     reqs.filter((r) => r.status !== 200).map((r) => `${logical(r.url)}:${r.status}`).join(', '));
+  add('运行时不再请求 m4a(单格式已生效)', reqs.every((r) => extOf(r.url) === 'webm'),
+    reqs.filter((r) => extOf(r.url) !== 'webm').map((r) => r.url.split('/').pop()).join(', '));
   add('URL 带构建 hash(glob 的 ?url 生效)', reqs.every((r) => /-[A-Za-z0-9_-]{8,}\.(webm|m4a)$/.test(r.url)),
     reqs.filter((r) => !/-[A-Za-z0-9_-]{8,}\.(webm|m4a)$/.test(r.url)).map((r) => r.url.split('/').pop())[0]);
 
@@ -109,11 +115,12 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
 
   const probe = await evaluate(`(() => {
     const a = document.createElement('audio');
-    return { webm: a.canPlayType('audio/webm; codecs="opus"'), m4a: a.canPlayType('audio/mp4; codecs="mp4a.40.2"') };
+    return { webm: a.canPlayType('audio/webm; codecs="opus"') };
   })()`);
   const supportsWebm = probe.webm === 'probably' || probe.webm === 'maybe';
   const instReq = reqs.find((r) => logical(r.url) === 'lisi-inst');
-  add('格式选择符合 canPlayType', !!instReq && (supportsWebm ? extOf(instReq.url) === 'webm' : extOf(instReq.url) === 'm4a'),
+  // 单格式后不再按 canPlayType 分流;这里顺手记下探针结果,便于读测试时判断环境。
+  add('固定下 webm(不再做格式探测分流)', !!instReq && extOf(instReq.url) === 'webm',
     `支持webm=${supportsWebm},实际下 ${instReq ? extOf(instReq.url) : '(无)'}`);
 
   const el = await evaluate(`(() => {

@@ -28,29 +28,38 @@ const AUD = path.join(__dirname, '..', 'dist', 'assets');
 const BGM_SRC = '(?:idle|(?:lisi|jingke|hanxin|xiangyu|chensheng)-(?:inst|vocal))-[A-Za-z0-9_-]{8}\\.(?:webm|m4a)$';
 const AUDIO_URL_RE = /\/assets\/[^/]+\.(?:webm|m4a)$/;
 const BGM_RE = new RegExp(`\\/assets\\/${BGM_SRC}`);
-const isVoiceUrl = (u) => AUDIO_URL_RE.test(u) && !BGM_RE.test(u);
-// 用在 evaluate 字符串里的页面端判定:文件名是音频且不符合 BGM 命名
-const IS_VOICE_FN = `(a => { const s = (a.getAttribute('src') || '').split('/').pop(); return /\\.(webm|m4a)$/.test(s) && !/${BGM_SRC}/.test(s); })`;
+// 音效名单:必须与 src/game/sfx.ts 的 SfxName 同步。
+// 运行时网络日志里 sfx 和配音都长成 /assets/xxx.webm,不按名字排除就会混进来。
+const SFX_NAMES = new Set([
+  'click', 'card', 'enter', 'back', 'dialog', 'seal', 'coin', 'gain', 'down',
+  'dice-roll', 'dice-land', 'chapter', 'ending', 'fail',
+]);
+const SFX_RE = `(?:${[...SFX_NAMES].join('|')})-[A-Za-z0-9_-]{8}\\.(?:webm|m4a)$`;
+const isVoiceUrl = (u) => AUDIO_URL_RE.test(u) && !BGM_RE.test(u) && !new RegExp(`\\/assets\\/${SFX_RE}`).test(u);
+// 用在 evaluate 字符串里的页面端判定:文件名是音频,且既不是 BGM 也不是音效
+const IS_VOICE_FN = `(a => { const s = (a.getAttribute('src') || '').split('/').pop(); return /\\.(webm|m4a)$/.test(s) && !/${BGM_SRC}/.test(s) && !/^(?:${[...SFX_NAMES].join('|')})-[A-Za-z0-9_-]{8}\\.(?:webm|m4a)$/.test(s); })`;
 const logical = (u) => u.replace(/^.*\//, '').replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, '');
 const checks = [];
 const check = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
 
 // ---------- 构建产物 ----------
 const files = fs.existsSync(AUD) ? fs.readdirSync(AUD).filter((f) => /\.(webm|m4a)$/.test(f)) : [];
-const isVoice = (f) => isVoiceUrl('http://x/assets/' + f);
+const isSfx = (f) => SFX_NAMES.has(f.replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, ''));
+const isVoice = (f) => isVoiceUrl('http://x/assets/' + f) && !isSfx(f);
 const isBgm = (f) => BGM_RE.test('http://x/assets/' + f);
 const voiceFiles = files.filter(isVoice);
 const clipName = (f) => f.replace(/-[A-Za-z0-9_-]{8}\.(webm|m4a)$/, '');
 
 check('配音产物已构建', voiceFiles.length > 0, `${voiceFiles.length} 个`);
 
-// 源 ogg:TTS 批次产物(lisi_v2/lisi_probe + 其余剧本 <key>_v1),一条语音对应产物 webm+m4a 两个文件
+// 源 ogg:TTS 批次产物(lisi_v2/lisi_probe + 其余剧本 <key>_v1),一条语音对应一个 webm 产物
+// (2026-10-20 起只出 webm,m4a 那套已砍)
 const srcDir = path.join(__dirname, '..', '..', 'assets', 'audio', 'voice');
 const srcOgg = fs.existsSync(srcDir)
   ? fs.readdirSync(srcDir).filter((f) => /^(?:lisi_(?:v2|probe)|(?:jingke|hanxin|xiangyu|chensheng)_v1)_.*\.ogg$/.test(f))
   : [];
-check('配音切片数与 TTS 源一致(源×2 格式)', voiceFiles.length > 0 && voiceFiles.length === srcOgg.length * 2,
-  `产物 ${voiceFiles.length},源 ${srcOgg.length}×2`);
+check('配音切片数与 TTS 源一致', voiceFiles.length > 0 && voiceFiles.length === srcOgg.length,
+  `产物 ${voiceFiles.length},源 ${srcOgg.length}`);
 
 const names = new Set(voiceFiles.map(clipName));
 check('含章首 intro 切片', names.has('intro'), `样例 ${[...names][0]}`);
@@ -66,28 +75,21 @@ check('含历史修正切片(corr_N)', [...names].some((n) => /^corr_\d+$/.test(
 // 不配音的类别不该出现在产物里:主线事件选项结算(N-N_oN)、随机事件(rand/R-*)、旧的逐段切片(_sN)
 check('不含主线选项结算切片(N-N_oN)', ![...names].some((n) => /^\d+-\d+_o\d+$/.test(n)));
 check('不含旧的逐段切片(_sN)', ![...names].some((n) => /_s\d+$/.test(n)));
-// 加配音不该动到 BGM。11 首 × 2 格式 = 22 个;idle 不含 inst/vocal 字样,
-// 所以别用 /(inst|vocal)-/ 数,idle 会被漏掉(数出 20 而不是 22)。
-check('BGM 产物仍是 11 首 ×2', files.filter(isBgm).length === 22,
+// 加配音不该动到 BGM。11 首 = 11 个 webm(m4a 已砍)。
+check('BGM 产物仍是 11 首', files.filter(isBgm).length === 11,
   `${files.filter(isBgm).length} 个`);
 check('配音与 BGM 没有混在同一命名空间', voiceFiles.every(isVoice) && files.filter(isBgm).every((f) => !isVoice(f)));
 
-// 每条切片双格式成对(同名 intro 在不同章内容不同,vite 按内容给 hash,不会互相覆盖)
-const byLogical = {};
-for (const f of voiceFiles) {
-  const l = clipName(f);
-  (byLogical[l] ||= { webm: 0, m4a: 0 });
-  byLogical[l][f.endsWith('.webm') ? 'webm' : 'm4a'] += 1;
-}
-const unpaired = Object.entries(byLogical).filter(([, v]) => !v.webm || !v.m4a).map(([k]) => k);
-check('每条切片都有 webm+m4a', unpaired.length === 0, unpaired.slice(0, 3).join(', '));
+// 单格式:每条切片只应有 webm,不该再出现 m4a
+const strayM4a = voiceFiles.filter((f) => !f.endsWith('.webm'));
+check('配音只出 webm 单格式(无 m4a)', strayM4a.length === 0, strayM4a.slice(0, 3).join(', '));
 
 // 合并口径下单条最长约 240 字:opus 均值 ~213KB、最大 ~455KB(2026-10-17 李斯 134 条实测)
 const opusSize = (l) => {
   const f = voiceFiles.find((x) => clipName(x) === l && x.endsWith('.webm'));
   return f ? fs.statSync(path.join(AUD, f)).size : 0;
 };
-const clipKeys = Object.keys(byLogical);
+const clipKeys = [...new Set(voiceFiles.map(clipName))];
 const avgOpus = clipKeys.reduce((s, l) => s + opusSize(l), 0) / clipKeys.length;
 check('单条 opus 均值在预算内(≤260 KB)', avgOpus <= 260 * 1024, `${(avgOpus / 1024).toFixed(0)} KB`);
 const maxOpus = Math.max(...clipKeys.map(opusSize));

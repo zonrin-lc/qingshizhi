@@ -36,27 +36,11 @@ const clips = import.meta.glob<string>('../assets/voice/*/*/*.webm', {
   query: '?url',
   import: 'default',
 });
-const clips4a = import.meta.glob<string>('../assets/voice/*/*/*.m4a', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-});
-
-type Ext = 'webm' | 'm4a';
-
-const probe = (() => {
-  if (typeof document === 'undefined') return 'm4a' as Ext;
-  const a = document.createElement('audio');
-  const w = a.canPlayType('audio/webm; codecs="opus"');
-  return w === 'probably' || w === 'maybe' ? ('webm' as Ext) : ('m4a' as Ext);
-})();
 
 /** 该章某条切片在不在;查不到本章目录时回落 _shared(跨章共享切片)。 */
 function clipUrl(scenario: string, chapter: string, clip: string): string | null {
-  const pick = (dir: string): string | null => {
-    const key = `../assets/voice/${scenario}/${dir}/${clip}.`;
-    return probe === 'webm' ? (clips[key + 'webm'] ?? null) : (clips4a[key + 'm4a'] ?? null);
-  };
+  const pick = (dir: string): string | null =>
+    clips[`../assets/voice/${scenario}/${dir}/${clip}.webm`] ?? null;
   return pick(chapter) ?? pick('_shared');
 }
 
@@ -82,7 +66,7 @@ export class Voice {
   private visibilityBound = false;
 
   get available(): boolean {
-    return Object.keys(clips).length > 0 || Object.keys(clips4a).length > 0;
+    return Object.keys(clips).length > 0;
   }
 
   setEnabled(on: boolean): void {
@@ -214,4 +198,3 @@ export class Voice {
 }
 
 export const voice = new Voice();
-export const VOICE_EXT = probe;
