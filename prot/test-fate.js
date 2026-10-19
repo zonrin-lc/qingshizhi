@@ -150,30 +150,43 @@ function ok(cond, label, detail){ if (cond){ pass++; console.log('✔ ' + label)
     const src = DATA[r.report.protag];
     const nCh = r.data.CHAPTERS.length;
     const flagNames = new Set();
+    // 可置位旗标的采集口径必须与引擎一致：flag 字符串、enterOnce 字符串、
+    // 以及 eff.flags 数组（engine.js:1081 会落 self.flags[f]）。
+    // 早先只收 flag 字符串，于是 renyin/xiangchou/tanmo/zhaogao2 等一律判成
+    // 不可达 —— oracle 与实现同源，这类缺陷它结构上就发现不了。
     const scanFlags = (v) => {
-      if (Array.isArray(v)) v.forEach(scanFlags);
-      else if (v && typeof v === 'object') {
-        Object.keys(v).forEach(k => { if (k === 'flag' && typeof v[k] === 'string') flagNames.add(v[k]); });
-        Object.values(v).forEach(scanFlags);
-      }
+      if (Array.isArray(v)) { v.forEach(scanFlags); return; }
+      if (!v || typeof v !== 'object') return;
+      if (typeof v.flag === 'string') flagNames.add(v.flag);
+      if (typeof v.enterOnce === 'string') flagNames.add(v.enterOnce);
+      if (Array.isArray(v.flags)) v.flags.forEach(f => { if (typeof f === 'string') flagNames.add(f); });
+      Object.keys(v).forEach(k => scanFlags(v[k]));
     };
     scanFlags(src.CHAPTERS); scanFlags(src.RANDOM_EVENTS); scanFlags(src.ACTIONS);
     r.data.RANDOM_EVENTS.forEach(ev => {
       total++;
       if (ev.chapters && ev.chapters[1] >= nCh) { overCount++; if (!sample) sample = ev.id + ' chapters=' + ev.chapters; }
-      // 逐选项检查 cond 里的 flag 是否在本剧本可被置位
-      const deps = [];
+      // 依赖按「组」收集：anyflag 是一组备选（有任一即可），flag 是单选。
+      // 判据 = 存在某组，其全部候选旗标都不可置位 → 该际遇永不可触发。
+      // 早先拍平成一维再 every()：既漏 ev.cond，又把 anyflag 的「或」当成「与」。
+      const groups = [];
       const walk = (v) => {
-        if (Array.isArray(v)) v.forEach(walk);
-        else if (v && typeof v === 'object') {
-          ['flag', 'anyflag'].forEach(k => {
-            if (k in v) { if (Array.isArray(v[k])) v[k].forEach(f => deps.push(f)); else deps.push(v[k]); }
-          });
-          Object.keys(v).forEach(k => { if (!['flag', 'anyflag'].includes(k)) walk(v[k]); });
-        }
+        if (Array.isArray(v)) { v.forEach(walk); return; }
+        if (!v || typeof v !== 'object') return;
+        ['flag', 'anyflag'].forEach(k => {
+          if (!(k in v)) return;
+          if (k === 'flag') { if (typeof v[k] === 'string') groups.push([v[k]]); }
+          else if (Array.isArray(v[k])) groups.push(v[k].filter(f => typeof f === 'string'));
+        });
+        Object.keys(v).forEach(k => { if (!['flag', 'anyflag'].includes(k)) walk(v[k]); });
       };
+      // ev.cond 是引擎在 maybeRandom 里读的门（engine.js:1884），必须纳入
+      walk(ev.cond);
       (ev.options || []).forEach(o => { walk(o.req); walk(o.reqAdjust); });
-      if (deps.length && deps.every(f => !flagNames.has(f))) deadCount++;
+      if (groups.some(g => g.length && g.every(f => !flagNames.has(f)))) {
+        deadCount++;
+        if (!sample) sample = ev.id + ' 门槛=' + JSON.stringify(groups);
+      }
     });
   }
   ok(deadCount === 0, `死事件过滤契约：200 局际遇无「依赖不可置位 flag」的死事件（抽 ${total} 条，命中 ${deadCount}）`, deadCount ? '命中 ' + deadCount + ' 条' : '');

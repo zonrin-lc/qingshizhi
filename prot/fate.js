@@ -1,4 +1,4 @@
-/* 《青史志》随机命局生成器（v1.7.0，GDD 附录 R）—— 纯逻辑，浏览器与 Node 通用。
+﻿/* 《青史志》随机命局生成器（v1.7.0，GDD 附录 R）—— 纯逻辑，浏览器与 Node 通用。
  * 输入：五剧本数据映射 + 可复现 rng；输出：一份可直接喂给引擎的"第六剧本"数据对象。
  * 随机化范围（主线/危机/修正保留主角本，涌现的是"势"）：
  *   ① 主角：五选一（均匀）
@@ -57,7 +57,11 @@
     //    a) 章数越界——7 章本的际遇并入 6 章本（荆轲）后，chapters[1] ≥ 主角章数 的条目整局不可达；
     //    b) 死事件——跨剧本混入的 flag/cond 未重写，依赖别的剧本 flag 的选项永不可触发。
     //    b) 用不动点求解：先取"非际遇内容"可置位的 flag，再逐轮把保留际遇能置位的 flag 并入、
-    //    剔除依赖不可满足的际遇，直至集合不再变化（保守剔除，不会误杀可达条目）。
+    //    剔除依赖不可满足的际遇，直至集合不再变化。
+    //    注:flag 的采集口径必须与引擎的置位口径一致 —— 引擎认 flag 字符串、
+    //    enterOnce、以及 eff.flags 数组(engine.js:1081)。漏掉 eff.flags 会把
+    //    一批「本可达」的旗标判成不可达,进而误杀可达际遇。
+    //    注:deps 口径必须覆盖 ev.cond(引擎在 maybeRandom 读它)。
     var nCh = (d.CHAPTERS || []).length;
     var pool = [];
     keys.forEach(function (k) {
@@ -81,6 +85,15 @@
         });
         Object.keys(v).forEach(function (k) { if (KEYS.indexOf(k) < 0) walk(v[k]); });
       }
+      // ev.cond 必须扫：引擎在 maybeRandom 里读它（engine.js:1884
+      // `if (ev.cond && !this.check(ev.cond).ok) return null`），
+      // 而那里是「先 splice 出牌堆、再判 cond」—— 条件永远不满足的际遇
+      // 抽到即永久移出牌堆并烧掉一次抽取机会，属于纯浪费。
+      // 五本共 10 条旗标门际遇（如 lisi/R-8 需韩信的 hanfeicun、
+      // lisi/R-12 需 zhaogao1|2），不扫就会被留进池里。
+      // 注意只收 flag/anyflag：cond 里的数值门槛（caifu/weiji/junxin）
+      // 是资源条件不是旗标，不能拿来判死。
+      walk(ev.cond);
       (ev.options || []).forEach(function (o) { walk(o.req); walk(o.reqAdjust); });
       return out;
     }
@@ -106,6 +119,13 @@
       if (!v || typeof v !== 'object') return out;
       if (typeof v.flag === 'string') out[v.flag] = true;
       if (typeof v.enterOnce === 'string') out[v.enterOnce] = true;
+      // eff.flags 是数组型置位，引擎在 engine.js:1081 真的会落 self.flags[f]。
+      // 只认 flag/enterOnce 两个字符串键会漏掉这一整类 —— 实测 lisi 漏 11 个
+      // （renyin/xiangchou/piaobo/tanmo/zhaogao2 …），而它们恰是
+      // R-2/R-5/R-8/R-10 等际遇的门槛旗标。
+      if (Array.isArray(v.flags)) {
+        v.flags.forEach(function (f) { if (typeof f === 'string') out[f] = true; });
+      }
       Object.keys(v).forEach(function (k) { harvestFlags(v[k], out); });
       return out;
     }
