@@ -414,6 +414,12 @@ function playOne(stratName, diffKey, rng) {
   while (g.phase !== 'ending' && guard++ < 500) {
     if (g.phase === 'intro') { g.beginEvents(); continue; }
     if (g.phase === 'round') {
+      // 回合边界先过遭遇闸门,与 H5 的 route() case 'round' 同口径:
+      //   if (this.game.maybeRandom()) this.renderEvent(); else this.renderRound();
+      // 缺了这一句,本工具整局不遇任何随机际遇/危机注入/逆天反噬,
+      // 统计出来的收尾率与属性终值会比实玩乐观 —— 平衡结论会建立在
+      // 一条玩家根本遇不到的路上。命中时引擎已切到 event,交给下方事件分支。
+      if (g.maybeRandom()) continue;
       const ci = pickCard(stratName, g, rng);
       if (ci === -1) { // 蓄势策略：放弃出牌（playXushi 内部照常推进倒计时与 forcedKey）
         const rx = g.playXushi();
@@ -689,7 +695,9 @@ if (arg('cull', null) !== null) {
     let guard = 0, pickedHere = [];
     while (g.phase !== 'ending' && guard++ < 500) {
       if (g.phase === 'intro') { g.beginEvents(); continue; }
-      if (g.phase === 'round') { const ci = pickCard(sn, g, mulberry32(seed + guard)); if (ci === -1) { const rx = g.playXushi(); if (!rx) g.playCard(0); } else g.playCard(ci); continue; }
+      if (g.phase === 'round') {
+        if (g.maybeRandom()) continue;   // 同上:回合边界先过遭遇闸门(审计重跑用)
+        const ci = pickCard(sn, g, mulberry32(seed + guard)); if (ci === -1) { const rx = g.playXushi(); if (!rx) g.playCard(0); } else g.playCard(ci); continue; }
       if (g.phase === 'correction') { g.correctionContinue(); continue; }
       if (g.phase === 'summary') { g.proceedSummary(); continue; }
       if (g.phase === 'endEvent') {

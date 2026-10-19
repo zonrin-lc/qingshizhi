@@ -41,7 +41,10 @@ function advance(g) {
   while (guard++ < 300) {
     if (g.phase === 'ending') return { kind: 'ending', clicks, ending: g.ending };
     if (g.phase === 'intro') { clicks += g.chapter().intro.length; g.beginEvents(); continue; }
-    if (g.phase === 'round') { clicks += 1; g.playCard(0); continue; } // 只沿关键卡展开：行动卡视为回合外增益，不入路径（避免状态爆炸）
+    // 回合边界先过遭遇闸门,与 H5 的 route() case 'round' 同口径。缺了它本工具
+    // 只沿关键卡走,随机际遇/危机注入/逆天反噬一条都不进,路径统计与点击成本
+    // 都会偏乐观。命中时引擎已切到 event,交给下方事件分支。
+    if (g.phase === 'round') { clicks += 1; if (g.maybeRandom()) continue; g.playCard(0); continue; } // 只沿关键卡展开：行动卡视为回合外增益，不入路径（避免状态爆炸）
     if (g.phase === 'correction') { clicks += 1; g.correctionContinue(); continue; }
     if (g.phase === 'summary') { clicks += 1; g.proceedSummary(); continue; }
     if (g.phase === 'settle') { clicks += 1; g.proceed(); continue; }
