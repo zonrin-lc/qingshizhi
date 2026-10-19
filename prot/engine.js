@@ -383,6 +383,9 @@
     this.currentRandom = null;
     this.pendingEventId = null;
     this._crisisPlotPending = false;
+    // 钳制记账属章内状态：上一章的结算若被非正常路径绕过（未走 makeSummary），
+    // 记账会漏进本章。跟 randomCount 一并清。
+    this._weijiClamp = 0;
     var self = this;
     this.chapterDeck = this._buildChapterDeck(idx);
     // 起始事件（支持条件起始，如 3-0 密报）
@@ -1024,7 +1027,9 @@
     // 非致命难度：危机钳到 95（GDD 4.4）。此处记录本次钳制，供结算页如实告知
     // ——此前钳制发生在 changes 已算完之后，章末 attrDelta 按快照算出的差值
     // 不含这次回落，玩家看到一个自己没被告知过的危机下降。
-    this._weijiClamp = this.attrs.weiji - 95;
+    // 用 += 而非 =：同一章可能两次触顶（钳到 95 后又涨过 100），
+    // 覆盖写会让第二次的回落从结算里消失。makeSummary 消费后清零。
+    this._weijiClamp += this.attrs.weiji - 95;
     this.attrs.weiji = 95;
     return null;
   };
@@ -1358,6 +1363,10 @@
     this.randomCount = 0;
     this.chapterDeck = this._buildChapterDeck(this.chapterIdx);
     this._skipRandom = false;
+    // 钳制记账一并清零：回溯把 attrs 退回章首快照，那次回落已随 attrs 撤销。
+    // 不清的话，章末结算会再报一次玩家从未经历的危机下降
+    // （同 randomCount / _skipRandom 的道理，都是章内状态须归位）。
+    this._weijiClamp = 0;
     this.phase = 'intro';
     return true;
   };

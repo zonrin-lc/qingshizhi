@@ -1901,5 +1901,51 @@ function expect(name, actual, wantId, wantVariant) {
     else { fail++; }
   }
 }
-console.log(`\n结果：${pass} 通过，${fail} 失败`);
+// 70. 危机 95 封顶的钳制记账（v2.0.6 收口契约的回归）
+  // 交叠格：「回溯 × 危机封顶」—— 08 章 8.7 T-05 要求覆盖，现套件缺这一条。
+  // 玩家被告知的差值必须只包含他真正经历过的：钳到 95 之后回溯，
+  // 章末不应再报一次那个从未发生的危机下降。
+  {
+    const g = mkGame('story', rngLow);
+    g.start();
+    g.attrs.weiji = 100;                  // 推过致死线
+    g.checkDeath();                       // 非致命难度 → 钳到 95 + 记账 5
+    const clamped = g._weijiClamp;
+    const afterClamp = g.attrs.weiji;
+
+    g.backtrack();                        // 回本章章首
+    const afterBtAttrs = g.attrs.weiji;
+    const afterBtClamp = g._weijiClamp;
+
+    g.beginEvents();
+    g.makeSummary();
+    const reported = (g.summaryView.attrDelta || {}).weiji || 0;
+
+    const ok1 = clamped === 5 && afterClamp === 95;
+    if (ok1) pass++; else fail++;
+    console.log(`${ok1 ? '✔' : '✘'} 危机 95 封顶：非致命难度钳到 95 并记账（钳 ${clamped}）`);
+
+    const ok2 = afterBtClamp === 0;
+    if (ok2) pass++; else fail++;
+    console.log(`${ok2 ? '✔' : '✘'} 危机 95 封顶：回溯后钳制记账归零（实为 ${afterBtClamp}）`);
+
+    const ok3 = reported === 0;
+    if (ok3) pass++; else fail++;
+    console.log(`${ok3 ? '✔' : '✘'} 危机 95 封顶：回溯后章末不再报未告知的下降（报 ${reported}）`);
+    if (!ok3) console.log(`   回溯后 attrs.weiji=${afterBtAttrs}，attrDelta.weiji=${reported}（应为 0）`);
+  }
+
+  // 71. 同一章内两次触顶应累加而非覆盖（v2.0.6 记账口径）
+  {
+    const g = mkGame('story', rngLow);
+    g.start();
+    g.attrs.weiji = 100; g.checkDeath();      // 钳 5
+    g.attrs.weiji = 100; g.checkDeath();      // 再钳 5 → 应记 10
+    const acc = g._weijiClamp;
+    const ok = acc === 10;
+    if (ok) pass++; else fail++;
+    console.log(`${ok ? '✔' : '✘'} 危机 95 封顶：同章两次触顶累加记账（记 ${acc}，应为 10）`);
+  }
+
+  console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail > 0 ? 1 : 0);
