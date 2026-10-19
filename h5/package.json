@@ -6,7 +6,7 @@
   "description": "《青史志》H5 版 —— 规则引擎复用 prot/engine.js（单一真源，不拷贝）",
   "scripts": {
     "verify:data": "node scripts/verify-data.mjs",
-    "verify:font": "python tools/check-font.py",
+    "verify:font": "python3 tools/check-font.py",
     "predev": "npm run verify:data",
     "dev": "vite --force",
     "prebuild": "npm run verify:data && npm run verify:font",
