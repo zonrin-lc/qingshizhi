@@ -18,7 +18,7 @@
     "developer_id": 429502,
     "miniapp_id": "tapmchoamavbimdoiv",
     "gameplay_demo_video_source": "https://tapcode-sce.spark.xd.com/videos/548e0936-86fd-4010-86ae-232eb849f703/1792339864573-uploaded_da26efbd.mp4",
-    "release_phase": "public_test"
+    "release_phase": "official"
   },
   "assets": {
     "icon": "./_uploads/7ec48354056575ca1a84dc677bf65b0bbc8de46148b084e9b5b3afe6b61e2715.png",
@@ -46,7 +46,7 @@
     "cover_horizontal_url": "https://tapcode-sce.spark.xd.com/assets/game_material/青史志/COVER_HORIZONTAL_2026-10-18T16-46-23_01.png"
   },
   "metadata": {
-    "updated_at": "2026-10-18T16:47:40.286Z",
+    "updated_at": "2026-10-19T19:17:43.298Z",
     "promo_dependent_hash": "047a7874a11d0af3e76d4380ab6a8bc0"
   }
 }
