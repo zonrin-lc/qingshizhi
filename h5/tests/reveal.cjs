@@ -79,16 +79,37 @@ const PROBE = `(async () => {
     await sleep(30);
   }
 
-  // 跳完
-  q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-  await sleep(60);
+  // 跳一次就够,不能再补第二下。
+  // 事件选项就渲染在 .stage__main 里,而跳渐显的 pointerdown 绑在 main 上 ——
+  // 补的第二下会落在已经挂好的选项卡上,替玩家把选择做了,相位直接跳 settle,
+  // 紧接着的断言读到的就是结算页(旁白只剩 1 段、选项 0 个)。负载轻时渲染快,
+  // 所以只在部分轮次命中,看着极像 flake。
+  const m = document.querySelector('.stage__main');
+  if (m) m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  // 等「跳完」这件事真的发生。判据是选项挂上(= 渐显的收尾动作),
+  // 而不是等一个固定时长。注意不能顺手加上「还在渐显」当条件:
+  // 引擎可能已经推进到下一相位、界面还收尾上一段结算动画,那时候
+  // revealing 已经 false 而选项要等结算的自动推进才挂 —— 两个条件一起卡
+  // 会在这个窗口里提前退出,读到「引擎在 event、界面没选项」的中间态,
+  // 看着像软锁,其实只是采样太早(约 1/14 的轮次落在这个窗口里)。
+  const t3 = performance.now();
+  while (opts() === 0 && performance.now() - t3 < 8000) await sleep(50);
   out.revealingAfterSkip = revealing();
   out.segsAfterSkip = paras();
   out.optionsAfterSkip = opts();
+  out.phaseAfterSkip = g.phase;
+  out.evIdAfterSkip = g.eventId;
 
   // ---------- 换一个相位,确认没有残留的渐显往新页塞段落 ----------
-  opts() && qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0].click();
-  await sleep(500);
+  const beforeChoose = g.phase;
+  // 若选项还没挂上(相位刚换完),先等它,再点
+  const tC = performance.now();
+  while (opts() === 0 && performance.now() - tC < 6000) await sleep(80);
+  qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0]?.click();
+  // 等相位真的换掉再读,别赌 500ms 够点击生效
+  const t4 = performance.now();
+  while (g.phase === beforeChoose && performance.now() - t4 < 8000) await sleep(80);
+  await sleep(300);   // 相位换掉后渐显若要起来,300ms 内必已起
   out.revealingAfterChoose = revealing();
   out.phaseAfterChoose = g.phase;
   out.parasAfterChoose = paras();
@@ -136,6 +157,18 @@ withPage(async ({ evaluate, enterGame, consoleErrors }) => {
   ];
 
   const ok = report('叙事渐显', checks);
+  // 这两条一旦红,不是测试抖动的味道(不像布局断言那样时真时假),而是
+  // 玩家真的会被卡住:不渐显了、旁白又缺、选项也不出。把现场打出来再判。
+  if (o.segsAfterSkip !== o.segsTotal || o.optionsAfterSkip < 2) {
+    console.log('  [现场] ' + JSON.stringify({
+      evId: o.evId, phaseAfterSkip: o.phaseAfterSkip,
+      segsTotal: o.segsTotal, segsDuringReveal: o.segsDuringReveal,
+      segsAfterSkip: o.segsAfterSkip, optionsAfterSkip: o.optionsAfterSkip,
+      revealingAfterSkip: o.revealingAfterSkip,
+      phaseAfterChoose: o.phaseAfterChoose, parasAfterChoose: o.parasAfterChoose,
+      evIdAfterSkip: o.evIdAfterSkip,
+    }));
+  }
   const errs = consoleErrors();
   const ct = report('控制台干净', [['无错误', errs.length === 0, errs.join(' / ')]]);
   return ok && ct;
