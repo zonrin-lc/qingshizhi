@@ -2,7 +2,7 @@
  * BGM。
  *
  * 源是 41.3 MB 的 vorbis,网页端不可能直接用;
- * 由 tools/build-audio.py 转成 webm(opus) / m4a(aac) 两套,运行时只挑一套下载。
+ * 由 tools/build-audio.py 转成 webm(opus),运行时直接播。
  * 详见该脚本头注。
  *
  * 播放策略(2026-10-15 用户拍板):
@@ -17,20 +17,22 @@
  *    不监听 visibilitychange 音乐就会在后台一直响。隐藏时暂停,
  *    回前台续播 —— 但落幕/主动停(current 为空)的不自动续。
  *
- * 格式选择用 canPlayType 探测,不猜:
- * Chromium/Firefox 走 webm(opus,更小),Safari 走 m4a(aac,通用)。
+ * 只出 webm(opus) 一种(2026-10-20 用户拍板):原本 webm/m4a 双格式是为
+ * Safari 兜底,但 m4a 一套让产物多背 173 MB,而目标平台是 TapTap 容器
+ * (WebView 内核支持 opus),不值得为兜底付这个体积。若将来要支持 Safari
+ * 直开,把 m4a 重新生成回来即可 —— 源 ogg 一直在 assets/audio/。
  */
 
 type Variant = 'inst' | 'vocal';
 
 // 与 tools/build-audio.py 的输出名对应: idle / <key>-inst / <key>-vocal
 //
-// `query: '?url'` 不能省:glob 命中 .webm/.m4a 这类资源时,不加它 Vite 会把
+// `query: '?url'` 不能省:glob 命中 .webm 这类资源时,不加它 Vite 会把
 // 源码相对路径原样烤进包里,变成 /assets/bgm/idle.webm;而实际产物带 hash,
 // 是 /assets/bgm/idle-Bmeqaz.webm —— 于是每个音频请求都是 404。
 // 加了 ?url 才会重写成构建后的真实 URL。
 // eager 只取 URL 字符串,不内联音频字节。
-const urls = import.meta.glob<string>('../assets/bgm/*', {
+const urls = import.meta.glob<string>('../assets/bgm/*.webm', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -38,21 +40,8 @@ const urls = import.meta.glob<string>('../assets/bgm/*', {
 
 function pick(key: string, variant: Variant): string | null {
   const base = key === 'idle' ? 'idle' : `${key}-${variant}`;
-  const w = urls[`../assets/bgm/${base}.webm`];
-  const m = urls[`../assets/bgm/${base}.m4a`];
-  if (!w && !m) return null;
-  // 探测一次就够:两个浏览器的支持度在会话内不变
-  if (probe.supportWebm) return w ?? m ?? null;
-  return m ?? w ?? null;
+  return urls[`../assets/bgm/${base}.webm`] ?? null;
 }
-
-const probe = (() => {
-  if (typeof document === 'undefined') return { supportWebm: false, supportM4a: false };
-  const a = document.createElement('audio');
-  const webm = a.canPlayType('audio/webm; codecs="opus"');
-  const m4a = a.canPlayType('audio/mp4; codecs="mp4a.40.2"');
-  return { supportWebm: webm === 'probably' || webm === 'maybe', supportM4a: m4a !== '' };
-})();
 
 export class Bgm {
   private el: HTMLAudioElement | null = null;
@@ -230,4 +219,3 @@ export class Bgm {
 }
 
 export const bgm = new Bgm();
-export const AUDIO_SUPPORT = probe;

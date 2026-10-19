@@ -1,7 +1,7 @@
 /**
  * 音效(2026-10-20 接入):第三条音频通道,补 BGM( audio.ts )与朗读( voice.ts )
  * 之外的交互反馈音。源由 Maker Seed Audio 生成( assets/audio/sfx/*.mp3 ),
- * 经 ffmpeg 转出 webm(opus)/m4a(aac) 两套,与 BGM 同口径,运行时 canPlayType 挑一套。
+ * 经 ffmpeg 转出 webm(opus),与 BGM 同口径。
  *
  * 与 BGM/朗读的三点差异:
  * 1. **并发短音,不用单元素串行。** 同一音可能连发(快速连点按钮),
@@ -13,23 +13,15 @@
  *
  * 自动播放策略:音效几乎都由真实手势直接触发(点击/出牌);个别挂在定时器上的
  * (骰子落定/属性飞字/章末结算)也都跟在手势链路之后,首个手势过后浏览器即放行。
+ *
+ * 只出 webm(opus) 一种(2026-10-20 用户拍板,同 BGM):原本另备一套 m4a
+ * 是为 Safari 兜底,目标平台 TapTap 容器的 WebView 支持 opus,不值得付双份体积。
  */
-const urlsWebm = import.meta.glob<string>('../assets/sfx/*.webm', {
+const urls = import.meta.glob<string>('../assets/sfx/*.webm', {
   eager: true,
   query: '?url',
   import: 'default',
 });
-const urlsM4a = import.meta.glob<string>('../assets/sfx/*.m4a', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-});
-
-const supportWebm = (() => {
-  if (typeof document === 'undefined') return false;
-  const w = document.createElement('audio').canPlayType('audio/webm; codecs="opus"');
-  return w === 'probably' || w === 'maybe';
-})();
 
 /** 可用的音效名 = 文件名(不含扩展)。新增素材丢进 assets/sfx 即可,不用改这里。 */
 export type SfxName =
@@ -38,9 +30,7 @@ export type SfxName =
   | 'chapter' | 'ending' | 'fail';
 
 function urlOf(name: SfxName): string | null {
-  const key = `../assets/sfx/${name}`;
-  return supportWebm ? (urlsWebm[`${key}.webm`] ?? urlsM4a[`${key}.m4a`] ?? null)
-    : (urlsM4a[`${key}.m4a`] ?? urlsWebm[`${key}.webm`] ?? null);
+  return urls[`../assets/sfx/${name}.webm`] ?? null;
 }
 
 /** 单个音的并发上限:连点超过这个数就复用最老的那个元素(从头重播) */
