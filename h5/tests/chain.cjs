@@ -34,8 +34,14 @@ const DRIVER = `(async () => {
     }
   };
 
-  for (let i = 0; i < 1500; i++) {
-    await sleep(3);
+// 预算用「墙钟时间」而不是固定迭代数。
+    // 一次迭代含 1 次 CDP evaluate + 若干 DOM 查询,机器有负载时单次可能十几毫秒;
+    // 固定 600 次在全量套件里偶尔不够跑完一章,表现为「没卡死、也没 STUCK,
+    // 就是没走到 summary」——最像产品坏了,其实是自己没跑够。
+    const deadline = Date.now() + 90000;
+    for (let i = 0; i < 6000; i++) {
+      if (Date.now() > deadline) break;
+      await sleep(3);
     // 叙事渐显:段落没全亮、选项也还没挂上(对齐 Lua 的"读完才给选")。
     // 先点正文区跳过去,否则下面 paras/segs 的段数断言会读到半截。
     if (window.__QS__.session.isRevealing) {
@@ -50,7 +56,7 @@ const DRIVER = `(async () => {
       // summary 相位也在这里拦截,统计行与「进入下一章」都在弹框里
       if (ph0 === 'summary') {
         push({ at: i, evt: 'summary', idx: g.chapterIdx, dev: g.dev,
-               devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .statrow__cell').length,
+               devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .chglist--summary .chgrow').length,
                hasNext: qa('.overlay .btn--primary').length > 0 });
       } else {
         push({ at: i, evt: 'settle', title: (q('.overlay__title')||{}).textContent || '',
@@ -234,7 +240,7 @@ const DRIVER = `(async () => {
     if (ph === 'summary') {
       // 兜底:正常会被顶部弹框分支拦截;走到这里说明弹框没出,按弹框口径再试一次
       push({ at: i, evt: 'summary', idx: g.chapterIdx, dev: g.dev,
-             devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .statrow__cell').length,
+             devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .chglist--summary .chgrow').length,
              hasNext: qa('.overlay .btn--primary').length > 0 });
       const b = q('.overlay .btn--primary'); if (b) b.click();
       continue;

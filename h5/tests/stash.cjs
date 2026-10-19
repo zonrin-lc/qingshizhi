@@ -29,12 +29,13 @@ ${STEP_SNIPPET}
       const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
       // 结算动画序列(2026-10-17 拍板)自动推进但真实耗时,点完要等发牌落定
       if (c) { c.click(); played += 1; await waitDeal(); }
-      else { advanceOnce(); await sleep(8); }
+      // 结算动画窗口里无可点元素,高频空转只烧迭代预算(同 ending.cjs)
+      else { advanceOnce(); await sleep(60); }
     } else if (g.phase === 'event' || g.phase === 'choice') {
       const c = qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0];
       // 随机事件落定后无「继 续」(2026-10-17 拍板),自动推进要等相位离开 settle
-      if (c) { c.click(); await sleep(10); await waitSettle(); } else { advanceOnce(); await sleep(8); }
-    } else { advanceOnce(); await sleep(8); }
+      if (c) { c.click(); await sleep(10); await waitSettle(); } else { advanceOnce(); await sleep(60); }
+    } else { advanceOnce(); await sleep(60); }
   }
   const ch = g.chapterIdx;
   const phaseAtStash = g.phase;   // 暂存相位(v2.2.0):读暂存应回到同一相位
@@ -81,11 +82,17 @@ const LOAD_FLOW = `(async () => {
 
   // 刷新后 __QS__ 不存在(还没入局),先走正常动线进一局,再开存档页
   const start = document.querySelector('.menu__item--start');
-  if (start) { start.click(); await sleep(150); }
-  document.querySelector('.selenter')?.click();
-  await sleep(600);
-  window.__QS__.goSaves();
-  await sleep(250);
+if (start) { start.click(); }
+      // 每一步都等自己的前置条件,而不是「点完睡一会儿就当成了」:
+      // 选本页要异步拉数据分片,__QS__ 导航方法也要等应用挂载完才有。
+      const tE = performance.now();
+      while (!document.querySelector('.selenter') && performance.now() - tE < 8000) await sleep(50);
+      document.querySelector('.selenter')?.click();
+      const tQ = performance.now();
+      while (!(window.__QS__ && window.__QS__.goSaves) && performance.now() - tQ < 8000) await sleep(50);
+      window.__QS__.goSaves();
+      const tS = performance.now();
+      while (!q('.saves__stash') && performance.now() - tS < 5000) await sleep(50);
   const stashShown = !!q('.saves__stash');
   const stashRows = qa('.saves__stash .slot--stash').length;
   const stashTitle = (q('.saves__stash .saves__stashtitle') || {}).textContent || '';
@@ -93,7 +100,19 @@ const LOAD_FLOW = `(async () => {
   // 读最新一份暂存(列表新→旧,第一行)
   const loadBtn = q('.saves__stash .slot--stash .btn--primary');
   const stashCh = (q('.saves__stash .slot--stash .slot__ch') || {}).textContent || '';
-  if (loadBtn) { loadBtn.click(); await sleep(900); }
+  if (loadBtn) {
+        // __QS__.game 在存档页仍指着进局前那一局,光等「game 存在」会立刻满足,
+        // 于是读到旧相位。得等它被换成读档新建的那一个。
+        const oldGame = window.__QS__.game;
+        loadBtn.click();
+        const tL = performance.now();
+        while ((!window.__QS__.game || window.__QS__.game === oldGame) && performance.now() - tL < 8000) {
+          await sleep(50);
+        }
+        // 换局之后还要等 DOM 挂完(卷轴题签是异步渲染的)
+        const tD = performance.now();
+        while (!document.querySelector('.stage__main .sec') && performance.now() - tD < 5000) await sleep(50);
+      }
   const g = window.__QS__ && window.__QS__.game;
   // v2.3.0:读暂存也应把题签历史摆回卷轴
   const heads = [...document.querySelectorAll('.stage__main .sec .sec__head')].map(h => h.textContent || '');

@@ -26,20 +26,35 @@ const { withPage, report, sleep } = require('./lib/harness.cjs');
       })()`);
       checks.push(['进入选择页(罗盘出现)', await evaluate(`!!document.querySelector('.dwheel')`)]);
 
-      // 巡游期间:朝代名位置不动,只有盘面(环带)旋转(2026-10-17 拍板)
-      // 采样窗口压在一次触发的动画周期(240°/s 下约 2.1s+point/reorient)之内,
-      // 否则归位动画(会移动名签)混进来造成误判
-      const driftCheck = await evaluate(`(async () => {
-        const sleep = ms => new Promise(r => setTimeout(r, ms));
-        const names = () => [...document.querySelectorAll('.dwheel__name')].map(n => n.style.left + ',' + n.style.top);
-        const ringRot = () => document.querySelector('.dwheel__ring').style.transform;
-        await sleep(500); // 巡游即将/刚刚启动(800ms 空闲),离首次触发 ~1.3s 余量
-        const n1 = names(), r1 = ringRot();
-        await sleep(400);
-        return { nameMoved: names().join('|') !== n1.join('|'), ringMoved: ringRot() !== r1 };
-      })()`);
-      checks.push(['巡游时朝代名位置不动', !driftCheck.nameMoved]);
-      checks.push(['巡游时盘面在旋转', driftCheck.ringMoved]);
+// 巡游期间:朝代名位置不动,只有盘面(环带)旋转(2026-10-17 拍板)
+        //
+        // 不要用固定 sleep 采样「动画窗口内的那 400ms」。全量跑时机器有负载,
+        // 那 400ms 可能整个落在动画之外(启动前或结束后),此时 ringMoved=false,
+        // 表现成一条假失败 —— 单独跑必绿、全量里偶发红,正是这类断言的典型症状。
+        //
+        // 改成:轮询等盘面真的转起来,再确认这整段时间里名签一步没动。
+        // 断言的是「巡游时名不动、盘动」这个条件,不是「我猜对了几点几」。
+        const driftCheck = await evaluate(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const names = () => [...document.querySelectorAll('.dwheel__name')].map(n => n.style.left + ',' + n.style.top).join('|');
+          const ringRot = () => document.querySelector('.dwheel__ring').style.transform;
+          const n0 = names(), r0 = ringRot();
+          let nameMoved = false, ringMoved = false;
+          const t0 = Date.now();
+          while (Date.now() - t0 < 12000) {
+            await sleep(150);
+            if (names() !== n0) { nameMoved = true; break; }   // 名签动了 = 已离开巡游窗口,样本作废
+            if (ringRot() !== r0) {                              // 盘面开始转,再盯一会儿
+              ringMoved = true;
+              await sleep(400);
+              nameMoved = names() !== n0;
+              break;
+            }
+          }
+          return { nameMoved, ringMoved };
+        })()`);
+        checks.push(['巡游时朝代名位置不动', !driftCheck.nameMoved]);
+        checks.push(['巡游时盘面在旋转', driftCheck.ringMoved]);
 
       const firstDyn = await evaluate(`document.querySelector('.dwheel__dyn').textContent`);
       checks.push(['罗盘有初始朝代(' + firstDyn + ')', typeof firstDyn === 'string' && firstDyn.length > 0]);
@@ -105,7 +120,12 @@ const { withPage, report, sleep } = require('./lib/harness.cjs');
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       })()`);
       await clickAt(qinPos.x, qinPos.y);
-      await sleep(2200); // point + reorient + buildRight
+      // 点名签切朝代要过一圈 reorient 动画,等文字变成「秦」再断言
+      const tQ = Date.now();
+      while (Date.now() - tQ < 6000) {
+        if (await evaluate(`document.querySelector('.dwheel__dyn').textContent === '秦'`)) break;
+        await sleep(80);
+      }
       checks.push(['点秦名签切回已开卷朝代', await evaluate(`document.querySelector('.dwheel__dyn').textContent === '秦'`)]);
       checks.push(['漩涡按钮在(秦已开卷)', await evaluate(`!!document.querySelector('.selenter')`)]);
 
@@ -114,9 +134,13 @@ const { withPage, report, sleep } = require('./lib/harness.cjs');
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       })()`);
       await clickAt(enterPos.x, enterPos.y);
-      await sleep(300);
+      // 等对局真的挂上:点完就断相位、带 1200ms 的猜测等,全量连跑时偶发不够,
+      // 会在下一行断言「已进入对局」时读到一个还没挂完的中间态。
+      const tG = Date.now();
+      while (!(await evaluate(`!!window.__QS__ && !!window.__QS__.game`)) && Date.now() - tG < 10000) {
+        await sleep(80);
+      }
       checks.push(['点漩涡后无转场层(直接入局)', await evaluate(`!document.querySelector('.vortexwarp')`)]);
-      await sleep(1200); // 数据分片加载 + 挂载
       checks.push(['点击后已进入对局', await evaluate(`!!window.__QS__ && !!window.__QS__.game`)]);
       checks.push(['对局页淡入类已挂', await evaluate(`!!document.querySelector('.stage__cols.is-gamein')`)]);
 
