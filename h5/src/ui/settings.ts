@@ -10,9 +10,9 @@
  * 无需迁移。
  *
  * 拖动期间不重画整行(重画会销毁滑杆、打断拖拽),只就地更新图标与填充。
- * 音乐/朗读的改动立刻生效(推给 Bgm/Voice 实例);音效暂只持久化(尚无播放点)。
+ * 音乐/音效/朗读的改动立刻生效(分别推给 Bgm/Sfx/Voice 实例)。
  */
-import { backBtn, clear, el, lbl } from './kit';
+import { backBtn, brandLogo, clear, el, lbl } from './kit';
 import {
   APP_VERSION, applyVisual, loadSettings, updateSettings, type Settings,
 } from '../game/settings';
@@ -42,14 +42,6 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
   const root = el('div', 'settings');
 
   let cur = loadSettings();
-
-  // 界面装饰:梅在右上、竹在左下,不挡交互(pointer-events:none,见 CSS)
-  const decoPlum = el('img', 'settings__deco settings__deco--plum') as HTMLImageElement;
-  decoPlum.src = new URL('../assets/deco/plum.webp', import.meta.url).href;
-  decoPlum.alt = '';
-  const decoBamboo = el('img', 'settings__deco settings__deco--bamboo') as HTMLImageElement;
-  decoBamboo.src = new URL('../assets/deco/bamboo.webp', import.meta.url).href;
-  decoBamboo.alt = '';
 
   const head = el('div', 'settings__head');
   head.append(lbl('设 置', 'page-title'), el('div', 'page-rule'));
@@ -162,8 +154,11 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
 
   // 返回钮:全站统一的罗盘按钮(kit.backBtn / .pageback)
   const back = backBtn(onBack, '返回主菜单');
+  // 右上品牌 logo(2026-10-18 拍板):与选择页同组,.brandcorner 钉到右上
+  const corner = brandLogo();
+  corner.classList.add('brandcorner');
 
-  root.append(decoPlum, decoBamboo, back, head, list, foot);
+  root.append(back, head, list, foot, corner);
   host.append(root);
   paint();
   // 云同步行不进 paint():它不是设置项,refresh() 重绘滑杆时不能把它抹掉
@@ -192,14 +187,17 @@ function applyAll(s: Settings): void {
   applyVisual(s);
   // 延迟 import 会造成循环依赖(voice → session → ...),这里用静态 import
   void (async () => {
-    const [{ bgm }, { voice }] = await Promise.all([
+    const [{ bgm }, { voice }, { sfx }] = await Promise.all([
       import('../game/audio'),
       import('../game/voice'),
+      import('../game/sfx'),
     ]);
     bgm.setVolume(s.musicGain);
     bgm.setEnabled(s.music);
     voice.setVolume(s.voiceGain);
     voice.setEnabled(s.voice);
+    sfx.setVolume(s.sfxGain);
+    sfx.setEnabled(s.sfx);
   })();
 }
 

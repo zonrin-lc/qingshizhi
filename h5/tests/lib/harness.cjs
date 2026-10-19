@@ -70,14 +70,21 @@ const MIME = {
 /** 静态服务 dist/。注意:防目录穿越,别把仓库根暴露出去。 */
 function serve(root) {
   const abs = path.resolve(root);
-  const srv = http.createServer((req, res) => {
+  const srv = http.createServer(async (req, res) => {
     let p = decodeURIComponent((req.url || '/').split('?')[0]);
     if (p.endsWith('/')) p += 'index.html';
     const f = path.join(abs, p);
     // 目录穿越防护:解析后必须仍在 dist 内
-    if (!f.startsWith(abs) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      return res.end('not found');
+    const missing = () => !f.startsWith(abs) || !fs.existsSync(f) || fs.statSync(f).isDirectory();
+    if (missing()) {
+      // Defender 实时扫描会在构建后的短时间内锁住新写入的文件,existsSync
+      // 偶发 false → 随机 404(「控制台无错误」项抖动,1 次或多次不定,
+      // 同一文件事后又能 200)。等一拍重试再判,仍缺才是真 404。
+      await sleep(25);
+      if (missing()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        return res.end('not found');
+      }
     }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(res);
@@ -279,10 +286,16 @@ async function withPage(fn, opts = {}) {
     if (client) client.close();
     chrome.kill();
     srv.close();
-    try {
-      fs.rmSync(profile, { recursive: true, force: true });
-    } catch {
-      /* profile 清理失败无所谓 */
+    // Windows 上 chrome 退出是异步的,立刻 rm 多半因文件占用失败,Temp 里
+    // 曾因此泄漏了几百个 qingshi-cdp-* 目录。等进程真正退出再删,兜底重试。
+    await new Promise((r) => { chrome.once('exit', r); setTimeout(r, 3000); });
+    for (let i = 0; i < 5; i++) {
+      try {
+        fs.rmSync(profile, { recursive: true, force: true });
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 400));
+      }
     }
   }
 }

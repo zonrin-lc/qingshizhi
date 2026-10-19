@@ -2,8 +2,7 @@
  * 设置页
  *
  * 音频三项各一条横向滑杆(2026-10-15 起替代原先的开关+三档按钮):
- * 拖到最左即静音,喇叭图标随音量档位变化。梅/竹装饰图只作衬托,
- * pointer-events:none,不挡任何交互。
+ * 拖到最左即静音,喇叭图标随音量档位变化。
  * ==========================================================================*/
 
 .settings {
@@ -13,30 +12,12 @@
   flex-direction: column;
   align-items: center;
   height: 100%;
-  padding: var(--sp-lg) var(--sp-xl);
+  /* 顶栏几何统一(2026-10-19 拍板):标题顶缘锚定 3vh,与存档/图鉴/选择页对齐 */
+  padding: 3vh var(--sp-xl) var(--sp-lg);
   overflow: auto;
 }
 
 /* 返回钮:全站共享的 .pageback 罗盘钮(见 base.css) */
-
-/* ---------- 界面装饰(梅右上、竹左下) ---------- */
-.settings__deco {
-  position: absolute;
-  z-index: 0;
-  pointer-events: none;
-  user-select: none;
-  opacity: 0.55;
-}
-.settings__deco--plum {
-  top: 0;
-  right: 0;
-  width: min(36vw, 400px);
-}
-.settings__deco--bamboo {
-  bottom: 0;
-  left: 0;
-  width: min(26vw, 300px);
-}
 
 .settings__head,
 .settings__list,
@@ -158,7 +139,7 @@
   border-radius: var(--r-sm);
   padding: 0.3rem 1rem;
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 .tapsync__btn:disabled { opacity: 0.45; cursor: default; }
 
@@ -179,9 +160,31 @@
 }
 
 /* ---------- 窄屏 ----------
- * (.page-title 的窄屏字号在 base.css 里统一收口) */
-@media (max-width: 560px) {
-  .settings { padding: var(--sp-md); }
-  .srow { flex-direction: column; align-items: flex-start; gap: var(--sp-sm); }
-  .vol { align-self: stretch; max-width: none; }
+ * 断点对齐全站 880px(2026-10-19);.page-title 的窄屏字号在 base.css 里统一收口 */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
+  /* 顶部栏复用存档页移动端口径(2026-10-19):满铺到屏幕边缘——负 margin 抵掉
+     .stage 全局安全区内衬,顶距 2vh、左右 1vw 与返回钮对齐 */
+  .settings {
+    margin: calc(-1 * (var(--safe-t) + var(--sp-sm)))
+      calc(-1 * (var(--safe-r) + var(--sp-sm)))
+      calc(-1 * (var(--safe-b) + var(--sp-sm)))
+      calc(-1 * (var(--safe-l) + var(--sp-sm)));
+    height: calc(100% + var(--safe-t) + var(--safe-b) + 2 * var(--sp-sm));
+    padding: 2vh 1vw var(--sp-sm);
+    overflow-y: auto;
+  }
+  .settings .pageback { top: 2vh; left: 1vw; }
+  /* logo 不跟顶栏一起贴角(2026-10-19 晚间拍板):回到全站统一的 3vh/3vw */
+  .settings .brandcorner { top: 3vh; right: 3vw; }
+  /* 四项设置内容的宽度占屏宽 75%(2026-10-19 boss 拍板,原 86vw) */
+  .settings__list { width: 75vw; }
+  /* 设置项文字与控制条保持一行(2026-10-19 拍板):窄屏只收紧间距,
+     不再上下堆叠;标题不收缩,滑杆占剩余宽度并允许收缩防溢出 */
+  .srow { gap: var(--sp-md); }
+  .srow__title { flex: none; }
+  .vol { flex: 1; min-width: 0; }
+  /* 版本号上移(2026-10-19):foot 上边距 --sp-lg 收到 --sp-sm */
+  .settings__foot { margin-top: var(--sp-sm); }
+  /* 云存档状态文案较长,允许换行到按钮下方,避免挤压溢出 */
+  .tapsync { flex-wrap: wrap; }
 }

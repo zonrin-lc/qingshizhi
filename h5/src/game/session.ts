@@ -10,11 +10,13 @@
 import type { AttrKey, CardResult, ChangeView, Game, Route, ScenarioData, SummaryView } from '../../types/scenario';
 import { parseRuns } from './gloss';
 import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
-import { renderRadar } from '../ui/radar';
+import { renderRadar, renderRadarTween, RADAR_AXES } from '../ui/radar';
 import { castOf, renderCast, bigPortrait } from '../ui/cast';
 import { voice } from './voice';
+import { sfx } from './sfx';
 import { clearAutos, type SecRec, type SecTag } from './saves';
 import { recordEnding } from './collection';
+import { sealImg } from '../data/seals';
 
 /** 右栏要显示的属性(Lua 版「身外」那一组) */
 const SHOWN_ATTRS: AttrKey[] = ['caifu', 'shengwang', 'quanshi', 'zhengji', 'junxin', 'weiji'];
@@ -99,6 +101,8 @@ export class Session {
   private choiceHost: { sec: HTMLElement; body: HTMLElement; head: HTMLElement | null } | null = null;
   /** renderRound 延迟发牌的重入令牌:选中牌翻背面期间又进新回合时作废旧定时器 */
   private dealToken = 0;
+  /** 选卡提醒的重入令牌(2026-10-18 拍板):章首第一轮发牌 3s 未点卡即亮提醒 */
+  private pickHintToken = 0;
   /** 结算动画序列的重入令牌:飞卡/翻牌/自动推进的延时步都验它,dispose 或新结算即作废 */
   private settleToken = 0;
   private readonly onFinish: (() => void) | null;
@@ -207,14 +211,14 @@ export class Session {
     this.bandEl.hidden = true;
     this.bandEl.textContent = '';
 
-    // 回溯:常驻但不可用时压暗(对齐 Lua shell.lua:113-115)
+    // 回溯:常驻但不可用时压暗(对齐 Lua shell.lua:113-115);
+    // 2026-10-18 拍板:不再显示剩余次数,本章一旦回溯过就按不可点击处理
     const can = g.canBacktrack();
-    const quota = g.diff.backtrack;
-    const left2 = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
-    this.backBtn.textContent = left2 === null ? '回溯' : `回溯 ${left2}`;
-    this.backBtn.classList.toggle('is-locked', !can);
-    if (can) this.backBtn.removeAttribute('aria-disabled');
-    else this.backBtn.setAttribute('aria-disabled', 'true');
+    const locked = !can || g.backtracksThisChapter > 0;
+    this.backBtn.textContent = '回溯';
+    this.backBtn.classList.toggle('is-locked', locked);
+    if (locked) this.backBtn.setAttribute('aria-disabled', 'true');
+    else this.backBtn.removeAttribute('aria-disabled');
   }
 
   /**
@@ -223,7 +227,8 @@ export class Session {
    */
   private doBacktrack(): void {
     const g = this.game;
-    if (!g.canBacktrack()) return;
+    // 本章已回溯过就不再受理(2026-10-18 拍板:按钮呈现不可点击,逻辑层同口径)
+    if (!g.canBacktrack() || g.backtracksThisChapter > 0) return;
     const quota = g.diff.backtrack;
     const left = quota > 0 ? Math.max(0, quota - g.backtracksThisChapter) : null;
     this.showConfirm(
@@ -244,10 +249,11 @@ export class Session {
     );
   }
 
-  /** 通用确认框(Lua Shell.confirm 的 DOM 版) */
+  /** 通用确认框(Lua Shell.confirm 的 DOM 版;2026-10-19 拍板:去水墨底图,压深色蒙版) */
   private showConfirm(title: string, lines: string[], okText: string, onOk: () => void): void {
     clear(this.overlay);
-    this.overlay.className = 'overlay overlay--confirm';
+    sfx.play('dialog');
+    this.overlay.className = 'overlay overlay--dim';
     const box = el('div', 'overlay__box panel-dialog');
     box.append(lbl(title, 'overlay__title u-kai u-heavy'));
     for (const line of lines) box.append(lbl(line, 'overlay__body'));
@@ -295,6 +301,9 @@ export class Session {
     this.storyEl = null;
   }
   private clearOpts(): void {
+    // 选卡提醒随选项区一并摘除,并作废可能还在倒计时的提醒定时器
+    this.opts.classList.remove('is-pickhint');
+    this.pickHintToken += 1;
     clear(this.opts);
   }
 
@@ -571,14 +580,12 @@ export class Session {
     return this.storyEl;
   }
 
-  /** 推一个新小节:旧小节全部收起只留题签(可点开重读),新小节展开排在最后 */
+  /** 推一个新小节:旧小节保持展开(2026-10-19 拍板:之前轮次的内容不再自动折叠,
+   * 题签仍可手动点按收起),新小节排在最后 */
   private pushSec(title?: string): { sec: HTMLElement; body: HTMLElement; head: HTMLElement | null } {
     const story = this.storyEl ?? this.ensureStory([]);
-    for (const s of story.querySelectorAll('.sec')) {
-      s.classList.add('is-collapsed');
-    }
-    // 收起即失效:上一相位的一次性「继 续」/选项卡都在停靠带里,推新小节前整带摘除,
-    // 否则留着它,点击会误触当前相位的 proceed
+    // 停靠带随新小节整带摘除:上一相位的一次性「继 续」/选项卡都在带里,
+    // 留着它,点击会误触当前相位的 proceed(与折叠无关,保留该清理)
     this.clearDock();
     const sec = el('section', 'sec');
     let head: HTMLElement | null = null;
@@ -609,7 +616,8 @@ export class Session {
     for (const sec of Array.from(this.storyEl.querySelectorAll('.sec'))) {
       const head = sec.querySelector('.sec__head');
       if (!head) continue;
-      const tags: SecTag[] = Array.from(head.querySelectorAll<HTMLElement>('.chgrow')).map((row) => {
+      // 属性胶囊在正文下方(2026-10-19 起不在题签里),从整个小节范围取
+      const tags: SecTag[] = Array.from(sec.querySelectorAll<HTMLElement>('.chgrow')).map((row) => {
         const v = row.querySelector('.chgrow__v');
         return {
           k: row.dataset.attr ?? '',
@@ -618,15 +626,13 @@ export class Session {
           up: v?.classList.contains('is-up') ?? false,
         };
       });
-      // 题签文本:克隆后摘掉胶囊,剩下的就是题字(含「——所选」后缀)
-      const headClone = head.cloneNode(true) as HTMLElement;
-      headClone.querySelector('.chglist')?.remove();
-      const t = (headClone.textContent ?? '').trim();
-      // 正文:逐块取纯文本,跳过按钮;每节封顶 2000 字,本地存储不是无底洞
+      // 题签文本:题字(含「——所选」后缀),胶囊不在 head 里,直接取文本
+      const t = (head.textContent ?? '').trim();
+      // 正文:逐块取纯文本,跳过按钮与属性胶囊排;每节封顶 2000 字,本地存储不是无底洞
       const bodyEl = sec.querySelector('.sec__body');
       const paras: string[] = [];
       for (const node of Array.from(bodyEl?.children ?? [])) {
-        if (node.tagName === 'BUTTON') continue;
+        if (node.tagName === 'BUTTON' || node.classList.contains('chglist')) continue;
         const txt = (node.textContent ?? '').trim();
         if (txt) paras.push(txt);
       }
@@ -636,7 +642,7 @@ export class Session {
   }
 
   /**
-   * 读档时把题签历史铺回卷轴(已收起态,可点开重读正文)。
+   * 读档时把题签历史铺回卷轴(展开态,2026-10-19 起不再自动收起,可手动点题签收起)。
    * 在相位渲染之后调用:插到 live 小节之前,保住时间序。
    * 去重规则:当前相位会重推一个带题签的小节(章首/事件/抉择/结尾事件),
    * 刮下来的末条就是它的前身,丢弃;回合/结算/历史修正相位不重推题签小节,全保留。
@@ -652,25 +658,25 @@ export class Session {
     for (const r of recs) story.insertBefore(this.historySec(r), firstSec);
   }
 
-  /** 一条恢复出来的历史小节:收起态,题签 + 属性胶囊 + 纯文本正文(无渐显、无按钮) */
+  /** 一条恢复出来的历史小节:题签 + 正文 + 正文下方属性胶囊(无渐显、无按钮) */
   private historySec(r: SecRec): HTMLElement {
-    const sec = el('section', 'sec is-collapsed');
+    const sec = el('section', 'sec');
     const head = el('button', 'sec__head u-kai', r.t);
     head.setAttribute('type', 'button');
     head.addEventListener('click', () => sec.classList.toggle('is-collapsed'));
+    sec.append(head);
+    const body = el('div', 'sec__body');
+    for (const para of r.body.split('\n').filter(Boolean)) body.append(el('p', 'prose', para));
     if (r.tags.length > 0) {
-      const wrap = el('span', 'chglist chglist--tags');
+      const wrap = el('div', 'chglist');
       for (const t of r.tags) {
         const tag = el('span', 'chgrow');
         tag.dataset.attr = t.k;
         tag.append(el('span', 'chgrow__k', t.name), el('span', `chgrow__v ${t.up ? 'is-up' : 'is-down'}`, t.v));
         wrap.append(tag);
       }
-      head.append(wrap);
+      body.append(wrap);
     }
-    sec.append(head);
-    const body = el('div', 'sec__body');
-    for (const para of r.body.split('\n').filter(Boolean)) body.append(el('p', 'prose', para));
     sec.append(body);
     return sec;
   }
@@ -685,6 +691,7 @@ export class Session {
       const shown = this.game.diff.hideAttrs ? this.game.attrWord(c.k) : `${up ? '+' : ''}${c.delta}`;
       const row = el('div', 'chgrow');
       row.dataset.attr = c.k;
+      row.dataset.delta = String(c.delta);
       row.append(el('span', 'chgrow__k', name), el('span', `chgrow__v ${up ? 'is-up' : 'is-down'}`, shown));
       if (c.note) row.append(el('span', 'chgrow__note u-dim', c.note));
       list.append(row);
@@ -692,17 +699,18 @@ export class Session {
     return list;
   }
 
-  /** 题签内联的属性胶囊:容器是 span(head 为 button,只容 phrasing content);
+  /** 属性胶囊:挂在正文下方的块级胶囊排(2026-10-19 拍板,不再内联进题签);
    * 每枚仍叫 .chgrow[data-attr],flyChanges 的高亮/飞字钩子原样生效 */
   private chgTags(changes: ChangeView[]): HTMLElement | null {
     if (changes.length === 0) return null;
-    const wrap = el('span', 'chglist chglist--tags');
+    const wrap = el('div', 'chglist');
     for (const c of changes) {
       const up = c.delta > 0;
       const name = c.label || this.data.ATTR_NAMES[c.k];
       const shown = this.game.diff.hideAttrs ? this.game.attrWord(c.k) : `${up ? '+' : ''}${c.delta}`;
       const tag = el('span', 'chgrow');
       tag.dataset.attr = c.k;
+      tag.dataset.delta = String(c.delta);
       tag.append(el('span', 'chgrow__k', name), el('span', `chgrow__v ${up ? 'is-up' : 'is-down'}`, shown));
       if (c.note) tag.title = c.note;
       wrap.append(tag);
@@ -710,25 +718,48 @@ export class Session {
     return wrap;
   }
 
-  /** 落定后封题签:追加「——所选」小字与属性胶囊;胶囊默认同时做飞字锚点,
-   * 行动卡结算传 fly:false —— 飞字改由正文下的属性变化清单发起(2026-10-17 拍板) */
-  private sealHead(head: HTMLElement | null, suffix: string, changes: ChangeView[], opts?: { fly?: boolean }): void {
-    if (!head) return;
-    if (suffix) head.append(el('span', 'sec__result u-dim', `——${suffix}`));
+  /** 落定后封题签:「——所选」小字追在题签后;属性胶囊挂到正文下方
+   * (2026-10-19 拍板:各轮数字变化胶囊放剧情文本下面)。
+   * 胶囊默认同时做飞字锚点,传 fly:false 时只封胶囊不飞(2026-10-18 拍板:行动卡结算恢复胶囊起飞) */
+  private sealHead(
+    head: HTMLElement | null,
+    body: HTMLElement | null,
+    suffix: string,
+    changes: ChangeView[],
+    opts?: { fly?: boolean },
+  ): void {
+    if (head && suffix) head.append(el('span', 'sec__result u-dim', `——${suffix}`));
     const tags = this.chgTags(changes);
-    if (tags) {
-      head.append(tags);
+    if (body && tags) {
+      body.append(tags);
       if (opts?.fly !== false) this.flyChanges(tags);
     }
   }
 
-  /** 属性变化动效:结算行高亮 + 浮字飞到右栏对应属性条;reduced-motion 只高亮不飞。
-   * 逐条错峰起飞(2026-10-17 二拍):一条一条看清,不再一窝蜂糊过去 */
+  /** 属性变化动效(2026-10-18 拍板):结算行高亮 + 浮字逐条错峰飞到右栏对应行;
+   * 落定后增减徽标浮现(自身属性在雷达数值旁,身外属性在进度条中央),
+   * 一拍之后该属性的数值/进度条/雷达即时更新——不等下一次渲染,更不点点点按钮才变。
+   * reduced-motion 不飞不演,数值即时更新。 */
   private flyChanges(list: HTMLElement): void {
     requestAnimationFrame(() => {
       const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const rows = [...list.querySelectorAll<HTMLElement>('.chgrow')];
+      // 引擎在出牌/选项落定时已结算,右栏此刻还显示旧值;
+      // 同一属性可能有多行增减,先汇总:旧值 = 现值 − 总增减
+      const totalDelta = new Map<string, number>();
+      for (const row of rows) {
+        const k = row.dataset.attr ?? '';
+        totalDelta.set(k, (totalDelta.get(k) ?? 0) + (Number(row.dataset.delta) || 0));
+      }
+      const g = this.game;
+      const oldVal = (k: string): number => (g.attrs[k as AttrKey] ?? 0) - (totalDelta.get(k) ?? 0);
+      // 自身属性的待定旧值表:落定一根轴放出一根轴,其余轴保持旧值
+      const pending: Partial<Record<AttrKey, number>> = {};
+      for (const k of totalDelta.keys()) {
+        if ((RADAR_AXES as string[]).includes(k)) pending[k as AttrKey] = oldVal(k);
+      }
       let idx = 0;
-      for (const row of list.querySelectorAll<HTMLElement>('.chgrow')) {
+      for (const row of rows) {
         row.classList.add('is-flash');
         const k = row.dataset.attr ?? '';
         const hit = this.stage.querySelector<HTMLElement>(`.stage__side [data-attr="${k}"]`)
@@ -737,9 +768,15 @@ export class Session {
         const trow = (hit.closest('.kv') as HTMLElement | null) ?? hit;
         const delay = idx * 150;
         idx += 1;
+        const vTxt = row.querySelector('.chgrow__v')?.textContent ?? '';
+        const isUp = !row.querySelector('.chgrow__v')?.classList.contains('is-down');
+        const oldShown = String(oldVal(k));
+        // 属性音效与飞字同步起飞(2026-10-20 接入):财富进账响铜钱,其余涨落玉磬/墨滴
+        const snd = isUp ? (k === 'caifu' ? 'coin' : 'gain') : 'down';
+        window.setTimeout(() => sfx.play(snd), reduced ? 0 : delay);
         window.setTimeout(() => trow.classList.add('is-flash'), reduced ? 0 : delay + 950);
         window.setTimeout(() => trow.classList.remove('is-flash'), (reduced ? 0 : delay + 950) + 2400);
-        if (reduced) continue;
+        if (reduced) { this.applySideDelta(k, oldShown, pending); continue; }
         const from = row.getBoundingClientRect();
         const vEl = row.querySelector('.chgrow__v');
         const ghost = el('span', `flychg ${vEl?.classList.contains('is-down') ? 'is-down' : 'is-up'}`,
@@ -759,14 +796,82 @@ export class Session {
             { duration: 1150, easing: 'cubic-bezier(.25,.7,.3,1)' });
           anim.onfinish = () => ghost.remove();
         }, delay);
+        // 飞字落定(1150ms):+N 徽标浮现;再过一拍(550ms)数值/进度条/雷达更新
+        window.setTimeout(() => this.showSideDelta(k, vTxt, isUp), delay + 1150);
+        window.setTimeout(() => this.applySideDelta(k, oldShown, pending), delay + 1700);
       }
     });
+  }
+
+  /** 飞字落定时的增减徽标:身外属性浮在进度条中央,自身属性浮在雷达数值旁(SVG text) */
+  private showSideDelta(k: string, text: string, up: boolean): void {
+    if (!text) return;
+    const side = this.stage.querySelector<HTMLElement>('.stage__side');
+    if (!side) return;
+    const kvRow = side.querySelector<HTMLElement>(`.kv[data-attr="${k}"]`);
+    if (kvRow) {
+      const track = kvRow.querySelector<HTMLElement>('.meter');
+      if (!track) return;
+      const b = el('span', `attrdelta ${up ? 'is-up' : 'is-down'}`, text);
+      track.append(b);
+      window.setTimeout(() => b.remove(), 1300);
+      return;
+    }
+    const radar = side.querySelector<SVGSVGElement>('svg.radar');
+    const lab = radar?.querySelector<SVGTextElement>(`text[data-attr="${k}"]`);
+    if (!radar || !lab) return;
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('class', `radar__delta ${up ? 'is-up' : 'is-down'}`);
+    t.setAttribute('x', String(parseFloat(lab.getAttribute('x') ?? '0') + 15));
+    t.setAttribute('y', lab.getAttribute('y') ?? '0');
+    t.textContent = text;
+    radar.append(t);
+    // 数值更新会整幅重绘雷达、顺带带走徽标;这里兜底清一次
+    window.setTimeout(() => t.remove(), 1700);
+  }
+
+  /** 增减生效:身外属性更新数值与进度条(自身属性重绘雷达,未落定的轴仍用旧值)。
+   * 右栏若已被后续渲染翻新(显示的已是新值),跳过以免回跳 */
+  private applySideDelta(k: string, oldShown: string, pending: Partial<Record<AttrKey, number>>): void {
+    const g = this.game;
+    const ak = k as AttrKey;
+    const side = this.stage.querySelector<HTMLElement>('.stage__side');
+    if (!side) return;
+    const kvRow = side.querySelector<HTMLElement>(`.kv[data-attr="${k}"]`);
+    if (kvRow) {
+      const vEl = kvRow.querySelector<HTMLElement>('.kv__v');
+      const fill = kvRow.querySelector<HTMLElement>('.meter__fill');
+      if (!g.diff.hideAttrs && vEl && vEl.textContent !== oldShown) return;
+      if (vEl) {
+        vEl.textContent = g.diff.hideAttrs ? g.attrWord(ak) : String(g.attrs[ak] ?? 0);
+        vEl.classList.remove('is-pop');
+        void vEl.offsetWidth;
+        vEl.classList.add('is-pop');
+      }
+      if (fill) {
+        const max = g.attrMax(ak);
+        const pct = max > 0 ? ((g.attrs[ak] ?? 0) / max) * 100 : 0;
+        // 与 kit.meter 同口径:scaleX 而非 width(transform 过渡,不触发 layout)
+        fill.style.transform = `scaleX(${Math.max(0, Math.min(100, pct)) / 100})`;
+      }
+      return;
+    }
+    if (!(ak in pending)) return;
+    const radar = side.querySelector<SVGSVGElement>('svg.radar');
+    const lab = radar?.querySelector<SVGTextElement>(`text[data-attr="${k}"]`);
+    if (!radar || !lab) return;
+    if (!g.diff.hideAttrs && lab.textContent !== oldShown) return;
+    delete pending[ak];
+    // 数值落定改为补间滑入(motion-design):多边形从旧值滑到新值,
+    // 与飞字「落定即更新」的节奏衔接,替代原先的整幅瞬跳重绘
+    radar.replaceWith(renderRadarTween(g, Object.keys(pending).length > 0 ? pending : undefined));
   }
 
   // ---------- 结算浮层 ----------
 
   private showSettle(title: string, text: string | null, changes: ChangeView[], body?: string): void {
     clear(this.overlay);
+    sfx.play('dialog');
     // 深色蒙版弹框(2026-10-17 拍板):与章末/最终结算同口径,不再铺水墨底图
     this.overlay.className = 'overlay overlay--dim';
     const box = el('div', 'overlay__box panel-dialog--tall');
@@ -785,6 +890,7 @@ export class Session {
       btn('阅', {
         variant: 'primary',
         cls: 'btn--read',
+        sound: 'seal',
         onClick: () => {
           this.hideOverlay();
           this.settleClosed();
@@ -796,8 +902,27 @@ export class Session {
   }
 
   private hideOverlay(): void {
+    if (this.overlay.hidden) return;
+    // 出场动画(motion-design):原浮层同步置 hidden——状态机、连点与浏览器验收
+    // 都不用等;视觉退场由冻结克隆体接管,播 200ms 淡出后自毁。
+    // 克隆体挂 .is-exiting,不再重播弹框入场动画(见 art.css)。
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.overlay.hidden = true;
+      clear(this.overlay);
+      return;
+    }
+    const ghost = this.overlay.cloneNode(true) as HTMLElement;
+    ghost.classList.add('is-exiting');
+    const parent = this.overlay.parentElement;
     this.overlay.hidden = true;
     clear(this.overlay);
+    if (parent) {
+      parent.append(ghost);
+      const drop = (): void => ghost.remove();
+      ghost.addEventListener('animationend', drop, { once: true });
+      // 兜底:后台标签页 animationend 可能被冻结,400ms 后无论如何收掉
+      window.setTimeout(drop, 400);
+    }
   }
 
   /** 浮层关闭后执行挂起的相位推进 */
@@ -886,6 +1011,8 @@ export class Session {
 
     // 关键事件不占底部选项位(2026-10-14 用户拍板):改为文本区底部的提示条,
     // 可开启时是醒目的可点提示,不可开启时是倒计时说明。
+    // 2026-10-19 拍板:提示条只在最新一轮存在,历史轮次里的旧条整条摘掉。
+    for (const old of this.storyEl?.querySelectorAll('.prompt--key') ?? []) old.remove();
     const keyIdx = offer.findIndex((e) => e.type === 'key');
     const key = keyIdx >= 0 ? offer[keyIdx] : null;
     if (key && key.type === 'key') {
@@ -954,6 +1081,9 @@ export class Session {
       xcard.append(el('span', 'card__badge t-xu', '蓄势'));
       xcard.append(xc);
       this.opts.append(xcard);
+
+      // 章首 intro 后的第一轮(roundNo 还是 0):3s 内没点卡就亮选择提醒
+      if (this.roundNo === 0) this.armPickHint(dealToken);
     };
     if (chosen) {
       this.flipCardToBack(chosen);
@@ -964,18 +1094,35 @@ export class Session {
     this.scrollMainBottom();
   }
 
-  private riskText(risky: Risk): string {
-    const eff = Math.min(70, risky.rate + (this.game.xushi ? 10 : 0));
+  /**
+   * 章首 intro 朗读结束后的第一轮(roundNo===0):发牌 3s 内玩家没有点卡,
+   * 选项区亮选择提醒,防止不知道怎么进行下一步(2026-10-18 拍板)。
+   * 摘除统一走 clearOpts(点卡后的下一次渲染/换相位都会经过),
+   * 点卡当下由 doPlayCard/doXushi 立即摘。
+   */
+  private armPickHint(dealToken: number): void {
+    const token = (this.pickHintToken += 1);
+    window.setTimeout(() => {
+      if (token !== this.pickHintToken || dealToken !== this.dealToken) return;
+      if (this.game.phase !== 'round') return;
+      if (!this.opts.querySelector('.card--action[role="button"]')) return;
+      this.opts.classList.add('is-pickhint');
+    }, 3000);
+  }
+
+  private riskText(risky: Risk): string {    const eff = Math.min(70, risky.rate + (this.game.xushi ? 10 : 0));
     const gaps = risky.unmet.map((u) => (this.game.diff.hideAttrs ? `${u.name}不足` : `${u.name} ${u.have}/${u.need}`)).join('、');
     const rate = this.game.diff.hideAttrs ? '成算' : '成功率';
     return `⚠ 险招 · ${rate} ${eff}%（${gaps}）`;
   }
 
   /** 险招骰点动画:先快速翻滚假骰点约 0.9s,再落定真实结果(对齐 Lua showSettle 摇骰)。
-   * 硬核难度隐去数字只摇 🎲(hideAttrs 数值口径);纯视觉,不动引擎。 */
-  private diceTitle(host: HTMLElement, finalText: string): void {
+   * 硬核难度隐去数字只摇 🎲(hideAttrs 数值口径);纯视觉,不动引擎。
+   * ok 传入险招结果:落定音后,败者再补一声低鼓(2026-10-20 音效)。 */
+  private diceTitle(host: HTMLElement, finalText: string, ok?: boolean): void {
     const lab = lbl('', 'u-warn u-strong dice-rolling');
     host.append(lab);
+    sfx.play('dice-roll');
     const hide = this.game.diff.hideAttrs;
     const t0 = performance.now();
     const timer = setInterval(() => {
@@ -985,6 +1132,8 @@ export class Session {
         lab.textContent = finalText;
         lab.classList.remove('dice-rolling');
         lab.classList.add('dice-land');
+        sfx.play('dice-land');
+        if (ok === false) window.setTimeout(() => sfx.play('fail'), 350);
         return;
       }
       lab.textContent = hide ? '🎲 掷骰 …' : `🎲 掷骰 ${1 + Math.floor(Math.random() * 100)} …`;
@@ -1036,15 +1185,17 @@ export class Session {
       if (!o) continue;
       const cardBody = el('div', 'card__body');
       cardBody.append(lbl(o.opt.t, 'card__title u-kai'));
-      if (o.hist) cardBody.append(lbl('〔史〕', 'card__tag u-qing'));
       if (o.locked && o.reason) cardBody.append(lbl(`🔒 ${o.reason}`, 'card__lock u-zhu'));
       if (o.risky) cardBody.append(lbl(this.riskText(o.risky), 'card__risk u-warn'));
       const c = card({
-        cls: `card--opt${o.locked ? '' : ' card--tappable'}`,
+        // 事件选项不带菱纹装饰(2026-10-19 拍板:card--plain 去 ◇)
+        cls: `card--opt card--plain${o.locked ? '' : ' card--tappable'}`,
         locked: o.locked,
         onClick: () => this.doChoose(i),
       });
       c.append(cardBody);
+      // 「史」改角标(2026-10-19 拍板):不占正文一行,贴在卡右上角
+      if (o.hist) c.append(el('span', 'card__hist', '史'));
       dock.append(c);
     }
     this.scrollMainBottom();
@@ -1111,47 +1262,54 @@ export class Session {
     this.skin('game', 'game');
     this.ensureStory([]);
     this.renderTop();
+    sfx.play('chapter');
     clear(this.overlay);
     this.overlay.className = 'overlay overlay--dim';
     const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary');
 
-    body.append(lbl('章 末 结 算', 'u-dim u-center chapter__sub'));
-    body.append(lbl(`${this.shortTitle(summary.chapter)} 终`, 'page-title'));
+    // 「章末结算」与章节名同行同号(2026-10-18 拍板),不再一大一小两行
+    body.append(lbl(`章末结算 ｜ ${this.shortTitle(summary.chapter)} 终`, 'page-title'));
     body.append(el('div', 'page-rule'));
-    body.append(lbl(`偏离归因 ｜ 当前偏离 ${summary.dev}（${summary.bandName}）`, 'u-warn u-strong'));
+    body.append(lbl(`偏离归因 ｜ 当前偏离 ${summary.dev}（${summary.bandName}）`, 'u-warn u-strong u-center summary__dev'));
 
     if (summary.devLog.length === 0) {
-      body.append(lbl('本章你循史而行，史官的笔尚跟得上你。', 'u-dim'));
+      body.append(lbl('本章你循史而行，史官的笔尚跟得上你。', 'u-dim u-center'));
     } else {
       for (const d of summary.devLog) {
         const row = el('div', 'devrow');
-        row.append(lbl(`${d.ev} ｜ ${d.t}`, 'u-dim'), lbl(`偏离 +${d.dev}`, 'u-warn u-kai'));
+        row.append(lbl(`${d.ev} ｜ ${d.t}`, 'u-dim'));
         body.append(row);
       }
     }
-    for (const n of summary.notes) body.append(lbl(n, 'intro-note u-qing'));
+    // 教学引导不上结算页(2026-10-18 拍板):数据里 c0 的【教学】注记就地滤掉
+    for (const n of summary.notes.filter((t) => !t.startsWith('【教学】'))) body.append(lbl(n, 'intro-note u-qing'));
     if (summary.corrTitle) body.append(lbl(`历史修正 ｜ ${summary.corrTitle}`, 'intro-note u-qing'));
 
-    body.append(divider('本 章 境 遇'));
-    // 参考图底部是一排四格统计(横排 + 竖分隔),不是纵向 kv 列表。
+    // 「本章境遇」段(题签 + 属性变化胶囊)包进一个容器:移动端整体隐藏
+    // (2026-10-20 拍板),DOM 保留——chain 测试按 .chglist--summary 断言不受影响
+    const attrs = el('div', 'summary__attrs');
+    attrs.append(divider('本 章 境 遇'));
+    // 属性变化改胶囊横排(2026-10-18 拍板,替掉四格 statrow)
     const deltas = this.data.ATTRS.filter((a) => summary.attrDelta[a.k]);
     if (deltas.length === 0) {
-      body.append(lbl('诸维如止水，无增无减。', 'u-dim'));
+      attrs.append(lbl('诸维如止水，无增无减。', 'u-dim'));
     } else {
-      const strip = el('div', 'statrow');
+      const list = el('div', 'chglist chglist--summary');
       for (const a of deltas) {
         const d = summary.attrDelta[a.k] ?? 0;
-        const good = a.inverse ? d < 0 : d > 0;
-        const cell = el('div', 'statrow__cell');
-        cell.append(
-          lbl(a.n, 'statrow__k'),
-          el('span', `statrow__v ${good ? 'is-up' : 'is-down'}`,
+        // 增减一律按符号:增=is-up(朱红),减=is-down(墨绿),不再按好坏翻转(2026-10-18 拍板)
+        const up = d > 0;
+        const pill = el('span', `chgrow ${up ? 'is-up' : 'is-down'}`);
+        pill.append(
+          el('span', 'chgrow__k', a.n),
+          el('span', `chgrow__v ${up ? 'is-up' : 'is-down'}`,
             this.game.diff.hideAttrs ? (d > 0 ? '升' : '降') : `${d > 0 ? '+' : ''}${d}`),
         );
-        strip.append(cell);
+        list.append(pill);
       }
-      body.append(strip);
+      attrs.append(list);
     }
+    body.append(attrs);
 
     const row = el('div', 'overlay__row');
     row.append(
@@ -1178,6 +1336,7 @@ export class Session {
     this.renderTop();
     const e = this.game.ending;
     if (!e) return;
+    sfx.play('ending');
     // 结局「太史公曰」配音:ending_<id>[_<变体>](2026-10-17 合并口径)
     this.speakOne(`ending_${e.id}${e.variant ? `_${e.variant}` : ''}`);
 
@@ -1191,9 +1350,32 @@ export class Session {
     this.overlay.className = 'overlay overlay--dim';
     const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--ending');
 
-    body.append(lbl(`〔${e.seal} · ${e.diffName}〕`, 'u-zhu u-center chapter__sub'));
-    body.append(lbl(e.name, 'page-title'));
-    body.append(el('div', 'page-rule'));
+    // 头部区(2026-10-20 拍板:参考图鉴成就详情 galdetail__head)——印章图在前,
+    // 结局名 + 总分/等级 + 达成进度组成信息列跟在后面,横向一排
+    const head = el('div', 'galdetail__head');
+    const sealTop = el('img', 'galdetail__seal') as HTMLImageElement;
+    sealTop.src = sealImg(e.seal);
+    sealTop.alt = `${e.seal} · ${e.diffName}`;
+    sealTop.draggable = false;
+    head.append(sealTop);
+    const info = el('div', 'galdetail__info');
+    info.append(lbl(e.name, 'overlay__title u-kai'));
+    const total = el('div', 'score score--total');
+    total.append(
+      el('span', 'score__k u-strong', '总分'),
+      el('span', 'score__v score__v--big u-kai u-strong', String(e.total)),
+      seal(e.grade, 'seal--big'),
+    );
+    info.append(total);
+    if (prog) {
+      info.append(lbl(
+        `此结局第 ${prog.rec.c} 回达成 · 结局 ${prog.reached}/${prog.total}`,
+        'galdetail__meta u-dim',
+      ));
+    }
+    head.append(info);
+    body.append(head);
+
     body.append(divider('评 分'));
     const names: Record<string, string> = { gongye: '功业', cuncun: '存续', shiping: '史评', yingxiang: '影响' };
     for (const k of ['gongye', 'cuncun', 'shiping', 'yingxiang'] as const) {
@@ -1205,19 +1387,6 @@ export class Session {
         el('span', 'score__v u-kai', String(v)),
       );
       body.append(row);
-    }
-    const total = el('div', 'score score--total');
-    total.append(
-      el('span', 'score__k u-strong', '总分'),
-      el('span', 'score__v score__v--big u-kai u-strong', String(e.total)),
-      seal(e.grade, 'seal--big'),
-    );
-    body.append(total);
-    if (prog) {
-      body.append(lbl(
-        `此结局第 ${prog.rec.c} 回达成 ·「${this.game.d.SCENARIO.name}」结局 ${prog.reached}/${prog.total}`,
-        'u-dim u-center',
-      ));
     }
     if (e.zhuan) body.append(lbl(e.zhuan, 'prose u-qing'));
     if (e.epilogue) body.append(this.prose(e.epilogue, 'prose u-qing'));
@@ -1268,7 +1437,8 @@ export class Session {
         cardBody.append(lbl(o.t, 'card__title u-kai'));
         if (!ok) cardBody.append(el('div', 'card__lock u-zhu', `🔒 ${reason ?? ''}`));
         const c = card({
-          cls: `card--opt${ok ? ' card--tappable' : ''}`,
+          // 结尾事件选项同口径:card--plain 去 ◇(2026-10-19 拍板)
+          cls: `card--opt card--plain${ok ? ' card--tappable' : ''}`,
           locked: !ok,
           onClick: () => this.doEndEventChoose(i),
         });
@@ -1324,6 +1494,9 @@ export class Session {
   // ---------- 动作 ----------
 
   private doPlayCard(i: number): void {
+    // 点卡当下摘掉选卡提醒并作废其定时器
+    this.opts.classList.remove('is-pickhint');
+    this.pickHintToken += 1;
     // 已翻面/已选定的卡不吃点击(合成 click 与键盘都会绕过 pointer-events)
     const cardEl = this.opts.querySelector<HTMLElement>(`.card[data-offer-idx="${i}"]`);
     if (cardEl?.classList.contains('is-flipped') || cardEl?.classList.contains('is-chosen')) return;
@@ -1388,11 +1561,10 @@ export class Session {
       // 剧情与结果之间一道金线分层(2026-10-14 拍板)
       host.body.append(el('div', 'rule'));
       if (title) {
-        if (r.risk) this.diceTitle(host.body, title);
+        if (r.risk) this.diceTitle(host.body, title, !r.failed);
         else host.body.append(lbl(title, 'u-warn u-strong'));
       }
       host.body.append(this.prose(r.text));
-      if (r.achNew) host.body.append(lbl(r.achNew, 'intro-note u-gold'));
     };
     if (r.failed && !r.forcedEnding) {
       // 失败且未致命:结果与增减先写正文(题签不封,重选落定后才封),选项内联重挂
@@ -1407,7 +1579,7 @@ export class Session {
       return;
     }
     appendResult();
-    this.sealHead(host.head, optText, r.changes);
+    this.sealHead(host.head, host.body, optText, r.changes);
     this.evtHost = null;
     this.dock().append(btn('继 续', {
       variant: 'primary',
@@ -1429,7 +1601,6 @@ export class Session {
       host.append(el('div', 'rule'));
       if (title) host.append(lbl(title, 'u-warn u-strong'));
       host.append(this.prose(r.text));
-      if (r.achNew) host.append(lbl(r.achNew, 'intro-note u-gold'));
     };
     if (r.failed && !r.forcedEnding) {
       appendResult(evtBody);
@@ -1443,7 +1614,7 @@ export class Session {
       return;
     }
     appendResult(evtBody);
-    this.sealHead(this.evtHost?.head ?? null, '', r.changes);
+    this.sealHead(this.evtHost?.head ?? null, evtBody, '', r.changes);
     this.inlineEvtBody = null;
     this.evtHost = null;
     this.scrollMainBottom();
@@ -1478,10 +1649,9 @@ export class Session {
     this.clearDock();
     // 剧情与结果之间一道金线分层
     host.body.append(el('div', 'rule'));
-    if (r.risk) this.diceTitle(host.body, this.game.riskTitle(r));
+    if (r.risk) this.diceTitle(host.body, this.game.riskTitle(r), !r.failed);
     host.body.append(this.prose(r.text));
-    if (r.achNew) host.body.append(lbl(r.achNew, 'intro-note u-gold'));
-    this.sealHead(host.head, optText, r.changes);
+    this.sealHead(host.head, host.body, optText, r.changes);
     this.choiceHost = null;
     this.dock().append(btn('继 续', {
       variant: 'primary',
@@ -1494,6 +1664,9 @@ export class Session {
   }
 
   private doXushi(): void {
+    // 点卡当下摘掉选卡提醒并作废其定时器
+    this.opts.classList.remove('is-pickhint');
+    this.pickHintToken += 1;
     const xcard = this.opts.querySelector<HTMLElement>('.card--action.t-xu');
     if (xcard?.classList.contains('is-flipped') || xcard?.classList.contains('is-chosen')) return;
     const r = this.game.playXushi();
@@ -1509,7 +1682,7 @@ export class Session {
   /**
    * 行动/蓄势牌的收尾(2026-10-17 拍板版,不再有「继 续」钮):
    * 出牌残影先飞进文本区,落定后新开「经营 · 第N轮——卡名」小节——
-   * 题签渐入 → 正文逐行渐显 → 属性变化列在文本之下并逐条飞向右栏对应行
+   * 题签渐入 → 正文逐行渐显 → 属性变化封进题签胶囊并逐条飞向右栏对应行
    * (右栏先翻到新值,行级高亮 + 数值弹出) → 选中的卡翻回背面 → 自动推进。
    * 轮数在此递增——只有真正做了经营动作,卷轴上才出现这一轮。
    * 读档恢复走 resume() 的 settle 分支直接 proceed,这套动画只在正常打牌路径播。
@@ -1527,20 +1700,13 @@ export class Session {
       // 题签渐入:飞卡落定后标题先浮出,正文再逐行来
       head?.classList.add('is-enter');
       // 险招优先亮骰点(对齐 Lua:卡名让位给 riskTitle),带摇骰动画
-      if (r.risk) this.diceTitle(body, this.game.riskTitle(r));
+      if (r.risk) this.diceTitle(body, this.game.riskTitle(r), !r.failed);
       const items: HTMLElement[] = [this.prose(r.text)];
-      if (r.achNew) items.push(lbl(r.achNew, 'intro-note u-gold'));
-      this.revealSegs(body, items, () => {
-        if (token !== this.settleToken) return;
-        // 文本落定:题签封属性胶囊(题签历史的锚),属性变化清单列在文本之下
-        this.sealHead(head, '', r.changes, { fly: false });
-        const list = this.chgList(r.changes);
-        if (list) {
-          body.append(list);
-          // 右栏先翻到新值,飞字落点即新数值所在行;is-flash 做整行高亮 + 数值弹出
-          this.renderTop();
-          this.flyChanges(list);
-        }
+this.revealSegs(body, items, () => {
+          if (token !== this.settleToken) return;
+        // 文本落定:属性胶囊挂在正文下方(2026-10-19 拍板),
+        // 飞字从胶囊起飞;落定徽标 → 即时变值的机制在 flyChanges 内部,不随锚点变
+        this.sealHead(head, body, '', r.changes);
         this.scrollMainBottom();
         // 收尾:飞字落定后选中的卡翻回背面,翻面半程后自动推进到下一相位
         window.setTimeout(() => {
@@ -1551,7 +1717,7 @@ export class Session {
             if (token !== this.settleToken) return;
             this.routeAfterCard(r);
           }, chosen && !reduce ? 560 : 0);
-        }, list && !reduce ? 2100 : 120);
+        }, r.changes.length > 0 && !reduce ? 2100 : 120);
       });
       this.scrollMainBottom();
     };
@@ -1578,6 +1744,7 @@ export class Session {
 
   /** 选项走不通时的解冻兜底(对齐 Lua thawOpts:不留静默锁死) */
   private thaw(msg: string): void {
+    sfx.play('fail');
     this.clearOpts();
     this.opts.append(lbl(msg, 'u-zhu thaw'));
   }

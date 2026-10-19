@@ -163,12 +163,12 @@ ${STEP_SNIPPET}
   const before = { caixue: g().attrs.caixue, caifu: g().attrs.caifu, ch: g().chapterIdx,
                    phase: g().phase, roundNo: window.__QS__.session.roundNo };
 
-  // ① 有空位(UI_FLOW 删过一条 → 5/6):返回不弹框,自动存档直接落到选择页
+  // ① 有空位(UI_FLOW 删过一条 → 5/6):返回不弹框,自动存档直接落到主菜单(2026-10-18 拍板:返回→主菜单)
   const cntPreAuto = lisiCnt();
   q('.pageback').click();
   await sleep(350);
   const autoNoDialog = !q('.saves__confirm');
-  const atSelect1 = !!q('.seltop');
+  const atSelect1 = !!q('.menu__item--start');
   const cntAfterAuto = lisiCnt();
   const lisi1 = (JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}').lisi || []);
   const auto = lisi1.length ? lisi1[lisi1.length - 1] : null; // 存储序旧→新,末尾最新
@@ -193,7 +193,7 @@ ${STEP_SNIPPET}
   const fullHint = ((q('.saves__confirm') || {}).textContent || '').includes('覆盖最早');
   q('.saves__confirm .btn--primary')?.click();
   await sleep(300);
-  const atSelect = !!q('.seltop');
+  const atSelect = !!q('.menu__item--start');
   const cntAfter = lisiCnt();
 
   // 「不存退出」路径:再续上 → 返回 → 不存 → 选择页,档数不变
@@ -207,16 +207,18 @@ ${STEP_SNIPPET}
   const cntPreNo = lisiCnt();
   qa('.saves__confirm .btn--ghost')[0]?.click(); // 不 存 退 出
   await sleep(250);
-  const noSaveSelect = !!q('.seltop');
+  const noSaveSelect = !!q('.menu__item--start');
   const cntPostNo = lisiCnt();
 
-  // ① 的另一面:新开一局立刻返回(未满 5 轮),不弹框、不写档、直接落在选择页
+  // ① 的另一面:主菜单新开一局立刻返回(未满 5 轮),不弹框、不写档、直接落在主菜单
+  q('.menu__item--start')?.click();
+  await sleep(250);
   q('.selenter')?.click();
   await sleep(900);
   q('.pageback').click();
   await sleep(250);
   const earlyNoDialog = !q('.saves__confirm');
-  const earlyAtSelect = !!q('.seltop');
+  const earlyAtSelect = !!q('.menu__item--start');
   const earlyCnt = lisiCnt();
 
   return {
@@ -281,7 +283,7 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
       (b.roundNo ?? 0) > 0 ? uiRes.slotCh.includes(`经营至第 ${b.roundNo} 轮`) : true,
       `roundNo=${b.roundNo} 题签「${uiRes.slotCh}」`],
     ['退出前打满了 5 轮经营(2026-10-17 新门槛)', ab.roundNo >= 5, `实际 ${ab.roundNo}`],
-    ['有空位时返回不弹框、自动存档直退选择页',
+    ['有空位时返回不弹框、自动存档直退主菜单',
       autoRes.autoNoDialog === true && autoRes.atSelect1 === true &&
       autoRes.cntAfterAuto === autoRes.cntPreAuto + 1,
       `存前 ${autoRes.cntPreAuto} 存后 ${autoRes.cntAfterAuto} 弹框=${autoRes.autoNoDialog}`],
@@ -302,10 +304,10 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['满员确认框提示覆盖最早',
       autoRes.fullHint === true && (autoRes.primaryText || '').replace(/\s/g, '').includes('覆盖'),
       `主按钮「${autoRes.primaryText}」`],
-    ['覆盖退出后落在选择页且总数仍 6', autoRes.atSelect === true && autoRes.cntAfter === 6,
+    ['覆盖退出后落在主菜单且总数仍 6', autoRes.atSelect === true && autoRes.cntAfter === 6,
       `实际 ${autoRes.cntAfter}`],
     ['不存退出也弹确认框', autoRes.confirm2 === true],
-    ['不存退出落在选择页且不写档',
+    ['不存退出落在主菜单且不写档',
       autoRes.noSaveSelect === true && autoRes.cntPostNo === autoRes.cntPreNo],
     ['未满 5 轮返回不弹框不写档、直接退',
       autoRes.earlyNoDialog === true && autoRes.earlyAtSelect === true &&

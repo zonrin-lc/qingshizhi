@@ -16,7 +16,7 @@
  * 缩略图是活控件:点击按剧本过滤;进页默认落在当前剧本(无对局时落第一个剧本)。
  * 删除存档需二次确认。
  */
-import { backBtn, btn, el, lbl } from './kit';
+import { backBtn, brandLogo, btn, el, lbl } from './kit';
 import {
   AUTO_MAX, DIFF_LABEL, STASH_MAX, fmtRound, fmtTime, listAutoEntries, listStashEntries, removeAuto, removeStash, type Slot,
 } from '../game/saves';
@@ -71,6 +71,22 @@ function draw(host: HTMLElement, o: SavePageOpts): void {
   // 返回钮:全站统一的罗盘按钮(kit.backBtn),挂 .saves 根(绝对定位,见 base.css .pageback)
   root.append(backBtn(o.onBack, '返回主菜单'));
 
+  // 右上品牌 logo(2026-10-18 拍板):与选择页同组,.brandcorner 钉到右上
+  const corner = brandLogo();
+  corner.classList.add('brandcorner');
+  root.append(head, corner);
+
+  // 主体(左右两栏)单独装配——切缩略图/删档只重绘它,外壳不动(见 fillBody)
+  fillBody(root, host, o);
+
+  host.append(root);
+}
+
+/** 只重绘 .saves__body(切缩略图/删档时用)。外壳(标题/返回钮/logo)不重建,
+ *  避免 .saves 根的整页入场动画重播、看起来像全屏刷新(2026-10-19 拍板) */
+function fillBody(root: HTMLElement, host: HTMLElement, o: SavePageOpts): void {
+  root.querySelector('.saves__body')?.remove();
+
   // ---------- 数据:各剧本存档计数 + 当前剧本的档位 ----------
   const counts = new Map<string, number>();
   for (const e of listAutoEntries()) {
@@ -98,13 +114,13 @@ function draw(host: HTMLElement, o: SavePageOpts): void {
     tab.addEventListener('click', () => {
       if (sc.key === filterKey) return;
       filterKey = sc.key;
-      draw(host, o);
+      fillBody(root, host, o);
     });
     thumbs.append(tab);
   }
   left.append(thumbs);
 
-  // ---------- 右栏:摘要条 + 槽位/引导卡 + 指示格 + 暂存 ----------
+  // ---------- 右栏:摘要条 + 槽位/引导卡 + 暂存 ----------
   const right = el('div', 'saves__right');
   if (meta) right.append(summaryBar(meta, entries.map((e) => e.slot)));
 
@@ -126,8 +142,8 @@ function draw(host: HTMLElement, o: SavePageOpts): void {
 
   const body = el('div', 'saves__body');
   body.append(left, right);
-  root.append(head, body);
-  host.append(root);
+  // 插到 logo 之前,维持 head → body → corner 的次序(logo 绝对定位钉右上)
+  root.insertBefore(body, root.querySelector('.brandcorner'));
 }
 
 /** 左栏立绘卡:封面铺底 + 金线外框,卡底叠人物名/年代/状态行 */
@@ -169,6 +185,21 @@ function furthest(slots: Slot[]): string {
   return best?.chapterTitle ?? '—';
 }
 
+/**
+ * 槽位题签行:章名 · 轮次 · [年龄/回溯段] · 时间。
+ * 年龄/回溯段包在 .slot__age 里——移动端 CSS 隐藏该段(2026-10-19 拍板),
+ * PC 端照常全显;时间始终保留。
+ */
+function slotSub(s: Slot): HTMLElement {
+  const line = lbl(
+    `${s.chapterTitle}${fmtRound(s.roundNo) ? ` · ${fmtRound(s.roundNo)}` : ''} · `,
+    'slot__ch',
+  );
+  const age = lbl(`年龄 ${s.age ?? '—'} · 本章可回溯 ${s.backtracksLeft} 次 · `, 'slot__age');
+  line.append(age, document.createTextNode(fmtTime(s.at)));
+  return line;
+}
+
 /** 右栏顶部摘要条:剧本名 + 硬核提示 | 存档计数 + 最远进度 */
 function summaryBar(meta: ScenarioMeta, slots: Slot[]): HTMLElement {
   const bar = el('div', 'saves__bar');
@@ -186,6 +217,14 @@ function summaryBar(meta: ScenarioMeta, slots: Slot[]): HTMLElement {
   return bar;
 }
 
+/** 槽位题签第一行:剧名 + 难度。剧名包在 .slot__scen 里——移动端两行并一行时
+ *  只保留难度(2026-10-19 拍板);PC 端 textContent 与旧版逐字一致,显示不变 */
+function slotTitle(s: Slot): HTMLElement {
+  const t = lbl('', 'slot__title');
+  t.append(lbl(`${s.scenName} · `, 'slot__scen'), lbl(DIFF_LABEL[s.diffKey], 'slot__diff'));
+  return t;
+}
+
 /** 一条槽位:序号 + 题签/章/元信息 + 读取/删除 */
 function slotRow(
   i: number, s: Slot | null, root: HTMLElement, o: SavePageOpts, host: HTMLElement, onDel: () => void,
@@ -200,12 +239,9 @@ function slotRow(
   }
   const m = el('div', 'slot__main');
   m.append(
-    lbl(`${s.scenName} · ${DIFF_LABEL[s.diffKey]}`, 'slot__title'),
-    // 题签行:章名 · 轮次 · 年龄/回溯/时间(2026-10-17 拍板:原第三行并到第二行末尾)
-    lbl(
-      `${s.chapterTitle}${fmtRound(s.roundNo) ? ` · ${fmtRound(s.roundNo)}` : ''} · 年龄 ${s.age ?? '—'} · 本章可回溯 ${s.backtracksLeft} 次 · ${fmtTime(s.at)}`,
-      'slot__ch',
-    ),
+    // 题签行:难度 · 章名 · 轮次 · 年龄/回溯(移动端隐藏)/时间(2026-10-19 拍板)
+    slotTitle(s),
+    slotSub(s),
   );
   const acts = el('div', 'slot__acts');
   acts.append(
@@ -215,7 +251,7 @@ function slotRow(
       cls: 'slot__btn',
       onClick: () => confirmDelete(root, () => {
         onDel();
-        draw(host, o); // 重画,槽位立刻变空
+        fillBody(root, host, o); // 只重绘主体,槽位立刻变空
       }, s),
     }),
   );
@@ -264,11 +300,8 @@ function stashBox(key: string, root: HTMLElement, o: SavePageOpts, host: HTMLEle
     const idxEl = el('div', 'slot__idx slot__idx--stash', '暂');
     const m = el('div', 'slot__main');
     m.append(
-      lbl(`${s.scenName} · ${DIFF_LABEL[s.diffKey]}`, 'slot__title'),
-      lbl(
-        `${s.chapterTitle}${fmtRound(s.roundNo) ? ` · ${fmtRound(s.roundNo)}` : ''} · 年龄 ${s.age ?? '—'} · 本章可回溯 ${s.backtracksLeft} 次 · ${fmtTime(s.at)}`,
-        'slot__ch',
-      ),
+      slotTitle(s),
+      slotSub(s),
     );
     const acts = el('div', 'slot__acts');
     acts.append(
@@ -278,7 +311,7 @@ function stashBox(key: string, root: HTMLElement, o: SavePageOpts, host: HTMLEle
         cls: 'slot__btn',
         onClick: () => confirmDelete(root, () => {
           removeStash(s.scenKey, idx);
-          draw(host, o);
+          fillBody(root, host, o);
         }, s),
       }),
     );
@@ -291,17 +324,19 @@ function stashBox(key: string, root: HTMLElement, o: SavePageOpts, host: HTMLEle
 /** 删除存档的二次确认浮层(2026-10-14 用户拍板:删除不可一键完成) */
 function confirmDelete(root: HTMLElement, onYes: () => void, s: Slot): void {
   root.querySelector('.saves__confirm')?.remove();
-  const ov = el('div', 'saves__confirm');
-  const box = el('div', 'saves__confirmbox');
+  // 与主菜单「退出游戏」同口径(2026-10-19 拍板):深色蒙版 + 窄幅悬挂卷轴;
+  // .saves__confirm 只作契约标记(测试定位),样式全走 overlay--dim 一套
+  const ov = el('div', 'saves__confirm overlay overlay--dim');
+  const box = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary');
   box.append(
-    lbl('删除存档？', 'saves__confirmtitle u-kai'),
-    lbl(`「${s.scenName} · ${s.chapterTitle}」`, 'saves__confirmtext'),
-    lbl('删除后不可恢复。', 'saves__confirmtext u-dim'),
+    lbl('删除存档？', 'overlay__title u-kai u-strong'),
+    lbl(`「${s.scenName} · ${s.chapterTitle}」`, 'overlay__body'),
+    lbl('删除后不可恢复。', 'overlay__body u-dim'),
   );
   const row = el('div', 'saves__confirmrow');
   row.append(
     btn('删 除', { variant: 'primary', onClick: onYes }),
-    btn('再 想 想', { variant: 'ghost', onClick: () => ov.remove() }),
+    btn('返 回', { variant: 'ghost', onClick: () => ov.remove() }),
   );
   box.append(row);
   ov.append(box);

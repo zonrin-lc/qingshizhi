@@ -138,7 +138,7 @@ withPage(async ({ evaluate, consoleErrors }) => {
   if (errs.length) errs.forEach((e) => console.log('  控制台错误: ' + e));
 
   const ok = report('回溯链路', [
-    ['章首显示剩余次数(normal=1)', init.btnText === '回溯 1' && init.can === true],
+    ['章首回溯钮可用(2026-10-18 起不再显示次数)', init.btnText === '回溯' && init.can === true],
     ['进回合后仍可回溯', inRound.can === true && inRound.btnLocked === false],
     ['前置条件:属性确实被改动过', o.attrsMoved === true],
     ['回溯后属性回到章首快照',

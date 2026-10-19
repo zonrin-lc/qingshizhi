@@ -15,7 +15,9 @@
   justify-content: center;
   overflow-y: auto;
   scrollbar-width: none;
-  padding: 5vh 1vw 2vh;
+  /* 顶距比秦朝剧本列大——预告内容整体下移(center 布局下顶距增量的一半生效,
+     14vh 相对原 5vh 实际下移约 4.5vh),2026-10-19 拍板 */
+  padding: 14vh 1vw 2vh;
 }
 .teaser::-webkit-scrollbar {
   display: none;

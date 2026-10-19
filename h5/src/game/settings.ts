@@ -5,7 +5,7 @@
  * 存 localStorage;脏档(截断/手改)回落默认值,与 Lua loadSettings 的守卫一致。
  *
  * 生效路径分三类:
- * - 音频(音乐/朗读开关与音量)→ 由 ui/settings.ts 的 applyAll 推给 bgm/voice
+ * - 音频(音乐/音效/朗读开关与音量)→ 由 ui/settings.ts 的 applyAll 推给 bgm/sfx/voice
  *   (那边是异步 import,避免 voice → session → settings 的循环依赖);
  * - 叙事速度(segDelay,毫秒)→ 订阅制:main.ts 用 onSegDelay 接到 Session.setSegDelay;
  * - 视觉(界面缩放/正文字号)→ applyVisual 写 CSS var(--user-scale / --text-scale)。
@@ -26,9 +26,8 @@ export interface Settings {
   music: boolean;
   musicGain: number;
   /**
-   * 音效开关与音量。当前版本游戏内还没有音效播放点(BGM 与剧情朗读之外
-   * 没有第三条音频通道),这两项先持久化占位 —— 用户已在设置页看到它们,
-   * 等音效真的接进来时直接读这两个键,不必再迁移存档。
+   * 音效开关与音量。2026-10-20 起已接入 game/sfx.ts(按钮/卡牌/骰子/结算等
+   * 交互反馈音),由设置页滑杆经 applyAll 推给 Sfx 实例;0 即关。
    */
   sfx: boolean;
   sfxGain: number;

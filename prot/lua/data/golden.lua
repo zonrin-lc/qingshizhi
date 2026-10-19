@@ -240,7 +240,7 @@ return {
       variant = "zuzhu",
       grade = "丙下",
       total = 36,
-      dev = 78,
+      dev = 71,
       chapter = 5,
       bands = {
         0,
@@ -254,8 +254,8 @@ return {
         tupo = 33,
         wuli = 35,
         caixue = 86,
-        moulue = 61,
-        biancai = 55,
+        moulue = 58,
+        biancai = 57,
         caifu = 0,
         shengwang = 5,
         quanshi = 47,
@@ -627,7 +627,7 @@ return {
         },
         {
           "ev",
-          3,
+          1,
         },
         {
           "settle",
@@ -937,7 +937,7 @@ return {
       variant = "baobing",
       grade = "丙下",
       total = 37,
-      dev = 77,
+      dev = 74,
       chapter = 5,
       bands = {
         0,
@@ -955,11 +955,11 @@ return {
         moulue = 56,
         biancai = 57,
         caifu = 12,
-        shengwang = 66,
+        shengwang = 69,
         quanshi = 0,
         zhengji = 12,
         junxin = 36,
-        weiji = 44,
+        weiji = 41,
       },
       steps = {
         {
@@ -1330,7 +1330,7 @@ return {
         },
         {
           "ev",
-          1,
+          0,
         },
         {
           "settle",
@@ -5663,7 +5663,7 @@ return {
       variant = nil,
       grade = "丙上",
       total = 50,
-      dev = 75,
+      dev = 72,
       chapter = 5,
       bands = {
         0,
@@ -5682,8 +5682,8 @@ return {
         shengwang = 10,
         quanshi = 8,
         zhengji = 4,
-        junxin = 1,
-        weiji = 54,
+        junxin = 0,
+        weiji = 62,
       },
       steps = {
         {
@@ -6035,7 +6035,7 @@ return {
         },
         {
           "ev",
-          4,
+          2,
         },
         {
           "settle",
@@ -7912,7 +7912,7 @@ return {
         },
         {
           "ev",
-          4,
+          3,
         },
         {
           "ev",
@@ -8237,16 +8237,16 @@ return {
       },
       attrs = {
         tupo = 42,
-        wuli = 71,
-        caixue = 77,
+        wuli = 72,
+        caixue = 76,
         moulue = 36,
-        biancai = 47,
+        biancai = 45,
         caifu = 2,
         shengwang = 26,
-        quanshi = 2,
-        zhengji = 12,
-        junxin = 24,
-        weiji = 10,
+        quanshi = 5,
+        zhengji = 11,
+        junxin = 27,
+        weiji = 11,
       },
       steps = {
         {
@@ -8548,7 +8548,7 @@ return {
         },
         {
           "ev",
-          4,
+          3,
         },
         {
           "settle",
@@ -8657,7 +8657,7 @@ return {
       variant = "tongzhu",
       grade = "丙上",
       total = 56,
-      dev = 81,
+      dev = 78,
       chapter = 5,
       bands = {
         0,
@@ -8667,17 +8667,17 @@ return {
         1,
       },
       attrs = {
-        tupo = 26,
+        tupo = 32,
         wuli = 73,
-        caixue = 90,
+        caixue = 84,
         moulue = 37,
-        biancai = 50,
+        biancai = 51,
         caifu = 2,
         shengwang = 0,
-        quanshi = 5,
+        quanshi = 2,
         zhengji = 11,
-        junxin = 1,
-        weiji = 79,
+        junxin = 3,
+        weiji = 93,
       },
       steps = {
         {
@@ -8995,14 +8995,14 @@ return {
         },
         {
           "ev",
-          4,
+          3,
+        },
+        {
+          "ev",
+          2,
         },
         {
           "settle",
-        },
-        {
-          "card",
-          1,
         },
         {
           "card",
@@ -9061,7 +9061,7 @@ return {
       variant = "yaonang",
       grade = "丙上",
       total = 57,
-      dev = 59,
+      dev = 56,
       chapter = 5,
       bands = {
         0,
@@ -9080,8 +9080,8 @@ return {
         shengwang = 24,
         quanshi = 4,
         zhengji = 6,
-        junxin = 19,
-        weiji = 50,
+        junxin = 14,
+        weiji = 60,
       },
       steps = {
         {
@@ -9406,7 +9406,7 @@ return {
         },
         {
           "ev",
-          3,
+          2,
         },
         {
           "settle",
@@ -10175,11 +10175,11 @@ return {
     {
       diff = "hardcore",
       seed = 149509,
-      ending = "E1",
-      variant = "tongzhu",
-      grade = "乙下",
-      total = 66,
-      dev = 52,
+      ending = "E3",
+      variant = nil,
+      grade = "丙上",
+      total = 59,
+      dev = 32,
       chapter = 5,
       bands = {
         0,
@@ -10189,17 +10189,17 @@ return {
         1,
       },
       attrs = {
-        tupo = 44,
+        tupo = 45,
         wuli = 68,
-        caixue = 80,
-        moulue = 40,
-        biancai = 54,
+        caixue = 70,
+        moulue = 38,
+        biancai = 49,
         caifu = 0,
-        shengwang = 5,
-        quanshi = 5,
-        zhengji = 14,
-        junxin = 11,
-        weiji = 99,
+        shengwang = 6,
+        quanshi = 2,
+        zhengji = 12,
+        junxin = 6,
+        weiji = 47,
       },
       steps = {
         {
@@ -10541,14 +10541,14 @@ return {
         },
         {
           "ev",
+          1,
+        },
+        {
+          "ev",
           2,
         },
         {
           "settle",
-        },
-        {
-          "card",
-          1,
         },
         {
           "card",
@@ -10557,31 +10557,6 @@ return {
         {
           "card",
           2,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          2,
-        },
-        {
-          "settle",
         },
         {
           "card",
@@ -10590,29 +10565,6 @@ return {
         {
           "ev",
           2,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "card",
-          3,
-        },
-        {
-          "card",
-          2,
-        },
-        {
-          "ev",
-          3,
         },
         {
           "settle",
@@ -10823,11 +10775,11 @@ return {
     {
       diff = "normal",
       seed = 165347,
-      ending = "E1",
-      variant = "shangqin",
+      ending = "E3",
+      variant = nil,
       grade = "丙上",
-      total = 58,
-      dev = 90,
+      total = 51,
+      dev = 52,
       chapter = 5,
       bands = {
         0,
@@ -10837,17 +10789,17 @@ return {
         1,
       },
       attrs = {
-        tupo = 50,
-        wuli = 68,
-        caixue = 73,
+        tupo = 51,
+        wuli = 70,
+        caixue = 72,
         moulue = 35,
-        biancai = 56,
-        caifu = 5,
-        shengwang = 18,
+        biancai = 55,
+        caifu = 2,
+        shengwang = 20,
         quanshi = 3,
         zhengji = 10,
-        junxin = 15,
-        weiji = 78,
+        junxin = 8,
+        weiji = 53,
       },
       steps = {
         {
@@ -11160,28 +11112,7 @@ return {
         },
         {
           "ev",
-          4,
-        },
-        {
-          "settle",
-        },
-        {
-          "xushi",
-        },
-        {
-          "card",
-          0,
-        },
-        {
-          "ev",
-          1,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          0,
+          3,
         },
         {
           "ev",
@@ -11191,26 +11122,8 @@ return {
           "settle",
         },
         {
-          "xushi",
-        },
-        {
           "card",
-          1,
-        },
-        {
-          "card",
-          1,
-        },
-        {
-          "ev",
-          0,
-        },
-        {
-          "settle",
-        },
-        {
-          "card",
-          3,
+          2,
         },
         {
           "card",
@@ -11218,7 +11131,7 @@ return {
         },
         {
           "ev",
-          0,
+          2,
         },
         {
           "settle",
@@ -23933,11 +23846,11 @@ return {
     {
       diff = "normal",
       seed = 164430,
-      ending = "E8",
+      ending = "E4",
       variant = nil,
-      grade = "丙下",
-      total = 35,
-      dev = 58,
+      grade = "乙下",
+      total = 60,
+      dev = 78,
       chapter = 6,
       bands = {
         0,
@@ -23948,17 +23861,17 @@ return {
         1,
       },
       attrs = {
-        tupo = 33,
-        wuli = 53,
+        tupo = 31,
+        wuli = 55,
         caixue = 48,
-        moulue = 46,
-        biancai = 63,
+        moulue = 48,
+        biancai = 61,
         caifu = 3,
-        shengwang = 1,
-        quanshi = 3,
+        shengwang = 3,
+        quanshi = 6,
         zhengji = 3,
         junxin = 50,
-        weiji = 89,
+        weiji = 75,
       },
       steps = {
         {
@@ -24165,7 +24078,7 @@ return {
         },
         {
           "ev",
-          3,
+          1,
         },
         {
           "settle",
@@ -24288,6 +24201,24 @@ return {
         {
           "ev",
           1,
+        },
+        {
+          "settle",
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "card",
+          2,
+        },
+        {
+          "xushi",
+        },
+        {
+          "ev",
+          0,
         },
         {
           "settle",

@@ -14,15 +14,11 @@
  * 图鉴页本来就是「我要看全部剧本」的场景,且 loadScenario 有缓存,
  * 入过局的剧本不再重复下载。
  */
-import { backBtn, btn, divider, el, lbl, seal } from './kit';
+import { backBtn, brandLogo, btn, divider, el, lbl, seal } from './kit';
 import { SCENARIOS, loadScenario, type ScenarioMeta } from '../data/scenarios';
 import { endingRecords, type EndingRec } from '../game/collection';
 import type { ScenarioData } from '../../types/scenario';
-import sealXunshi from '../assets/gallery/seal-xunshi.png';
-import sealGouhuo from '../assets/gallery/seal-gouhuo.png';
-import sealWenjian from '../assets/gallery/seal-wenjian.png';
-import sealNitian from '../assets/gallery/seal-nitian.png';
-import sealBaiju from '../assets/gallery/seal-baiju.png';
+import { SEALS, sealImg } from '../data/seals';
 import imgFrame from '../assets/save/frame.webp';
 import coverLisi from '../assets/cover/lisi.webp';
 import coverJingke from '../assets/cover/jingke.webp';
@@ -34,16 +30,6 @@ export interface GalleryPage {
   root: HTMLElement;
   destroy(): void;
 }
-
-/** 五印:展示顺序与效果图一致 */
-const SEALS: readonly { name: string; img: string }[] = [
-  { name: '循史', img: sealXunshi },
-  { name: '苟活', img: sealGouhuo },
-  { name: '稳健', img: sealWenjian },
-  { name: '逆天', img: sealNitian },
-  { name: '败局', img: sealBaiju },
-];
-const SEAL_IMG: Record<string, string> = Object.fromEntries(SEALS.map((s) => [s.name, s.img]));
 
 /** 剧本封面(与存档页同一份) */
 const COVERS: Record<string, string> = {
@@ -79,6 +65,10 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
     lbl('各本结局达成情况 · 跨局累计 · 未达成的结局只留残迹', 'gallery__hint'),
   );
   root.append(backBtn(onBack, '返回主菜单'), head);
+  // 右上品牌 logo(2026-10-18 拍板):与选择页同组,.brandcorner 钉到右上
+  const corner = brandLogo();
+  corner.classList.add('brandcorner');
+  root.append(corner);
 
   const body = el('div', 'gallery__body');
   root.append(body);
@@ -140,8 +130,9 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
   const secSlot = el('div', 'gallery__secs');
   main.append(secSlot);
 
-  // 已达成卡的结算详情浮层(复用对局浮层皮:overlay + panel-dialog)
-  const overlay = el('div', 'overlay overlay--settle');
+  // 已达成卡的结算详情浮层(2026-10-20 拍板:复用主菜单退出确认的皮——
+  // 深色蒙版 overlay--dim + 窄幅悬挂卷轴 panel-scroll--summary)
+  const overlay = el('div', 'overlay overlay--dim');
   overlay.hidden = true;
   const closeDetail = (): void => {
     overlay.hidden = true;
@@ -154,17 +145,27 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
   const showDetail = (e: Entry): void => {
     const rec = e.rec;
     if (!rec) return;
-    const box = el('div', 'overlay__box panel-dialog--tall galdetail');
-    box.append(lbl(`〔${rec.s || e.seal}〕`, 'u-zhu u-center chapter__sub'));
-    box.append(lbl(rec.n || e.name, 'overlay__title u-kai'));
+    const box = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary galdetail');
+    // 头部区(2026-10-19 四拍):印章图标在前,结局名 + 成绩/等级 + 达成回数
+    // 组成信息列跟在后面,横向一排;名称下的宽幅分隔线一并去掉
+    const head = el('div', 'galdetail__head');
+    const sealImgEl = el('img', 'galdetail__seal') as HTMLImageElement;
+    sealImgEl.src = sealImg(rec.s || e.seal);
+    sealImgEl.alt = rec.s || e.seal;
+    sealImgEl.draggable = false;
+    head.append(sealImgEl);
+    const info = el('div', 'galdetail__info');
+    info.append(lbl(rec.n || e.name, 'overlay__title u-kai'));
     const total = el('div', 'score score--total');
     total.append(
       el('span', 'score__k u-strong', '最佳'),
       el('span', 'score__v score__v--big u-kai u-strong', String(rec.b)),
       seal(rec.g, 'seal--big'),
     );
-    box.append(total);
-    box.append(lbl(`此结局累计达成 ${rec.c} 回`, 'u-dim u-center'));
+    info.append(total);
+    info.append(lbl(`此结局累计达成 ${rec.c} 回`, 'galdetail__meta u-dim'));
+    head.append(info);
+    box.append(head);
     if (e.zhuan) {
       box.append(divider('太史公曰'));
       box.append(lbl(e.zhuan, 'prose u-qing galdetail__zhuan'));
@@ -354,7 +355,7 @@ function entry(ent: Entry, variant: boolean, onDetail: (e: Entry) => void): HTML
     return row;
   }
   const icon = el('img', 'galent__seal') as HTMLImageElement;
-  icon.src = SEAL_IMG[rec.s || sealName] ?? sealXunshi;
+  icon.src = sealImg(rec.s || sealName);
   icon.alt = rec.s || sealName;
   icon.draggable = false;
   const col = el('div', 'galent__col');

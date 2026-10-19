@@ -24,6 +24,15 @@
   letter-spacing: 0.06em;
   box-shadow: 0 0.4rem 1rem rgba(42, 37, 29, 0.2);
 }
+/* 屏幕正中变体(剧本未解锁等强提醒,2026-10-20 拍板):居中 + 字号大一档 */
+.toast--center {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  font-size: 0.85rem;
+  text-align: center;
+  max-width: min(30rem, 86vw);
+}
 
 .saves {
   position: relative;
@@ -32,7 +41,8 @@
   flex-direction: column;
   gap: var(--sp-md);
   height: 100%;
-  padding: var(--sp-lg) var(--sp-xl);
+  /* 顶栏几何统一(2026-10-19 拍板):标题顶缘锚定 3vh,与选择页 .selhead / 返回钮 / 右上 logo 对齐 */
+  padding: 3vh var(--sp-xl) var(--sp-lg);
   overflow: hidden;
 }
 
@@ -140,7 +150,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 .stab__img {
   width: 100%;
@@ -150,7 +160,7 @@
   /* 常态细金线框(save/thumb):九宫格拉伸,角饰不糊 */
   border-image: url('../assets/save/thumb.webp') 12 fill / 4px stretch;
   filter: saturate(0.55) brightness(0.92);
-  transition: filter 0.15s ease;
+  transition: filter var(--dur-quick) var(--ease-ink);
 }
 .stab.is-on .stab__img {
   border-image-source: url('../assets/save/thumb-on.webp');
@@ -276,8 +286,17 @@
   display: flex;
   gap: var(--sp-xs);
 }
-/* 槽位按钮:btn-gold(读取/主) / btn-plain(删除/次),240x72 九宫格 */
-.saves .slot__btn,
+/* 槽位按钮:btn-gold(读取/主) / btn-plain(删除/次),240x72 九宫格
+ * 2026-10-19 拍板:PC 端读取/删除缩小一档(min-width 4.5→3.6rem、横向 padding 收半),
+ * 空态引导的「开始游戏」(.saves__start)不跟缩 */
+.saves .slot__btn {
+  min-width: 3.6rem;
+  padding: var(--sp-xs) var(--sp-sm);
+  border: none;
+  background: transparent;
+  font-size: var(--fs-ui);
+  letter-spacing: 0.1em;
+}
 .saves .saves__start {
   min-width: 4.5rem;
   padding: var(--sp-xs) var(--sp-md);
@@ -286,7 +305,10 @@
   font-size: var(--fs-ui);
   letter-spacing: 0.15em;
 }
-.saves .btn--primary {
+/* 2026-10-19 拍板:存档页按钮皮肤只作用于槽位行与空态引导卡 ——
+ * 删除确认浮层(.saves__confirmrow)虽挂在 .saves 根下,但按钮要走全站
+ * .btn--primary/--ghost(与主菜单退出确认同款),不能被这里的 btn-gold/btn-plain 劫持 */
+.saves :is(.slot, .saves__guide) .btn--primary {
   border-image: url('../assets/save/btn-gold.webp') 20 fill / 10px 14px stretch;
   /* hover 放大时 border-image 切片落在小数像素上会裂出细缝,
    * 垫一层与贴图填充区同色的底,接缝就看不出来了(2026-10-17) */
@@ -294,7 +316,7 @@
   color: #fff8ea;
   text-shadow: 0 1px 1px rgba(90, 60, 20, 0.5);
 }
-.saves .btn--ghost {
+.saves .slot .btn--ghost {
   border-image: url('../assets/save/btn-plain.webp') 20 fill / 10px 14px stretch;
   background-color: #fbf7f1;
   color: var(--ink-soft);
@@ -376,49 +398,22 @@
   border-image-source: url('../assets/save/slot-empty.webp');
 }
 .slot__idx--stash {
-  width: 2.2rem;
-  height: 1.3rem;
+  /* 2026-10-19 拍板:弃圆角横条贴图,改小方块纯色(取自原贴图中心色),占位更省 */
+  width: 1.05rem;
+  height: 1.05rem;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--fs-note);
   color: #f2ead8;
-  background: url('../assets/save/badge-temp.webp') center / 100% 100% no-repeat;
+  background: #5f5647;
 }
 
-/* ---------- 删除二次确认浮层 ---------- */
-/* fixed 而非 absolute:右栏可滚动,absolute 会跟着内容滚走 */
-.saves__confirm {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(42, 37, 29, 0.35);
-}
-.saves__confirmbox {
-  background: var(--paper-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  padding: var(--sp-lg) var(--sp-xl);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.8rem;
-  box-shadow: 0 1rem 2.4rem rgba(42, 37, 29, 0.3);
-}
-.saves__confirmtitle {
-  font-size: var(--fs-h2);
-  font-weight: 700;
-  color: var(--ink-heavy);
-  letter-spacing: 0.2em;
-}
-.saves__confirmtext {
-  font-size: var(--fs-ui);
-  color: var(--ink-soft);
-}
+/* ---------- 删除/离场二次确认浮层 ----------
+ * 2026-10-19 拍板:与主菜单「退出游戏」同口径——overlay--dim 深色蒙版 +
+ * panel-scroll--summary 窄幅悬挂卷轴;.saves__confirm 只是契约标记类(测试定位)。
+ * 卷轴盒的居中/去投影规则与 .menu__confirm 共用,见 art.css。 */
 .saves__confirmrow {
   display: flex;
   gap: var(--sp-lg);
@@ -427,40 +422,183 @@
 }
 
 /* ---------- 窄屏 ---------- */
-@media (max-width: 880px) {
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   .saves {
-    padding: var(--sp-sm);
-    gap: var(--sp-sm);
-    overflow-y: auto;
+    /* 三次拍板(2026-10-19):顶栏贴边贴顶——左右收到 4px、顶部 2vh,返回钮/logo 同步收。
+     * 负 margin 抵掉 .stage 的全局安全区内衬(16px 基准),让本页在移动端满铺到屏幕边缘 */
+    margin: calc(-1 * (var(--safe-t) + var(--sp-sm)))
+      calc(-1 * (var(--safe-r) + var(--sp-sm)))
+      calc(-1 * (var(--safe-b) + var(--sp-sm)))
+      calc(-1 * (var(--safe-l) + var(--sp-sm)));
+    height: calc(100% + var(--safe-t) + var(--safe-b) + 2 * var(--sp-sm));
+    /* 四次拍板(2026-10-19):左右边距与返回钮对齐(1vw) */
+    padding: 2vh 1vw var(--sp-sm);
+    /* 八次拍板:整页不滚动,右栏改弹性均分,任何视口高度都正好一屏 */
+    overflow: hidden;
   }
+  .saves .pageback { top: 2vh; left: 1vw; }
+  /* logo 不跟顶栏一起贴角(2026-10-19 晚间拍板):回到全站统一的 3vh/3vw,
+     2vh/2vw 会把它塞进屏幕最角落,视觉上像跑掉了 */
+  .saves .brandcorner { top: 3vh; right: 3vw; }
   .saves__body {
-    flex-direction: column;
-    overflow-y: auto;
+    /* 2026-10-19 拍板:不再上下堆叠,恢复左右两栏——立绘区占屏宽左侧 25% */
+    flex-direction: row;
+    overflow: visible;
+    /* 顶栏之下不留大空档 */
+    margin-top: 0.2rem;
+    /* 左右栏间隔收紧(34px→8px) */
+    gap: var(--sp-sm);
   }
   .saves__left {
-    width: 100%;
-    flex-direction: row;
-    align-items: stretch;
+    width: 25%;
+    flex: none;
+    min-height: 0;
   }
+  /* 立绘卡撑满左栏剩余高度(cover 裁切),不再按 7:9 定高 */
   .saves__portrait {
     flex: 1;
-    max-height: 14rem;
+    width: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    min-height: 0;
   }
+  /* 缩略图在 25% 窄栏内单行横排,放不下横向滑(换行会把立绘卡挤扁);
+     五次拍板:容器宽度与立绘区同宽,缩略图两端对齐分布;
+     顶部内衬 4px 给朱点(右上凸出 3px)留位,左右内衬 3px 给末位朱点留位;
+     七次拍板:滚到末位不出现滚动条(scrollbar 隐藏,位移交给 padding) */
   .saves__thumbs {
-    flex-direction: column;
-    justify-content: flex-start;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    overflow-x: auto;
+    padding: 4px 3px 0;
+    scrollbar-width: none;
   }
+  .saves__thumbs::-webkit-scrollbar {
+    display: none;
+  }
+  /* 缩略图缩小(2026-10-19 四次拍板:再降一档) */
   .stab {
-    width: 2.8rem;
+    width: 1.6rem;
+    flex: none;
   }
+  /* 记录题签行隐藏「年龄/本章可回溯」段(2026-10-19 拍板),只留章名·轮次·时间 */
+  .slot .slot__age { display: none; }
   .saves__right {
-    overflow: visible;
+    /* 八次拍板:不滚动;槽位列表弹性均分剩余高度 */
+    overflow: hidden;
+  }
+  /* 十次拍板(2026-10-19 晚):6 条存档与暂存记录等高——列表与暂存容器
+   * display:contents 溶解进右栏,7 条记录 + 暂存题签成为右栏直接子项,
+   * 每行 flex:1 1 0 严格等分(此前暂存槽位在自适应容器里,高度对不齐)。
+   * DOM 结构不变,纯布局手法,测试选择器不受影响 */
+  .saves__list,
+  .saves__stash {
+    display: contents;
+  }
+  .saves__stashhead {
+    flex: none;
+  }
+  /* 无档引导卡溶解后成为右栏直接子项,补上原先来自列表的占位 */
+  .saves__guide {
+    flex: 1 1 0;
+    min-height: 0;
   }
   .slot {
-    grid-template-columns: 1.6rem 1fr;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-columns: 1.6rem 1fr auto;
+    padding: 1px var(--sp-sm) 1px 3px;
+    gap: var(--sp-xs);
+    align-items: center;
   }
-  .slot__acts {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
+  /* 十次拍板:第一/第二行并作一行,第一行只留难度(剧名 .slot__scen 隐藏) */
+  .slot__main {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .slot__scen {
+    display: none;
+  }
+  .slot__title {
+    flex: none;
+  }
+  .slot__diff::after {
+    content: '·';
+    margin: 0 0.35em;
+  }
+  .slot__ch {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .slot__title {
+    font-size: var(--fs-note);
+  }
+  .slot__ch {
+    font-size: var(--fs-note);
+  }
+  /* 读取/删除按钮缩小(2026-10-19 七次拍板:高度再降一档至 24px;
+     min-height 必须归零,否则 art.css .btn 的 2.6rem 最小高度把 height 顶回去);
+     十次拍板:去底图边框,纯文字——金框/米框贴图与垫色全撤 */
+  .saves .slot__btn {
+    min-width: 0;
+    min-height: 0;
+    height: 1.5rem;
+    padding: 0 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: var(--fs-note);
+    letter-spacing: 0;
+    border-image-source: none;
+    background-color: transparent;
+    box-shadow: none;
+  }
+  .saves .btn--primary.slot__btn {
+    border-image-source: none;
+    background-color: transparent;
+    color: var(--gold);
+    text-shadow: none;
+  }
+  .saves .btn--ghost.slot__btn {
+    border-image-source: none;
+    background-color: transparent;
+    color: var(--ink-dim);
+  }
+  /* 记录区摘要条收窄、标题字号降档(2026-10-19 三次拍板);
+     十一次拍板:标题条去九宫格边框,纯文字(longhand 写法,简写会被压缩器破坏) */
+  .saves__bar,
+  .saves__stashhead {
+    padding: 1px var(--sp-sm);
+    border-image-source: none;
+  }
+  .saves__bar {
+    gap: var(--sp-sm);
+  }
+  /* 暂存区标题条内边距收窄(2026-10-19 六次拍板);容器本身已 display:contents */
+  .saves__stashhead {
+    padding: 1px var(--sp-sm);
+  }
+  .saves__barname,
+  .saves__barnum {
+    font-size: var(--fs-ui);
+  }
+  /* 四次拍板:立绘介绍只留人物名+一行文字,字号缩小 */
+  .saves__status { display: none; }
+  .saves__name {
+    font-size: 0.95rem;
+    letter-spacing: 0.25em;
+  }
+  .saves__era {
+    font-size: 0.6rem;
   }
 }

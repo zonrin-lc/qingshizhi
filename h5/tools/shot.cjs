@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 截图工具:把当前页面存成 PNG,用于和参考图比对。
  *
  * 用法:
@@ -83,7 +83,8 @@ function cdp(wsUrl) {
   };
 }
 
-// 把页面推到指定相位。
+// 把页面推到指定相位。推进逻辑与 tests/lib/harness.cjs 的 advanceOnce 同口径:
+// 浮层 → 底部选项区 → 正文区内联(dock 钉在文本区底部)→ 点正文跳过逐字 reveal。
 // target: intro | round | event | choice | summary
 //        | settle(停在结算浮层) | confirm(打开回溯确认浮层)
 const GO = `(async (target) => {
@@ -91,14 +92,42 @@ const GO = `(async (target) => {
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const g = window.__QS__.game;
   const overlayOpen = () => { const o = q('.overlay'); return o && !o.hidden; };
+  const isRevealing = () => !!(window.__QS__ && window.__QS__.session && window.__QS__.session.isRevealing);
+  const tapMain = () => {
+    const m = q('.stage__main');
+    if (!m) return false;
+    m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    return true;
+  };
   const clickCard = () => {
     const c = qa('.stage__foot .card--action').filter(x => x.getAttribute('role') === 'button')[0];
     if (c) { c.click(); return true; }
     return false;
   };
-  for (let i = 0; i < 400; i++) {
+  const advanceOnce = () => {
+    if (overlayOpen()) { q('.overlay .btn--primary')?.click(); return true; }
+    const foot = q('.stage__foot');
+    if (foot) {
+      const tap = foot.querySelector('.card--tappable');
+      if (tap) { tap.click(); return true; }
+      const act = foot.querySelector('.card--action[role="button"]');
+      if (act) { act.click(); return true; }
+      const btn = foot.querySelector('.btn--primary');
+      if (btn) { btn.click(); return true; }
+    }
+    const main = q('.stage__main');
+    if (main && !isRevealing()) {
+      const tap = main.querySelector('.card--tappable');
+      if (tap) { tap.click(); return true; }
+      const btn = main.querySelector('.btn--primary');
+      if (btn) { btn.click(); return true; }
+    }
+    if (isRevealing()) return tapMain();
+    return false;
+  };
+  for (let i = 0; i < 800; i++) {
     if (target === 'intro') break;
-    await sleep(6);
+    await sleep(25);
     if (target === 'settle') {
       if (g.phase === 'round' && clickCard()) { await sleep(400); break; }
       if (overlayOpen()) { q('.overlay .btn--primary')?.click(); continue; }
@@ -106,17 +135,22 @@ const GO = `(async (target) => {
     if (target === 'confirm') {
       if (g.phase === 'round') { q('.backbtn')?.click(); await sleep(300); break; }
     }
-    if (overlayOpen()) { q('.overlay .btn--primary')?.click(); continue; }
     const ph = g.phase;
     if (ph === target) break;
-    if (ph === 'intro') { q('.stage__foot .btn--primary')?.click(); continue; }
-    if (ph === 'round') {
-      const c = qa('.stage__foot .card').filter(x => x.getAttribute('role') === 'button')[0];
-      if (c) { c.click(); continue; }
-      clickCard(); continue;
+    // 抉择卡目标:回合里优先点「事有两端」卡(抉择类型挂 t-jue 类),没发到才普通推进
+    if (target === 'choice' && ph === 'round') {
+      const jue = qa('.stage__foot .card--action.t-jue').filter(x => x.getAttribute('role') === 'button')[0];
+      if (jue) { jue.click(); continue; }
     }
-    if (ph === 'event' || ph === 'choice') { qa('.stage__foot .card--tappable')[0]?.click(); continue; }
-    if (ph === 'summary') { q('.stage__foot .btn--primary')?.click(); continue; }
+    advanceOnce();
+  }
+  // 到站后再等正文 reveal 完、选项真正挂上(抉择/事件选项在文本区 dock 里)
+  for (let i = 0; i < 200; i++) {
+    await sleep(25);
+    if (isRevealing()) { tapMain(); continue; }
+    if (qa('.stage__main .card--tappable, .stage__foot .card--tappable, .stage__foot .card--action[role="button"]').length > 0) break;
+    if (g.phase !== target && target !== 'settle' && target !== 'confirm') break;
+    if (i > 40) break;
   }
   await sleep(500);
   return g.phase;
@@ -156,27 +190,34 @@ const GO = `(async (target) => {
     await c.send('Page.navigate', { url: `http://127.0.0.1:${port}/` }, sessionId);
     await sleep(1200);
 
-    // P3 起应用入口是「选择页」,对局相关目标要先点一次「入 局」
+    // 动线:主菜单(.menu__item--start「入 局」)→ 选择页 → 漩涡(.selenter)→ 对局页。
+    // intro 目标就停在主菜单;select 只点第一下;对局目标两下都点再跑 GO。
+    const MENU_ENTER = "document.querySelector('.menu__item--start')?.click()";
+    const SEL_ENTER = "document.querySelector('.selenter')?.click()";
     if (target === 'resume') {
       // 走一遍真实退出路径,好让选择页出现「继续上局」
-      await c.send('Runtime.evaluate',
-        { expression: "document.querySelector('.enterbtn')?.click()", returnByValue: true }, sessionId);
+      await c.send('Runtime.evaluate', { expression: MENU_ENTER, returnByValue: true }, sessionId);
+      await sleep(300);
+      await c.send('Runtime.evaluate', { expression: SEL_ENTER, returnByValue: true }, sessionId);
       await sleep(600);
       await c.send('Runtime.evaluate',
         { expression: 'window.__QS__.goSelect()', returnByValue: true }, sessionId);
       await sleep(500);
     } else if (target === 'saves') {
-      // 走真实用户路径:选择页上点「档案」。
+      // 走真实用户路径:主菜单横排次级项点「存 档」。
       // 不能直接调 __QS__.goSaves() —— 此时还没入局,__QS__ 根本不存在。
       await c.send('Runtime.evaluate',
-        { expression: "document.querySelector('.savebtn')?.click()", returnByValue: true }, sessionId);
+        { expression: "[...document.querySelectorAll('.menu__item--sub')].find(b => b.textContent.includes('存'))?.click()", returnByValue: true }, sessionId);
       await sleep(600);
-    } else if (target !== 'select' && target !== 'intro') {
-      await c.send('Runtime.evaluate',
-        { expression: "document.querySelector('.enterbtn')?.click()", returnByValue: true }, sessionId);
-      await sleep(700);
+    } else if (target !== 'intro') {
+      await c.send('Runtime.evaluate', { expression: MENU_ENTER, returnByValue: true }, sessionId);
+      await sleep(300);
+      if (target !== 'select') {
+        await c.send('Runtime.evaluate', { expression: SEL_ENTER, returnByValue: true }, sessionId);
+        await sleep(700);
+      }
     }
-    if (target !== 'select' && target !== 'intro') {
+    if (target !== 'select' && target !== 'intro' && target !== 'resume' && target !== 'saves') {
       const r = await c.send('Runtime.evaluate',
         { expression: `${GO}(${JSON.stringify(target)})`, awaitPromise: true, returnByValue: true }, sessionId);
       console.log('phase =', r.result.value);
@@ -194,6 +235,10 @@ const GO = `(async (target) => {
     if (c) c.close();
     chrome.kill();
     srv.close();
-    try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* noop */ }
+    // 同 harness.cjs:等 chrome 退出再删 profile,否则 Windows 上 rm 必败,Temp 泄漏
+    await new Promise((r) => { chrome.once('exit', r); setTimeout(r, 3000); });
+    for (let i = 0; i < 5; i++) {
+      try { fs.rmSync(profile, { recursive: true, force: true }); break; } catch { await sleep(400); }
+    }
   }
 })();

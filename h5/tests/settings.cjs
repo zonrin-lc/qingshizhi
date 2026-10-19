@@ -101,7 +101,7 @@ withPage(
     const ok = report('设置页', [
       ['三条音量行全部渲染', out.rows === 3 && out.sliders === 3],
       ['行标题与顺序符合约定', JSON.stringify(out.titles) === JSON.stringify(wantTitles)],
-      ['梅竹装饰就位', out.deco === 2],
+      ['装饰已移除(2026-10-19 拍板)', out.deco === 0],
       ['版本号来自注入而非手抄', /v\S+ · H5 版/.test(out.ver || '')],
       ['拖动前 BGM 确实在播', out.beforePaused === false],
       ['拖到 0:写入 music=false', out.zeroMusic === false],

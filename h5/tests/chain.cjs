@@ -108,9 +108,12 @@ const DRIVER = `(async () => {
     }
     if (ph === 'round') {
       // 行动卡结算已无「继 续」钮(2026-10-17 拍板:飞卡→题签渐入→逐行→属性飞入→
-      // 翻背面→自动推进)。结算窗口里非收起小节的「经营/蓄势」题签就是凭据:
+      // 翻背面→自动推进)。结算窗口里最后一个小节的「经营/蓄势」题签就是凭据
+      // (2026-10-19 起旧小节不再自动收起,活小节=最后一个小节):
       // 核卡名、记属性,然后等它自己推进收起来。
-      const liveHead = q('.stage__main .sec:not(.is-collapsed) .sec__head');
+      const allSecs0 = qa('.stage__main .sec');
+      const liveHead = (allSecs0[allSecs0.length - 1] || {}).querySelector
+        ? allSecs0[allSecs0.length - 1].querySelector('.sec__head') : null;
       if (lastCard && liveHead && /经营 ·|蓄势 ·/.test(liveHead.textContent || '')) {
         const secTitle = liveHead.textContent || '';
         // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
@@ -118,7 +121,7 @@ const DRIVER = `(async () => {
           sec: secTitle,
           picked: lastCard,
           nameMatch: secTitle.includes(lastCard),
-          changes: qa('.stage__main .sec:not(.is-collapsed) .chgrow__v').map(n => n.textContent.trim()),
+          changes: qa('.stage__main .sec:last-of-type .chgrow__v').map(n => n.textContent.trim()),
           residual: false });
         lastCard = null;
         await sleep(100); continue;
@@ -128,16 +131,18 @@ const DRIVER = `(async () => {
       if (cont) {
         const sec = cont.closest('.sec');
         // dock 重构(2026-10-17):「继 续」挂在 .dock(prose-body 直子)而非 .sec 内,
-        // closest 落空时退回当前未收起小节的题签
+        // closest 落空时退回最后一个小节(活小节)的题签
+        const lastSec = qa('.stage__main .sec').pop();
         const secTitle = ((sec && sec.querySelector('.sec__head'))
-          || q('.stage__main .sec:not(.is-collapsed) .sec__head') || {}).textContent || null;
+          || (lastSec && lastSec.querySelector('.sec__head')) || {}).textContent || null;
         // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
         push({ at: i, evt: 'card-settle',
           sec: secTitle,
           picked: lastCard,
           nameMatch: lastCard ? !!(secTitle && secTitle.includes(lastCard)) : null,
           changes: qa('.stage__main .chgrow__v').map(n => n.textContent.trim()),
-          residual: !!(sec && sec.classList.contains('is-collapsed')) });
+          // 2026-10-19 起小节不再自动收起,残留判据改为:「继 续」落在非最后小节里
+          residual: !!(sec && lastSec && sec !== lastSec) });
         lastCard = null;
         cont.click(); continue;
       }
@@ -174,13 +179,15 @@ const DRIVER = `(async () => {
       // 偶遇/随机事件:结算与「继续」内联在文本区,先把它点掉再读选项
       const cont = q('.stage__main .btn--primary');
       if (cont) {
-        // 一次性「继 续」应在 pushSec 收起旧节时被摘除;若它出现在已收起的小节里,
+        // 一次性「继 续」在推新小节时随停靠带整带摘除;若它落在非最后小节里,
         // 就是残留——点它会误触当前相位的 proceed,把整个事件跳掉
+        // (2026-10-19 起小节不再自动收起,残留判据从 is-collapsed 改为「非最后小节」)
         const sec = cont.closest('.sec');
+        const allSecs = qa('.stage__main .sec');
         push({ at: i, evt: 'inline-settle', id: g.eventId,
           btnText: cont.textContent,
           sec: (sec && sec.querySelector('.sec__head') || {}).textContent || null,
-          residual: !!(sec && sec.classList.contains('is-collapsed')) });
+          residual: !!(sec && allSecs[allSecs.length - 1] !== sec) });
         cont.click(); continue;
       }
       const opts = g.getOptions();

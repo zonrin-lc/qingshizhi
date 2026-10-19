@@ -265,7 +265,7 @@
   border-radius: 1vh;
   overflow: hidden;
   cursor: pointer;
-  transition: width 0.38s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  transition: width 0.38s ease, box-shadow var(--dur-quick) var(--ease-ink), filter var(--dur-quick) var(--ease-ink);
 }
 .scard2:hover {
   filter: brightness(1.07);
@@ -376,6 +376,10 @@
   /* 胶囊间距(2026-10-15 拍板稍微拉大) */
   gap: 2.4vh;
 }
+/* 共享提示位:桌面用逐枚胶囊下注释,此元素只在移动端竖排里显示(见窄屏块) */
+.seldrawer__allhint {
+  display: none;
+}
 /* 一枚难度:胶囊 + 正下方注释 */
 .seldiff {
   display: flex;
@@ -413,7 +417,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 /* 交互与全站按钮统一(base.css 共享规则:hover 放大 1.05) */
 .seldiff__cap.is-on {
@@ -438,7 +442,7 @@
   background: none;
   cursor: pointer;
   overflow: visible;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 .selenter__spin {
   position: absolute;
@@ -480,55 +484,113 @@
   pointer-events: none;
 }
 
-/* ---------- 窄屏:纵排滚动 ---------- */
-@media (max-width: 880px) {
+/* ---------- 窄屏:左右两栏(罗盘左 | 卡条+难度/开始右) ---------- */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
+  /* 顶栏复用存档页移动端口径(2026-10-19 拍板):返回钮贴左 1vw、标题锚 2vh;
+     logo 不跟贴角(2026-10-19 晚间拍板),回到全站统一的 3vh/3vw ——
+     .seltop 只剩 logo,其 top/padding 即 logo 位置 */
+  .select .pageback { top: 2vh; left: 1vw; }
+  .seltop { top: 3vh; padding: 0 3vw; }
+  .selhead { top: 2vh; }
+  /* 布局(2026-10-19 二拍):三栏——罗盘放大居左 | 立绘卡条居中 | 难度+开始竖排居右。
+     卡条/胶囊不再走 --collapsedW 的 cqw 算式(三栏下容器宽含义变了),改显式宽 */
   .selrow {
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: var(--sp-sm);
-    overflow-y: auto;
-    padding-top: 12vh;
+    /* 罗盘与立绘区间距加大(2026-10-19 拍板):2vw→4vw */
+    gap: 4vw;
+    /* 左内边距 1vw:罗盘左缘与返回钮左边距对齐(2026-10-19 拍板) */
+    padding: 6vh 2vw 0 1vw;
   }
   .selwheel {
-    width: min(52vw, 30vh);
-    height: min(52vw, 30vh);
-    margin-left: 0;
+    width: min(42vw, 64vh);
+    height: min(42vw, 64vh);
+    /* 罗盘区域(含圈外菱饰尖/朝代名签)左缘对齐返回钮 1vw(2026-10-19 拍板):
+       实测名签探出容器左缘 0.0748·size(宋/明位,大于菱饰尖的 0.0545),
+       取 0.075 补偿后名签最左缘正好落在返回钮那条 1vw 线上 */
+    margin-left: calc(min(42vw, 64vh) * 0.075);
     margin-right: 0;
   }
-  /* 纵排时右列占满宽、不再撑满高度 */
   .selright {
-    flex: 0 0 auto;
-    width: 100%;
-    align-self: center;
+    flex: 1 1 auto;
+    width: auto;
+    align-self: stretch;
+    /* 右列内容整体垂直居中,与左侧罗盘对齐 */
+    justify-content: center;
   }
-  /* 纵排没有「与居中对齐」的参照,顶边距归零,自然顺排 */
   .selscen {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5vw;
+    /* 立绘区高度与罗盘等高(2026-10-19 拍板):罗盘 min(42vw,64vh),
+       卡条高 = --cardH + 自身上下 padding 1.6vh,倒推 cardH */
+    --cardH: calc(min(42vw, 64vh) - 1.6vh);
     margin-top: 0;
   }
   .selstage {
-    overflow-x: auto;
-    min-height: 30vh;
-    /* 窄屏不按罗盘对齐算式定高,高度由卡条(26vh)内容撑出 */
-    height: auto;
     flex: 1 1 auto;
+    min-width: 0;
+    height: calc(var(--cardH) + 1.6vh);
+    overflow-x: auto;
     scrollbar-width: none;
   }
   .selstage::-webkit-scrollbar {
     display: none;
   }
-  /* 窄屏下手风琴改走宽度过渡 */
   .scard2 {
     flex: 0 0 auto;
-    width: 13vw;
-    height: 26vh;
-    transition: width 0.3s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    width: 7vw;
   }
   .scard2.is-on {
-    flex-grow: 0;
-    width: 34vw;
+    width: 17vw;
   }
   .scard2__name {
-    font-size: 1.5vh;
+    /* 剧本名放大一档(2026-10-19 拍板):1.5vh→2.4vh */
+    font-size: 2.4vh;
+  }
+  /* 难度+开始:右侧竖排 */
+  .seldrawer {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+  .seldrawer.is-open {
+    /* 竖排(3 胶囊+注释+漩涡)远超 30vh 展开上限,放开 */
+    max-height: none;
+  }
+  .seldrawer__in {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5vh;
+    padding-top: 0;
+  }
+  .seldrawer__caps {
+    flex-direction: column;
+    align-items: center;
+    /* 三枚胶囊竖排间距(2026-10-20 拍板):1vh→1.6vh,稍稍拉开 */
+    gap: 1.6vh;
+  }
+  .seldiff__cap {
+    width: 13vw;
+  }
+  /* 提示集中显示在开始按钮上方(2026-10-19 拍板):逐枚胶囊下的注释在移动端隐藏,
+     改显示 .seldrawer__allhint(共享位,select.ts 只填当前选中难度的说明) */
+  .seldiff__hint {
+    display: none;
+  }
+  .seldrawer__allhint {
+    display: block;
+    /* 字号缩小一档:fs-note→fs-cap */
+    font-size: var(--fs-cap);
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.4;
+    max-width: 13vw;
+  }
+  .seldrawer .selenter {
+    /* 缩小一点(2026-10-19 拍板):84→72px
+       ⚠ 本文件有并行会话在写:23:50 曾出现重复的 84px 同名规则盖掉此值,改动前先读最新文件 */
+    width: 72px;
+    height: 72px;
+    margin: 2vh 0 0;
   }
   /* 窄屏选中态字号同样不变(仅颜色变金,继承上方 .scard2.is-on 规则) */
 }

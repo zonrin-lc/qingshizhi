@@ -9,6 +9,7 @@
  * 结局达成记录(endings)是 H5 新增字段:旧档没有它,读取时按空表收窄,不拒收整份。
  */
 import type { Game, ScenarioData } from '../../types/scenario';
+import { SCENARIOS } from '../data/scenarios';
 
 const key = (scenId: string): string => `qingshi.col.v1.${scenId}`;
 
@@ -132,4 +133,41 @@ export function recordEnding(game: Game): { rec: EndingRec; reached: number; tot
 /** 图鉴页用:取某剧本的达成记录(无存档则为空表) */
 export function endingRecords(scenId: string): Record<string, EndingRec> {
   return loadCollection(scenId)?.endings ?? {};
+}
+
+/* ---------- 剧本开放条件(2026-10-20 拍板) ----------
+ * 李斯无限制;其余剧本需「上一剧本达成乙级评分 + 解锁 3 个不同结局」。
+ * 数据源就是上面的跨局收藏:结局键去重个数 + 最佳评级是否 ≥ 乙。 */
+
+/** 乙级及以上的评级档位线(GRADE_RANK:乙=5,甲下=7…都算达标) */
+const GRADE_LINE_YI = 5;
+/** 开放下一剧本所需的不同结局数 */
+export const UNLOCK_ENDINGS_NEEDED = 3;
+
+/** 单剧本的开卷进度:不同结局数 / 最佳评级是否达乙 */
+export function unlockProgress(scenKey: string): { endings: number; gradeOk: boolean } {
+  const col = loadCollection(scenKey);
+  const endings = col ? Object.keys(col.endings).length : 0;
+  const gradeOk = col
+    ? Object.values(col.endings).some((r) => (GRADE_RANK[r.g] ?? 0) >= GRADE_LINE_YI)
+    : false;
+  return { endings, gradeOk };
+}
+
+/** 剧本是否开放:首剧本(lisi)无限制,其余按上一剧本进度判定 */
+export function isScenarioUnlocked(scenKey: string): boolean {
+  const idx = SCENARIOS.findIndex((s) => s.key === scenKey);
+  if (idx <= 0) return true;
+  const p = unlockProgress(SCENARIOS[idx - 1]!.key);
+  return p.gradeOk && p.endings >= UNLOCK_ENDINGS_NEEDED;
+}
+
+/** 未开放的原因文案(toast 用);已开放返回 null */
+export function lockReason(scenKey: string): string | null {
+  if (isScenarioUnlocked(scenKey)) return null;
+  const idx = SCENARIOS.findIndex((s) => s.key === scenKey);
+  const prev = SCENARIOS[idx - 1]!;
+  const p = unlockProgress(prev.key);
+  return `「${prev.name}」尚未开卷：需达成乙级评分并解锁 ${UNLOCK_ENDINGS_NEEDED} 个不同结局`
+    + `（当前结局 ${p.endings}/${UNLOCK_ENDINGS_NEEDED} · 最佳评级${p.gradeOk ? '已' : '未'}达乙）`;
 }

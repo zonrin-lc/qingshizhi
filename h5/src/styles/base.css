@@ -55,6 +55,15 @@
   --r-md: 0.5rem;
   --r-lg: 0.75rem;
 
+  /* ---------- 动效令牌(motion-design 定调:Elegance) ----------
+   * 签名曲线 --ease-ink 承担全站 80% 的动效;水墨是流体材质,
+   * 落定要缓、无回弹(overshoot 0%)。时长三档,新动效一律取令牌,不再手写秒数。 */
+  --ease-ink: cubic-bezier(0.4, 0, 0.2, 1);   /* 入场/屏内过渡:快起缓落 */
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);    /* 出场:缓起急走 */
+  --dur-quick: 160ms;                          /* 按压/悬停/微反馈 */
+  --dur-std: 350ms;                            /* 卡片/弹窗/浮层 */
+  --dur-slow: 650ms;                           /* 页面转场/戏剧揭示 */
+
   /* ---------- 字体栈 ----------
      全游戏统一霞鹜文楷(2026-10-14 用户拍板):内嵌子集(4892 码位,
      口径 = 当前全部文本 + GB2312 一级字表/符号 + ASCII,约 2.1MB),
@@ -120,16 +129,55 @@ body {
   -webkit-touch-callout: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* 长按不选中文本(游戏里不需要复制剧情);iOS 长按按钮才不弹呼出菜单 */
+  user-select: none;
+  -webkit-user-select: none;
+  /* 禁止下拉刷新/橡皮筋回弹拖出棋盘 */
+  overscroll-behavior: none;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* 棋盘式布局不允许页面滚动 */
+  overflow: hidden;
+  background: var(--paper-app);
+  color: var(--ink);
+  font-family: var(--font-kai);
+  /* 关掉移动端的点击高亮与选中,避免点卡片时出现蓝块 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* 长按不选中文本(游戏里不需要复制剧情);iOS 长按按钮才不弹呼出菜单 */
+  user-select: none;
+  -webkit-user-select: none;
+  /* 禁止下拉刷新/橡皮筋回弹拖出棋盘 */
+  overscroll-behavior: none;
 }
 
 body {
-  /* 字号随缩放走;所有 rem 均相对此值。--user-scale 来自设置页「界面缩放」 */
+  /* 字号随缩放走;所有 rem 均相对此值。--user-scale 来自设置页「界面缩放」
+     ⚠ 已知事实(2026-10-19 实测):rem 相对的是 html 根字号,不是 body ——
+     所以全站 rem 尺寸其实不随 --ui-scale 缩放,只有继承 body 字号的文本在缩。
+     曾试过把缩放挪到 html 上让 rem 全站生效,但那会把所有页面整体缩小,
+     boss 拍板回退(全站版式按现状锁死),只对弹框做定向收窄(见 art.css 窄屏块)。
+     挪回 body 是有意的,别再「顺手修正」到 html。 */
   font-size: calc(16px * var(--ui-scale) * var(--user-scale, 1));
   line-height: 1.65;
   /* 桌面端居中呈现,避免宽屏下元素被拉散 */
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 移动端全站文字行距收紧行到 1.1(2026-10-19 拍板):继承 body 的文本直接生效,
+   .prose 等自带显式行距的要逐个覆盖 */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
+  body { line-height: 1.1; }
+  .prose { line-height: 1.1; }
 }
 
 #app {
@@ -243,6 +291,21 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- 页面转场(motion-design) ----------
+ * 整页根节点都是「挂上即播」的 fresh DOM,插入即淡入上浮,650ms --ease-ink,
+ * 无需 JS 参与——navToken 异步入局与浏览器验收的同步 DOM 断言都不受影响。
+ * 对局页已有 game-in(0.55s),不在此列,两套节奏各归各。 */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(0.6rem); }
+}
+.menu,
+.select,
+.saves,
+.settings,
+.gallery {
+  animation: page-in var(--dur-slow) var(--ease-ink) backwards;
+}
 /* ---------- 页标题 + 标题下分隔线 ----------
  * 所有带标题的页面统一照存档页版式(2026-10-16 拍板):
  * 居中楷体大字(宽字距,text-indent 抵消末字距保持视觉居中)+ rule-line.webp 分隔线。 */
@@ -261,11 +324,19 @@ body {
   margin: var(--sp-xs) auto;
   background: url('../assets/deco/rule-line.webp') center / 100% 100% no-repeat;
 }
-@media (max-width: 880px) {
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   .page-title {
     font-size: 1.2rem;
     letter-spacing: 0.3em;
     text-indent: 0.3em;
+  }
+  /* 移动端(2026-10-19 拍板):所有页面去掉标题下的金线装饰,给竖向空间让路 */
+  .page-rule {
+    display: none;
+  }
+  /* 移动端(2026-10-19 拍板):右上角品牌组去掉「悠悠千载 · 青史万卷」副题,圆徽与题字保留 */
+  .seltop__sub {
+    display: none;
   }
 }
 
@@ -275,6 +346,10 @@ body {
  * z-index 4:必须压过选择页 .seltop(z-index 3)——它 left:0/right:0 整幅横贯,
  * 左侧空区会盖住罗盘吃掉点击。 */
 .pageback {
+  /* 顶栏几何统一(2026-10-19 拍板):所有带返回钮的页面,返回钮 3vh/3vw、
+   * 右上 logo(.brandcorner / .seltop)3vh/3vw、标题顶缘 3vh。
+   * 标题锚点由各页容器 padding-top: 3vh 或绝对定位 .selhead top: 3vh 实现,
+   * 新页面照此口径,不要再各自发明顶距。 */
   position: absolute;
   top: 3vh;
   left: 3vw;
@@ -285,7 +360,7 @@ body {
   border: 0;
   background: none;
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 .pageback:hover {
   transform: scale(1.05);
@@ -294,6 +369,16 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* ---------- 内页右上品牌 logo(2026-10-18 拍板) ----------
+ * kit.brandLogo 的组合本体样式在 select.css(.seltop__brand 系列);
+ * 这里只负责把内页(存档/图鉴/设置)的 logo 钉到右上,与返回钮对称。 */
+.brandcorner {
+  position: absolute;
+  top: 3vh;
+  right: 3vw;
+  z-index: 3;
 }
 
 /* ---------- 全站按钮统一交互(2026-10-17 拍板) ----------
@@ -311,4 +396,47 @@ body {
 .castChip:hover:not(:disabled),
 .tapsync__btn:hover:not(:disabled) {
   transform: scale(1.05);
+}
+
+/* ============================================================================
+ * 移动端触摸交互(2026-10-19)
+ *
+ * touch-action: manipulation:去掉移动端双击缩放与 300ms 点按延迟,
+ *   但保留滚动/捏合(棋盘内部的 .prose-body 等滚动区仍可正常滑)。
+ * :active 反馈:触屏没有 hover,按下瞬间给一档下压,点按才有触觉。
+ *   与 hover 的放大 1.05 互补——桌面端鼠标悬停放大、手指按下缩小。
+ * ==========================================================================*/
+.btn,
+.card,
+.pageback,
+.backbtn,
+.menu__enter,
+.menu__item--sub,
+.menu__resume,
+.menu__cbtn,
+.seldiff__cap,
+.selenter,
+.stab,
+.castChip,
+.galent,
+.tapsync__btn,
+.sec__head,
+.dwheel__name,
+.deckbtn {
+  touch-action: manipulation;
+}
+
+.btn:active:not(:disabled),
+.card--tappable:active:not(:disabled),
+.menu__enter:active:not(:disabled),
+.menu__item--sub:active:not(:disabled),
+.menu__resume:active:not(:disabled),
+.menu__cbtn:active:not(:disabled),
+.seldiff__cap:active:not(:disabled),
+.selenter:active:not(:disabled),
+.stab:active:not(:disabled),
+.castChip:active:not(:disabled),
+.galent.is-done:active:not(:disabled),
+.tapsync__btn:active:not(:disabled) {
+  transform: scale(0.96);
 }

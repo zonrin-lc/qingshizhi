@@ -15,7 +15,8 @@
   flex-direction: column;
   gap: var(--sp-md);
   height: 100%;
-  padding: var(--sp-lg) var(--sp-xl);
+  /* 顶栏几何统一(2026-10-19 拍板):标题顶缘锚定 3vh,与存档/设置/选择页对齐 */
+  padding: 3vh var(--sp-xl) var(--sp-lg);
   /* 页面固定,滚动只发生在结局列表 */
   overflow: hidden;
 }
@@ -279,7 +280,7 @@
 /* 已达成卡可点出结算详情 */
 .galent.is-done {
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink), box-shadow var(--dur-quick) var(--ease-ink);
 }
 .galent.is-done:hover,
 .galent.is-done:focus-visible {
@@ -288,41 +289,202 @@
   outline: none;
 }
 
-/* ---------- 结局结算详情浮层 ---------- */
-.galdetail {
-  width: min(30rem, 100%);
+/* ---------- 结局结算详情浮层 ----------
+ * 2026-10-20 拍板:皮复用主菜单退出确认(overlay--dim + overlay__box--scroll
+ * + panel-scroll--summary,见 gallery.ts),宽度/边框/内边距全走那一套,
+ * 此处只管内容版式(头部/太史公曰/按钮) */
+.galdetail__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 图标与信息列间距拉大一档(2026-10-20 拍板) */
+  gap: var(--sp-lg);
+  width: fit-content;
+  margin: 0 auto;
+  text-align: left;
+}
+.galdetail__seal {
+  display: block;
+  height: 4rem;
+  width: auto;
+  flex: none;
+  margin: 0;
+}
+.galdetail__info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 名称下的宽幅分隔线(title.webp)去掉:头部自成一体,不再需要装饰线 */
+.galdetail__info .overlay__title {
+  padding-bottom: 0;
+  margin: 0 0 var(--sp-xs);
+}
+.galdetail__info .overlay__title::after {
+  display: none;
+}
+/* 成绩行在信息列内靠左,不跟半栏居中 */
+.galdetail__info .score--total {
+  justify-content: flex-start;
+  margin: 0 0 var(--sp-xs);
+}
+/* 成绩行三项(2026-10-20 拍板):字号一致(1rem)、去掉 3/2.5/3.5rem 定宽
+   带来的大空隙,间距收到一档 */
+.galdetail__info .score--total {
+  gap: var(--sp-xs);
+}
+.galdetail__info .score--total .score__k,
+.galdetail__info .score--total .score__v {
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+.galdetail__info .score--total .seal--big {
+  font-size: 1rem;
+}
+.galdetail__meta {
+  font-size: var(--fs-cap);
+}
+/* 「太史公曰」题签放大(2026-10-19 拍板):全站 divider 字号不动,只提详情浮层 */
+.galdetail .divider__txt {
+  font-size: 1.1rem;
+  padding-top: 1.1rem;
+}
+/* 「太史公曰」分隔题签同上:rule-thin.webp 宽 100%、高自适应 */
+.galdetail .divider__txt {
+  padding-top: 1.2rem;
+  background-size: 100% auto;
 }
 .galdetail__zhuan {
   text-align: left;
-  max-height: 40vh;
-  overflow-y: auto;
+  /* 不再自设 40vh 内滚(2026-10-20 拍板):长文让弹框整体长高,
+     由 overlay 一级滚动兜底,文本区自身不出滚动条 */
+}
+/* 移动端「太史公曰」行距 1.1(2026-10-19 拍板):与全站窄屏行距口径一致,
+   双条件断点保证横屏矮窗(915×412 这类)也生效 */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
+  .galdetail__zhuan { line-height: 1.1; }
 }
 
-/* ---------- 窄屏:左栏落到顶上(复用存档页类名,这里只改方向),聚合条纵排,条目单列 ---------- */
-@media (max-width: 60rem) {
+/* ---------- 窄屏(2026-10-19 三次拍板):布局逐条参照存档页 save.css 窄屏口径——
+   顶栏贴边贴顶(负 margin 抵掉 .stage 全局安全区内衬)、左右边距与返回钮对齐(1vw)、
+   两栏恢复左右排(立绘占左 25% 撑满高度)、缩略图横排两端对齐、右栏聚合条纵排 +
+   条目单列。缩略图尺寸/名签字号走 save.css 的全局窄屏规则(.stab/.saves__plate 一套),
+   本文件不重复定义。
+   断点(2026-10-19 晚补):除 ≤880 外,横屏矮窗(手机横屏 915×412 这类)也走本块——
+   与 art.css/game.css 的紧凑口径一致,否则这些宽度落回桌面版式,聚合条/列表全挤爆。 ---------- */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   .gallery {
+    /* 与 .saves 同口径:满铺到屏幕边缘(顶 2vh、左右 1vw 由 padding 决定);
+       页根纵向间隔同步收一档;横向一律锁死,内容意外超宽也不出页级横向滚动条 */
+    margin: calc(-1 * (var(--safe-t) + var(--sp-sm)))
+      calc(-1 * (var(--safe-r) + var(--sp-sm)))
+      calc(-1 * (var(--safe-b) + var(--sp-sm)))
+      calc(-1 * (var(--safe-l) + var(--sp-sm)));
+    height: calc(100% + var(--safe-t) + var(--safe-b) + 2 * var(--sp-sm));
+    padding: 2vh 1vw var(--sp-sm);
     overflow-y: auto;
+    overflow-x: hidden;
+    /* 十二次拍板:头部间隔对齐存档页(--sp-md)——此前收 sp-xs 让立绘区整体
+       上移 10px、比存档页高 10px,两页立绘区不一致 */
+    gap: var(--sp-md);
+  }
+  .gallery .pageback { top: 2vh; left: 1vw; }
+  /* logo 不跟顶栏一起贴角(2026-10-19 晚间拍板):回到全站统一的 3vh/3vw */
+  .gallery .brandcorner { top: 3vh; right: 3vw; }
+  /* 副题说明收掉(次要信息,给主体让高度;存档页移动端隐藏次要行同口径) */
+  .gallery__hint {
+    display: none;
   }
   .gallery__body {
-    flex-direction: column;
+    flex-direction: row;
+    /* 顶栏之下不留大空档;左右栏间隔与存档页同档(34px→8px) */
+    margin-top: 0.2rem;
+    gap: var(--sp-sm);
   }
   .gallery .saves__left {
-    width: 100%;
-    flex-direction: row;
-    align-items: flex-start;
+    width: 25%;
+    flex: none;
+    min-height: 0;
   }
   .gallery__portrait {
-    flex: 0 0 12rem;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    /* 修复(2026-10-19):插槽必须是 flex 列,内部 .saves__portrait 的 flex:1
+       才有效——否则 aspect-ratio:auto 后高度塌为 0(立绘整卡消失) */
+    display: flex;
+    flex-direction: column;
   }
   .gallery .saves__thumbs {
-    flex: 1 1 auto;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    /* 与存档页同口径:容器与立绘区同宽,缩略图两端对齐分布 */
+    justify-content: space-between;
+    overflow-x: auto;
   }
+  .gallery__main {
+    overflow-y: auto;
+    /* 右栏内部间隔同步收紧(与 .saves__right 的 sp-xs 一档),给结局列表让高度 */
+    gap: var(--sp-xs);
+  }
+  /* 聚合两块(收集总览 + 印章收集)并排一行(2026-10-19 三次拍板)。
+     半宽面板里五枚印章偏挤,按内容占比分宽度:总览的进度条可压缩,
+     印章行是刚性内容,多分一些;面板内衬也收窄到 sp-xs 给内容腾位 */
   .gallery__aggr {
-    flex-direction: column;
+    gap: var(--sp-xs);
+  }
+  .gallery__aggr .galpanel:first-child {
+    flex: 0.8 1 0;
+  }
+  .gallery__aggr .galpanel:last-child {
+    flex: 1.2 1 0;
+  }
+  .galpanel {
+    padding: 2px var(--sp-xs) var(--sp-xs);
+  }
+  .galpanel__cap {
+    padding-bottom: 1px;
+    margin-bottom: 2px;
+  }
+  .galstat__track {
+    /* 进度条可压但别压没,窄屏给个下限 */
+    min-width: 2.5rem;
+  }
+  .galstat {
+    padding: 0;
+  }
+  .galstat__n {
+    font-size: 1.2rem;
+  }
+  .galseals {
+    justify-content: space-between;
+    gap: 2px;
+    padding: var(--sp-xs) 0 0;
+  }
+  .galseal {
+    gap: 2px;
+  }
+  .galseal__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .galseal__num {
+    font-size: var(--fs-ui);
+  }
+  /* 分节头金线的上下留白压一档 */
+  .galsec__head {
+    padding-bottom: var(--sp-xs);
+    margin-bottom: var(--sp-xs);
+  }
+  /* 剧本标题(「李斯 · 仓鼠之局」)字号收一档(2026-10-19 拍板) */
+  .galsec__name {
+    font-size: var(--fs-body);
+  }
+  /* 结局卡压高(存档页槽位同口径:高度由内容决定,一屏多列) */
+  .galent {
+    height: 3.9rem;
   }
   .galsec__entries {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-xs);
   }
 }

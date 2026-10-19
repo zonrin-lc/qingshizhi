@@ -40,9 +40,10 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 /**
  * 画雷达图。
  * @param game 用于取 attrs / attrMax / attrWord / diff.hideAttrs
+ * @param values 旧值覆盖(2026-10-18 拍板):飞字落定前右栏保持旧值——
+ *   表内的轴用旧值画,落定了就从表里放出来;表空传 undefined 即全取现值
  */
-export function renderRadar(game: Game): SVGSVGElement {
-  const root = svg('svg', {
+export function renderRadar(game: Game, values?: Partial<Record<AttrKey, number>>): SVGSVGElement {  const root = svg('svg', {
     class: 'radar',
     viewBox: `0 0 ${SIZE} ${SIZE + 8}`,
     role: 'img',
@@ -74,7 +75,7 @@ export function renderRadar(game: Game): SVGSVGElement {
   // 数据多边形
   const ratios = AXES.map((k) => {
     const max = game.attrMax(k);
-    const v = game.attrs[k] ?? 0;
+    const v = values?.[k] ?? game.attrs[k] ?? 0;
     return max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
   });
   root.append(svg('polygon', {
@@ -91,16 +92,71 @@ export function renderRadar(game: Game): SVGSVGElement {
   // 标签:属性名在外圈,数值印在名下方(对齐参考图「突破 / 72」的双行排布)
   AXES.forEach((k, i) => {
     const [x, y] = pt(i, 1.22);
-    const name = svg('text', { x: x.toFixed(1), y: (y - 3).toFixed(1), class: 'radar__label radar__label--name' });
+    const name = svg('text', { x: x.toFixed(1), y: (y - 7).toFixed(1), class: 'radar__label radar__label--name' });
     name.textContent = game.d.ATTR_NAMES[k] ?? k;
     root.append(name);
-    const val = svg('text', { x: x.toFixed(1), y: (y + 8).toFixed(1), class: 'radar__label radar__label--val' });
+    const val = svg('text', { x: x.toFixed(1), y: (y + 9).toFixed(1), class: 'radar__label radar__label--val', 'data-attr': k });
     // 硬核模式不出数值,只出档位词(与 Lua hideAttrs 同口径)
-    val.textContent = game.diff.hideAttrs ? game.attrWord(k) : String(game.attrs[k] ?? 0);
+    val.textContent = game.diff.hideAttrs ? game.attrWord(k) : String(values?.[k] ?? game.attrs[k] ?? 0);
     root.append(val);
   });
 
   return root;
+}
+
+/**
+ * 数值变化补间版(motion-design):同 renderRadar 画终值,但数据多边形/顶点/数值标签
+ * 从旧值(from:未落定的轴用旧值,其余轴用现值)逐帧插值滑到新值。
+ * SVG points 属性不可 CSS 过渡,这里用 rAF 手动插值(380ms,ease-out-cubic)。
+ * 无变化、或系统开了「减少动态效果」时退化为直接出终值。
+ */
+export function renderRadarTween(game: Game, from?: Partial<Record<AttrKey, number>>): SVGSVGElement {
+  const root = renderRadar(game);
+  const toRatios = AXES.map((k) => ratioOf(game, k));
+  const fromRatios = AXES.map((k) => {
+    const v = from?.[k] ?? game.attrs[k] ?? 0;
+    const max = game.attrMax(k);
+    return max > 0 ? Math.max(0, Math.min(1, v / max)) : 0;
+  });
+  if (fromRatios.every((r, i) => Math.abs(r - (toRatios[i] ?? 0)) < 0.001)) return root;
+  if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return root;
+
+  const data = root.querySelector<SVGPolygonElement>('.radar__data');
+  const dots = root.querySelectorAll<SVGCircleElement>('.radar__dot');
+  const labels = root.querySelectorAll<SVGTextElement>('text.radar__label--val');
+  if (!data || dots.length !== AXES.length) return root;
+
+  const DUR = 380;
+  const t0 = performance.now();
+  const step = (now: number): void => {
+    const t = Math.min(1, (now - t0) / DUR);
+    const e = 1 - Math.pow(1 - t, 3); /* ease-out-cubic:快起缓落 */
+    const rs = fromRatios.map((r, i) => r + ((toRatios[i] ?? 0) - r) * e);
+    data.setAttribute('points', poly(rs));
+    dots.forEach((d, i) => {
+      const [x, y] = pt(i, rs[i] ?? 0);
+      d.setAttribute('cx', x.toFixed(1));
+      d.setAttribute('cy', y.toFixed(1));
+    });
+    if (!game.diff.hideAttrs) {
+      labels.forEach((l, i) => {
+        const k = AXES[i];
+        if (!k) return;
+        const v0 = from?.[k] ?? game.attrs[k] ?? 0;
+        const v1 = game.attrs[k] ?? 0;
+        l.textContent = String(Math.round(v0 + (v1 - v0) * e));
+      });
+    }
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  return root;
+}
+
+function ratioOf(game: Game, k: AttrKey): number {
+  const max = game.attrMax(k);
+  if (max <= 0) return 0;
+  return Math.max(0, Math.min(1, (game.attrs[k] ?? 0) / max));
 }
 
 export { AXES as RADAR_AXES };

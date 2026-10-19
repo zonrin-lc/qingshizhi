@@ -18,6 +18,7 @@
  */
 import { el, lbl, btn } from './kit';
 import { getLatestAuto, DIFF_LABEL } from '../game/saves';
+import { sfx } from '../game/sfx';
 
 import titleImg from '../assets/lua/title-calligraphy.webp';
 import logoIconImg from '../assets/lua/logo-icon.webp';
@@ -139,16 +140,18 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
       el('span', 'menu__resume-go', '继续 ›'),
     );
     resume.addEventListener('click', act.onContinue);
+    resume.addEventListener('click', () => sfx.play('click'));
   } else {
     resume.disabled = true;
     resume.classList.add('is-off');
   }
   entry.append(resume);
 
-  // 金色主按钮「入 局」(.menu__item--start)
+  // 金色主按钮「入 局」(.menu__item--start):盖章入纸的仪式感音
   const enter = el('button', 'menu__item menu__item--start menu__enter');
   enter.type = 'button';
   enter.append(el('span', 'menu__enter-t', '入 局'));
+  enter.addEventListener('click', () => sfx.play('enter'));
   enter.addEventListener('click', act.onStart);
   entry.append(enter);
 
@@ -158,8 +161,10 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     const it = el('button', `menu__item menu__item--sub ${cls}`.trim());
     it.type = 'button';
     it.append(el('span', 'menu__label', text));
-    if (enabled && onClick) it.addEventListener('click', onClick);
-    else {
+    if (enabled && onClick) {
+      it.addEventListener('click', () => sfx.play('click'));
+      it.addEventListener('click', onClick);
+    } else {
       it.disabled = true;
       it.classList.add('is-off');
     }
@@ -184,6 +189,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   // panel-scroll--summary + 描金/幽灵按钮;.menu__confirm/.menu__cbtn--yes 是
   // 测试契约类,只作标记不再带样式。
   function showExitConfirm(): void {
+    sfx.play('dialog');
     const ov = el('div', 'menu__confirm overlay overlay--dim');
     const box = el('div', 'menu__confirmbox overlay__box overlay__box--scroll panel-scroll--summary');
     box.append(

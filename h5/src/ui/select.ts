@@ -15,13 +15,12 @@
  */
 import type { DiffKey, ScenarioData } from '../../types/scenario';
 import { loadScenario, prefetch, SCENARIOS, DIFFICULTIES, type ScenarioEntry } from '../data/scenarios';
-import { backBtn, el, lbl, vText } from './kit';
+import { lockReason } from '../game/collection';
+import { backBtn, brandLogo, el, lbl, toast, vText } from './kit';
+import { sfx } from '../game/sfx';
 import { renderTeaser } from './teaser';
 import { createWheel, type WheelHandle } from './wheel';
 
-import titleH from '../assets/lua/title-h.webp';
-import emblemQingshi from '../assets/lua/emblem-qingshi.png';
-import sealZhi from '../assets/lua/seal-zhi.png';
 import wheelRing from '../assets/lua/wheel-ring.webp';
 import archQin from '../assets/lua/arch-qin.png';
 import archHan from '../assets/lua/arch-han.png';
@@ -98,27 +97,9 @@ export function renderSelectPage(
   const top = el('div', 'seltop');
   // .pageback 相对最近的定位祖先(.select)定位;挂进 seltop 会与其 top:3vh 双重偏移
   const back = backBtn(onBack, '返回主菜单');
-  const brand = el('div', 'seltop__brand');
-  // 整体 logo(2026-10-15 拍板):圆徽 + 书法标题成组;方印「志」作落款印,
-  // 钤在标题右下角(位置比例按用户给的参考截图)
-  const logo = el('div', 'seltop__logo');
-  const emblemImg = el('img', 'seltop__emblem') as HTMLImageElement;
-  emblemImg.src = emblemQingshi;
-  emblemImg.alt = '';
-  emblemImg.draggable = false;
-  const titleWrap = el('div', 'seltop__titlewrap');
-  const titleImg = el('img', 'seltop__title') as HTMLImageElement;
-  titleImg.src = titleH;
-  titleImg.alt = '青史志';
-  titleImg.draggable = false;
-  const sealImg = el('img', 'seltop__seal') as HTMLImageElement;
-  sealImg.src = sealZhi;
-  sealImg.alt = '';
-  sealImg.draggable = false;
-  titleWrap.append(titleImg, sealImg);
-  logo.append(emblemImg, titleWrap);
-  brand.append(logo, lbl('悠 悠 千 载  ·  青 史 万 卷', 'seltop__sub'));
-  top.append(brand);
+  // 品牌 logo(圆徽 + 书法标题 + 落款印 + 副题)走 kit.brandLogo 工厂,
+  // 与存档/图鉴/设置页的右上 logo 同一份(2026-10-18 拍板)
+  top.append(brandLogo());
   root.append(back, top);
 
   // ---------- 页首标题:复用存档页/设置页全站样式(page-title + 金线,2026-10-17 拍板) ----------
@@ -140,6 +121,8 @@ export function renderSelectPage(
   const cardEls: { s: ScenarioEntry; card: HTMLElement }[] = [];
   const capEls = new Map<DiffKey, HTMLButtonElement>();
   const hintEls = new Map<DiffKey, HTMLElement>();
+  /** 共享提示位:当前选中难度的说明,集中显示在开始按钮上方(2026-10-19 拍板,移动端) */
+  let allHintEl: HTMLElement | null = null;
 
   function scenCard(s: ScenarioEntry): HTMLElement {
     const juname = s.name.split(/[·・]/).slice(1).join('').trim() || s.name;
@@ -167,6 +150,7 @@ export function renderSelectPage(
     card.append(plate);
     const pick = () => {
       if (s.key === curKey) return;
+      // 未解锁的剧本也允许选中预览(2026-10-20 拍板):拦截放在「开始」入局时
       curKey = s.key;
       curDiffTab = null;
       prefetch(s.key);
@@ -175,6 +159,7 @@ export function renderSelectPage(
       void syncDiff();
     };
     card.addEventListener('click', pick);
+    card.addEventListener('click', () => sfx.play('card'));
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
     });
@@ -200,6 +185,8 @@ export function renderSelectPage(
       const hint = hintEls.get(dk);
       if (hint) hint.textContent = curDiffTab?.[dk]?.desc ?? '';
     }
+    // 共享提示位只显示当前选中难度的说明(跟随 is-on 切换)
+    if (allHintEl) allHintEl.textContent = curDiffTab?.[curDiff]?.desc ?? '';
   }
 
   // ---------- 右列 ----------
@@ -208,6 +195,7 @@ export function renderSelectPage(
     cardEls.length = 0;
     capEls.clear();
     hintEls.clear();
+    allHintEl = null;
     const cur = DYNASTIES[dynIdx]!;
 
     // 未开卷朝代(汉/唐/宋/明):整列换成朝代预告页(2026-10-16 拍板,见 ui/teaser.ts),
@@ -236,7 +224,7 @@ export function renderSelectPage(
       const cap = el('button', 'seldiff__cap') as HTMLButtonElement;
       cap.type = 'button';
       cap.append(lbl(DIFF_NAMES[dk], 'seldiff__capname'));
-      cap.addEventListener('click', () => { curDiff = dk; syncDiffUI(); });
+      cap.addEventListener('click', () => { sfx.play('click'); curDiff = dk; syncDiffUI(); });
       capEls.set(dk, cap);
       const hint = lbl('', 'seldiff__hint');
       hintEls.set(dk, hint);
@@ -244,6 +232,10 @@ export function renderSelectPage(
       caps.append(item);
     }
     din.append(caps);
+    // 共享提示位(2026-10-19 拍板):选中难度的说明统一显示在开始按钮上方,
+    // 替代逐枚胶囊下方的注释(移动端竖排口径);桌面仍用胶囊下注释
+    allHintEl = lbl('', 'seldrawer__allhint');
+    din.append(allHintEl);
     // 入局:暗金水墨漩涡(自转 + 呼吸),白色「开始」常显于漩涡正中
     const enter = el('button', 'selenter') as HTMLButtonElement;
     enter.type = 'button';
@@ -258,6 +250,10 @@ export function renderSelectPage(
     spin.append(vortex);
     enter.append(spin, lbl('开始', 'selenter__lbl'));
     enter.addEventListener('click', () => {
+      // 开放限制(2026-10-20 拍板):点「开始」入局时校验,未解锁弹 toast 拦下
+      const reason = lockReason(curKey);
+      if (reason) { sfx.play('fail'); toast(root, reason, true); return; }
+      sfx.play('enter');
       const s = SCENARIOS.find((x) => x.key === curKey);
       if (s) onEnter({ scenario: s, diff: curDiff });
     });

@@ -43,6 +43,9 @@ ${STEP_SNIPPET}
     // 放宽到 400 轮(≈6s),布局断言本身不受影响
     for (let i = 0; i < 400 && g.phase !== 'round'; i++) {
       await sleep(10);
+      // 随机事件落定后 2.6s 自动推进(2026-10-17 拍板):窗口内无可点元素,
+      // 不 wait 的话高频空转会把迭代预算烧光,永远到不了 round
+      if (g.phase === 'settle') { await waitSettle(); continue; }
       // 渐显期间选项还没挂上,先点正文跳过去(同 chain)
       if (window.__QS__.session.isRevealing) {
         q('.stage__main').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
@@ -58,7 +61,7 @@ ${STEP_SNIPPET}
         else (qa('.stage__main .card--tappable, .stage__foot .card--tappable')[0] || {}).click?.();
         await sleep(4);
       }
-      else { advanceOnce(); await sleep(4); }
+      else { advanceOnce(); await sleep(50); }
     }
   }
   await sleep(60);

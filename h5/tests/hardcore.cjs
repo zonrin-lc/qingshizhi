@@ -5,7 +5,7 @@
  * 1. 不可存档(exportSave 返回 null —— 硬核不许回退)
  * 2. 回溯不可用(顶栏回溯按钮压暗,不计次数)
  * 3. 隐藏数值(hideAttrs:属性只显示状态词,不显示数字)
- * 外加:不可存的局点「返回」不弹存档确认框,直接退到选择页;
+ * 外加:不可存的局点「返回」不弹存档确认框,直接退到主菜单;
  * 章首不再静默写档(2026-10-15 起对所有难度如此),自动档必须为空。
  */
 'use strict';
@@ -46,11 +46,11 @@ const DRIVER = `(async () => {
   const autos = JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}');
   out.noAuto = Object.values(autos).every((l) => !Array.isArray(l) || l.length === 0);
 
-  // 硬核点「返回」:没有可存的东西,不弹存档确认框,直接退到选择页
+  // 硬核点「返回」:没有可存的东西,不弹存档确认框,直接退到主菜单(2026-10-18 拍板:返回→主菜单)
   q('.pageback').click();
   await sleep(250);
   out.exitNoPrompt = !q('.saves__confirm');
-  out.backToSelect = !!q('.seltop');
+  out.backToSelect = !!q('.menu__item--start');
   return out;
 })()`;
 
@@ -66,7 +66,7 @@ withPage(
       ['自动档为空(硬核不可存)', out.noAuto === true],
       ['属性隐藏数值(只显示状态词)', out.sideWords === true],
       ['返回不弹存档确认框', out.exitNoPrompt === true],
-      ['返回直接退到选择页', out.backToSelect === true],
+      ['返回直接退到主菜单', out.backToSelect === true],
       ['控制台无错误', consoleErrors().length === 0],
     ]);
     if (!ok) console.log('明细: ' + JSON.stringify(out));

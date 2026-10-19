@@ -169,9 +169,10 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
    */
   const requestExit = (): void => {
     const s0 = session;
-    if (!s0) { goSelect(); return; }
+    // 2026-10-18 拍板:对局页「返回」回主菜单,不再回选择页
+    if (!s0) { goMenu(); return; }
     const g = s0.game;
-    const leave = (): void => { disposeSession(); goSelect(); };
+    const leave = (): void => { disposeSession(); goMenu(); };
     if (g.phase === 'ending' || whyCannotSave(g)) { leave(); return; }
     if (s0.roundNo < SAVE_MIN_ROUND) { leave(); return; }
     if (autoCount(curKey) < AUTO_MAX) {
@@ -181,15 +182,16 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
       return;
     }
     shell.stage.querySelector('.saves__confirm')?.remove();
-    const ov = el('div', 'saves__confirm');
-    const box = el('div', 'saves__confirmbox');
+    // 与主菜单「退出游戏」同口径(2026-10-19 拍板):深色蒙版 + 窄幅悬挂卷轴
+    const ov = el('div', 'saves__confirm overlay overlay--dim');
+    const box = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary');
     box.append(
-      lbl('离 开 对 局？', 'saves__confirmtitle u-kai'),
-      lbl(`「${g.d.SCENARIO.name}」的存档已满 ${AUTO_MAX} 条,再存将覆盖最早的一条;也可以不存直接离开。`, 'saves__confirmtext u-zhu'),
+      lbl('离 开 对 局？', 'overlay__title u-kai u-strong'),
+      lbl(`「${g.d.SCENARIO.name}」的存档已满 ${AUTO_MAX} 条,再存将覆盖最早的一条;也可以不存直接离开。`, 'overlay__body u-zhu'),
     );
     const row = el('div', 'saves__confirmrow');
     row.append(
-      btn('覆 盖 并 退 出', {
+      btn('覆盖并退出', {
         variant: 'primary',
         onClick: () => {
           const r = saveAuto(g, curKey, g.d.SCENARIO.name, { overwriteOldest: true, roundNo: s0.roundNo, ui: s0.collectHistory() });
@@ -198,14 +200,14 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
           leave();
         },
       }),
-      btn('不 存 退 出', {
+      btn('不存退出', {
         variant: 'ghost',
         onClick: () => {
           ov.remove();
           leave();
         },
       }),
-      btn('再 玩 一 会', { variant: 'ghost', onClick: () => ov.remove() }),
+      btn('再玩一会', { variant: 'ghost', onClick: () => ov.remove() }),
     );
     box.append(row);
     ov.append(box);

@@ -41,3 +41,6 @@ CLAUDE.md
 
 # Maker 默认忽略规则（自动补充；平台内容不应提交）
 .org.chromium.Chromium.??????
+
+# 其他 AI 客户端本地配置
+.workbuddy/

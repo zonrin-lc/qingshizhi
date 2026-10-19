@@ -30,6 +30,24 @@
   pointer-events: none;
 }
 .stage[data-bg='select']   { background-image: url('../assets/lua/bg-select.webp'); }
+/* 对局页云雾 ambient(motion-design):两层淡雾极缓漂移,只作背景呼吸。
+ * 1/3 原则:常驻环境层动,前景叙事/决策区一律不动;opacity 压在 0.12,
+ * 52s 周期 + alternate,无接缝跳变。::before 画在所有子元素之下,不吃点击。 */
+.stage[data-bg='game']::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 30% at 24% 22%, rgba(240, 235, 224, 0.55), transparent 70%),
+    radial-gradient(36% 26% at 78% 34%, rgba(240, 235, 224, 0.42), transparent 72%);
+  opacity: 0.12;
+  animation: mist-drift 52s ease-in-out infinite alternate;
+}
+@keyframes mist-drift {
+  from { transform: translate3d(-2.5%, 1.2%, 0); }
+  to   { transform: translate3d(2.5%, -1.2%, 0); }
+}
 .stage[data-bg='save']     { background-image: url('../assets/bg/save.webp'); }
 .stage[data-bg='settings'] { background-image: url('../assets/bg/settings.webp'); }
 .stage[data-bg='summary']  { background-image: url('../assets/bg/summary.webp'); }
@@ -41,7 +59,7 @@
  * border-width 必须显式写出来:border-image-width 只管贴图缩放,不占布局,
  * 不写的话内容(立绘/正文)会直接压到轴杆与内框金线上(2026-10-14 截图证实)。 */
 .panel-scroll {
-  border-image: url('../assets/panel/scroll-main.webp') 50 62 50 62 fill;
+  border-image: url('../assets/panel/scroll-main.webp?t=20261019') 50 62 50 62 fill;
   border-image-width: 50px 62px 50px 62px;
   /* 布局边距与贴图解耦(2026-10-17 四拍):上下 border-width 收窄(50→14/22),
    * 贴图仍按 50px 画(轴头 1:1 不变形、纸面位置不变),内容区得以贴近纸面:
@@ -62,6 +80,37 @@
 /* 章末 / 结局卷轴:同族圆角卷轴,换一张底 */
 .panel-scroll--summary { border-image: url('../assets/panel/scroll-summary.webp') 62 fill; border-image-width: 62px; }
 .panel-scroll--ending  { border-image: url('../assets/panel/scroll-ending.webp')  62 fill; border-image-width: 62px; }
+/* 结局弹框头部(2026-10-20 拍板:复用图鉴成就详情 galdetail__head 一套,
+   版式见 gallery.css):此处只管结局卷轴特有口径——
+   上边距收一档(桌面 4.5rem → 2.5rem,移动端媒体块再收);
+   特异度必须与 .overlay--dim .overlay__box--scroll 同级且源序靠后才能盖掉其 padding-top */
+.overlay--dim .panel-scroll--ending {
+  padding-top: 2.5rem;
+}
+/* 「评 分」题签:金线已去(2026-10-20 拍板),与头部拉开一档 */
+.overlay--dim .panel-scroll--ending .divider__txt {
+  background: none;
+  padding-top: 0;
+}
+.overlay--dim .panel-scroll--ending .divider {
+  margin-top: var(--sp-md);
+}
+
+/* ---------- 盖章动效(motion-design 品牌加分项) ----------
+ * 朱印是「砸下去」的:ease-in 落印 + 微旋转归正 + 轻回弹落稳,
+ * 不用 overshoot 曲线(盖章没有 Q 弹感)。backwards 承接延迟期隐形。
+ * 浮层入场(350ms)先落定,印章随后落下——先后秩序即戏剧结构。 */
+@keyframes seal-stamp {
+  0%   { opacity: 0; transform: scale(1.7) rotate(-7deg); }
+  55%  { opacity: 1; transform: scale(0.94) rotate(1.5deg); }
+  80%  { transform: scale(1.02) rotate(-0.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.ending__seal,
+.seal--big,
+.panel-scroll--ending .galdetail__seal {
+  animation: seal-stamp 0.45s cubic-bezier(0.55, 0, 0.45, 1) 0.3s backwards;
+}
 
 /* 弹窗:四角有祥云头饰,切片要给够角饰 */
 .panel-dialog {
@@ -85,8 +134,8 @@
   background-color: transparent;
   border-color: transparent;
 }
-.card--tappable:hover,
-.card--tappable:focus-visible,
+/* 2026-10-18 三拍:hover 不再换高亮卡框(用户反馈悬停会冒出一圈细线框),
+ * card-hi 只留给 .is-hi 选中态;hover 反馈就剩 game.css 的轻浮起 + 投影 */
 .card.is-hi {
   border-image-source: url('../assets/card/card-hi.webp');
   background-color: transparent;
@@ -181,17 +230,60 @@
   height: 3rem;
   cursor: pointer;
   font-family: var(--font-kai);
-  font-size: var(--fs-ui);
-  letter-spacing: 0.1em;
+  /* 2026-10-18 拍板:不再带剩余次数,两字放大排开 */
+  font-size: 1.05rem;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
   color: #f6efe0;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
-  /* 「回溯 1」必须一行,牌匾高度不够换行会溢出红漆底 */
+  /* 两字必须一行,牌匾高度不够换行会溢出红漆底 */
   white-space: nowrap;
 }
 .backbtn.is-locked {
   opacity: 0.4;
   filter: grayscale(0.5);
   cursor: not-allowed;
+}
+
+/* ---------- 选卡提醒 ---------- */
+/* 章首 intro 后第一轮发牌 3s 未点卡时亮出(2026-10-18 拍板):
+ * 卡面呼吸描边 + 选项区上方浮字;点卡或换相位即摘(session.clearOpts/doPlayCard) */
+.stage__foot.is-pickhint .card--action[role='button'] {
+  animation: pickhint-glow 1.4s ease-in-out infinite;
+}
+.stage__foot.is-pickhint::after {
+  content: '请选择一张行动卡';
+  position: absolute;
+  left: 50%;
+  top: -1.7rem;
+  transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: var(--fs-ui);
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  white-space: nowrap;
+  color: var(--zhu);
+  background: rgba(246, 239, 224, 0.94);
+  border: 1px solid var(--zhu);
+  border-radius: 999px;
+  padding: 0.15em 0.9em;
+  box-shadow: 0 2px 6px rgba(60, 42, 18, 0.25);
+  pointer-events: none;
+  z-index: 3;
+  animation: pickhint-float 1.4s ease-in-out infinite;
+}
+@keyframes pickhint-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(176, 67, 47, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(176, 67, 47, 0.45); }
+}
+@keyframes pickhint-float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}
+/* 浮字要越过 foot 顶边飘到卷轴下缘上:宽屏放开 foot 的纵向裁切
+ * (game.css 的 overflow-y:auto 会把绝对定位伪元素剪掉;窄屏保留滚动兜底) */
+@media (min-width: 881px) {
+  .stage__foot { overflow-y: visible; }
 }
 
 /* ---------- 装饰枝叶 ---------- */
@@ -231,7 +323,8 @@
 }
 .stage__main {
   display: flex;
-  gap: var(--sp-lg);
+  /* 立绘列与文本区间距(2026-10-19 拍板:原 sp-lg 配合立绘贴轴后显得过空,收一档) */
+  gap: var(--sp-md);
   /* 两列同高:正文列(.prose-body)内部滚动,立绘列留在原地(2026-10-15 拍板:立绘不随文本移动) */
   align-items: stretch;
   background: transparent;
@@ -243,7 +336,13 @@
 
 /* 立绘(主角像,宽度由 .castbox 收口) */
 .portrait {
-  flex: 0 0 auto;
+  /* 2026-10-19:纵向 flex——像(flex 0 1 auto + min-height:0)在高度不足时收缩,
+   * 名签/圆像排不缩;宽度铺满 castbox,内容居中(2026-10-18 三拍) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 1 auto;
+  min-height: 0;
   width: 100%;
   text-align: center;
 }
@@ -251,10 +350,17 @@
   display: block;
   width: 100%;
   height: auto;
-  /* 立绘是白底抠图,直接铺在纸面上 */
+  /* 高度受限时整像收缩:contain 保全身,object-position 脚贴名签;
+   * 全部立绘已统一 2:3(2026-10-19 李斯归一),各本收缩比例一致、高度一致 */
+  flex: 0 1 auto;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center bottom;
+  /* 立绘是透明底抠图,直接铺在纸面上 */
   mix-blend-mode: multiply;
 }
 .portrait__name {
+  flex: 0 0 auto;
   margin-top: var(--sp-xs);
   font-size: var(--fs-ui);
   letter-spacing: 0.4em;
@@ -282,9 +388,14 @@
   gap: var(--sp-xs);
   width: 13rem;
   max-width: 30%;
-  /* 立绘钉在卷轴可视区底部:main 不再滚动(正文列内部滚),align-self 即够,
-   * 不再需要 sticky(2026-10-15 拍板:立绘不随文本移动) */
-  align-self: flex-end;
+  /* 立绘钉在卷轴可视区底部:main 不再滚动(正文列内部滚),不再需要 sticky
+   * (2026-10-15 拍板:立绘不随文本移动);
+   * 2026-10-18 三拍:区域整体居左(列位置),区域内的名签与圆像排居中;
+   * 2026-10-19:align-self 改 stretch——列高=卷面内容高,立绘像超出即收缩,
+   * 立绘形象不会再探出画卷;justify-content 把内容继续钉在底部 */
+  align-self: stretch;
+  justify-content: flex-end;
+  align-items: center;
 }
 .castRow {
   display: flex;
@@ -305,7 +416,7 @@
   overflow: hidden;
   background: var(--paper);
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 /* 当前大立绘焦点的圆像:朱圈常驻 */
 .castChip.is-on {
@@ -342,6 +453,36 @@
    * (2026-10-17 拍板:选项卡/继续钮统一靠画卷底部) */
   display: flex;
   flex-direction: column;
+}
+
+/* 滚动条位置(2026-10-19 二拍):负外边距把滚动条推到 padding 盒外 30px——
+ * 轴杆内沿在边框内缘 +40px 处(62px 切片,源图轴杆占 40-54px),滚动条右缘
+ * 距轴杆正好 10px;main 用 overflow:clip + overflow-clip-margin:32px 放行。
+ * 文本右间距不随滚动条动:padding 同步 +18px(sp-lg-10 → sp-lg+8),
+ * 正文右缘仍贴在卷面内缘;窄屏在 game.css 用 sp-sm 覆盖 */
+.stage__main .prose-body {
+  margin-right: calc(-1 * (var(--sp-lg) + 30px));
+  padding-right: calc(var(--sp-lg) + 8px);
+}
+
+/* 文本区滚动条常驻(2026-10-19):scroll 让内容不满一屏时也保留滚动区,
+   配合 game.css 的自绘滚动条 + 淡古铜轨道,静止时不消失。
+   只限对局页宽卷轴;结算/结局窄卷轴保持 auto(内容固定,常驻反而添乱)。 */
+.stage__main:not(.stage__main--narrow) .prose-body {
+  overflow-y: scroll;
+}
+
+/* 立绘列距左侧画轴 10px(2026-10-19 二修:上一版 margin 漏算了 main 的左 padding,
+ * 立绘实际被推到距轴杆 32px 处)。实测 scroll-main.webp:轴杆占切片 0–34px,
+ * 内沿距卷轴外缘 34px;立绘列布局左缘 = 边框 62px + padding(sp-lg) + margin,
+ * margin 取 -(sp-lg + 18px) 后左缘落在 44px 处,距轴杆内沿正好 10px——
+ * 用 calc 以 px 基准对齐(轴杆宽是固定 px,不随 rem 缩放漂移)。
+ * margin 同时把正文列拉近 18px,叠加 gap 收窄(sp-lg→sp-md),
+ * 立绘与文本区的间距收窄全部来自文本区向左扩展,立绘位置只由贴轴决定。
+ * 左缘伸进边框贴图区 18px,在 main 的 overflow-clip-margin:32px 放行范围内,不会被裁。
+ * 只限对局页宽卷轴:窄屏轴杆随 38px 边框等比缩窄,位移量不适用,窄屏媒体查询里归零。 */
+.stage__main:not(.stage__main--narrow) .castbox {
+  margin-left: calc(-1 * (var(--sp-lg) + 18px));
 }
 
 /* 分隔题签:换成金线 + 菱形贴图 */
@@ -434,21 +575,25 @@
   text-anchor: middle;
   dominant-baseline: middle;
 }
+/* 2026-10-18 二拍:雷达字号自 16px 缩回 12px(首拍曾与身外属性行放大对齐,
+ * 用户复看后要求缩小);名=墨色常规,值=朱色加粗的族系保留 */
 .radar__label--name {
-  font-size: 10px;
-  fill: var(--ink-strong);
+  font-size: 12px;
+  fill: var(--ink);
 }
 .radar__label--val {
-  font-size: 9px;
-  fill: var(--zhu);
+  font-size: 12px;
+  fill: var(--zhu-hi);
+  font-weight: 700;
 }
 
 /* 属性行:名称 + 进度条 + 数值同一行(2026-10-15 用户拍板)。
  * meter 是被 append 进 .kv 的第三个子元素,grid 三区一行排开;
- * 进度条占 1fr 加宽,与面板边框的间距由 padding 加大(sp-sm→sp-md)。 */
+ * 进度条占 1fr 加宽,与面板边框的间距由 padding 加大(sp-sm→sp-md)。
+ * 2026-10-18 拍板:名/值两列定宽(原 auto),各行的进度条因此一样长。 */
 .stage__side .kv {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 2.2em 1fr 2.4em;
   grid-template-areas: 'k m v';
   column-gap: var(--sp-sm);
   line-height: 1.4;
@@ -462,8 +607,9 @@
   font-size: 0.95rem;
 }
 .stage__side .kv__k { grid-area: k; color: var(--ink); white-space: nowrap; }
-.stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; }
-.stage__side .kv .meter { grid-area: m; }
+.stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; text-align: center; }
+/* meter 相对定位:增减徽标(.attrdelta)浮在进度条中央(2026-10-18 拍板) */
+.stage__side .kv .meter { grid-area: m; position: relative; }
 /* 维度进度条再加粗(8→12px,2026-10-17 拍板);偏离条(side__foot 的 meter)不动 */
 .stage__side .kv .meter {
   height: 12px;
@@ -475,7 +621,7 @@
 /* 身外/自身属性悬浮交互(2026-10-17 拍板):行底色晕染 + 条增亮;雷达图轻微浮起 */
 .stage__side .kv {
   border-radius: var(--r-sm);
-  transition: background-color 0.18s ease;
+  transition: background-color var(--dur-quick) var(--ease-ink);
 }
 .stage__side .kv:hover {
   background-color: rgba(176, 141, 74, 0.12);
@@ -486,8 +632,51 @@
 .stage__side .kv:hover .meter__fill {
   filter: brightness(1.15);
 }
+/* 飞字落定的增减徽标(2026-10-18 拍板):身外属性浮在进度条中央。
+ * 浮现 → 数值/进度条更新(见 session.applySideDelta) → 自然消退 */
+.attrdelta {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-kai);
+  font-weight: 700;
+  font-size: var(--fs-ui);
+  line-height: 1;
+  padding: 1px 0.4em;
+  border-radius: 999px;
+  background: rgba(246, 239, 224, 0.92);
+  box-shadow: 0 1px 3px rgba(60, 42, 18, 0.25);
+  pointer-events: none;
+  animation: attrdelta-in 1.3s ease forwards;
+  white-space: nowrap;
+}
+.attrdelta.is-up { color: var(--zhu); }
+.attrdelta.is-down { color: var(--good); }
+@keyframes attrdelta-in {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  30% { transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+/* 数值更新瞬间弹一下(kv-pop 关键帧在 game.css,与整行高亮同节奏) */
+.kv__v.is-pop {
+  display: inline-block;
+  animation: kv-pop 1.6s ease;
+}
+/* 自身属性的增减徽标:雷达数值旁的 SVG 文本(落在哪根轴就贴哪根轴) */
+.radar__delta {
+  font-family: var(--font-kai);
+  font-weight: 700;
+  font-size: 11px;
+  text-anchor: start;
+  pointer-events: none;
+}
+.radar__delta.is-up { fill: var(--zhu); }
+.radar__delta.is-down { fill: var(--good); }
 .radar {
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: transform var(--dur-std) var(--ease-ink), filter var(--dur-std) var(--ease-ink);
 }
 .radar:hover {
   transform: scale(1.04);
@@ -509,7 +698,8 @@
   padding-top: var(--sp-xs);
   padding-bottom: var(--sp-md);
   text-align: center;
-  font-size: var(--fs-note);
+  /* 2026-10-18 二拍:偏离度字号增大(note→body) */
+  font-size: var(--fs-body);
   color: var(--ink-soft);
   /* 「偏离 0（循史）· 25 岁」一行放下(2026-10-17 拍板) */
   display: flex;
@@ -522,7 +712,16 @@
 /* ---------- 浮层 ---------- */
 /* 浮层自带一张水墨底图(参考图里浮层不是压暗对局页,而是另起一张景),
    所以不再叠半透明黑,而是直接铺底图。 */
+/* 入场(motion-design):蒙版淡入 350ms + 弹框上浮展开,--ease-ink 签名曲线。
+   display:none→flex 时动画自动重播,无需 JS 摘挂类。 */
+@keyframes overlay-in {
+  from { opacity: 0; }
+}
+@keyframes overlay-box-in {
+  from { opacity: 0; transform: translateY(1.2rem) scale(0.965); }
+}
 .overlay {
+  animation: overlay-in var(--dur-std) var(--ease-ink);
   /* 必须绝对定位盖住 .stage —— 否则它只是 stage flex 列里的一个普通子项,
      会被排到卡片下面去(表现为浮层贴在屏幕底部)。 */
   position: absolute;
@@ -538,12 +737,26 @@
   padding: var(--sp-lg);
   z-index: 10;
 }
+/* 弹框本体:蒙版就位后上浮展开(与蒙版同长,backwards 承接起始帧) */
+.overlay__box {
+  animation: overlay-box-in var(--dur-std) var(--ease-ink) backwards;
+}
+/* 退场(hideOverlay 的冻结克隆体专用):缓起急走 200ms 淡出,
+   原浮层已同步置 hidden,克隆体只负责把「消失」演完;弹框本体不再重播入场。 */
+@keyframes overlay-out {
+  to { opacity: 0; }
+}
+.overlay.is-exiting {
+  animation: overlay-out 200ms var(--ease-exit) forwards;
+  pointer-events: none;
+}
+.overlay.is-exiting .overlay__box {
+  animation: overlay-out 200ms var(--ease-exit) forwards;
+}
 .overlay--settle {
   background-image: url('../assets/bg/overlay.webp');
 }
-.overlay--confirm {
-  background-image: url('../assets/bg/overlay.webp');
-}
+/* overlay--confirm(水墨底确认框)已于 2026-10-19 弃用:确认框统一压深色蒙版 */
 /* 深色蒙版弹框(2026-10-17 拍板):章末结算/最终结算/历史修正统一口径——
    对局页留在原地不重建,压半透明深色蒙版,上叠弹框。 */
 .overlay--dim {
@@ -553,10 +766,19 @@
 .overlay--dim .overlay__box {
   box-shadow: 0 1.6rem 3.6rem rgba(0, 0, 0, 0.5);
 }
-/* 章末/结局弹框:窄幅悬挂卷轴底板直接作弹框(版式沿用原整页窄卷轴的内边距) */
-.overlay__box--scroll {
+/* 卷轴画稿自身不带投影:去掉矩形投影,否则深色蒙版上会在卷轴外看到一圈
+   深色矩形(2026-10-18 拍板,与退出确认同口径) */
+.overlay--dim .overlay__box--scroll {
+  box-shadow: none;
+}
+/* 章末/结局弹框:窄幅悬挂卷轴底板直接作弹框(版式沿用原整页窄卷轴的内边距);
+   下/左右内边距不小于 border-image 的 62px,内容与按钮不压边框画稿;
+   画稿带花纹,内容再内收一档(2026-10-18 二拍)。
+   选择器必须带 .overlay--dim 前缀:裸 .overlay__box--scroll 与后面的
+   .overlay__box 同优先级,会被源序靠后的 padding 盖掉 */
+.overlay--dim .overlay__box--scroll {
   width: min(46rem, 100%);
-  padding: 4.25rem 4.75rem 3.5rem;
+  padding: 4.5rem 6rem 5rem;
   text-align: left;
 }
 .overlay[hidden] {
@@ -574,26 +796,33 @@
 .overlay--settle .overlay__box {
   width: min(34rem, 100%);
 }
-.overlay--confirm .overlay__box {
+/* 通用确认框(回溯等):overlay--dim + panel-dialog,定 30rem 窄幅(2026-10-19) */
+.overlay--dim .overlay__box.panel-dialog {
   width: min(30rem, 100%);
+}
+/* 卷轴式确认框(主菜单退出 / 存档页删除 / 对局离场满员,2026-10-19 统一口径):
+ * 内容在卷轴内居中;契约类 .menu__confirm/.saves__confirm 只作标记不带样式 */
+.menu__confirm .overlay__box--scroll,
+.saves__confirm .overlay__box--scroll {
+  text-align: center;
+  /* 卷轴画稿自身不带投影:去掉 overlay__box 的矩形投影,
+     否则深色蒙版上会在卷轴外看到一圈深色矩形 */
+  box-shadow: none;
+  /* 确认框内容少,撑个最小高度并把内容垂直居中,卷轴不至于又扁又空 */
+  min-height: 22rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .overlay__title {
   color: var(--ink-heavy);
   position: relative;
-  padding-bottom: var(--sp-md);
   margin: 0 0 var(--sp-md);
   font-size: var(--fs-title);
   letter-spacing: 0.12em;
 }
-.overlay__title::after {
-  content: '';
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  bottom: 0;
-  height: 0.7rem;
-  background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
-}
+/* 标题下分隔线(title.webp)去掉(2026-10-19 晚拍板):弹框标题不再带装饰线,
+   与图鉴详情标题先例一致 */
 .overlay__text {
   text-align: left;
   margin-bottom: var(--sp-md);
@@ -638,8 +867,9 @@
   font-size: var(--fs-cap);
   text-align: left;
 }
-.chgrow__v.is-up { color: var(--good); }
-.chgrow__v.is-down { color: var(--zhu); }
+/* 增减配色(2026-10-18 拍板):增=朱红,减=墨绿,is-up/is-down 一律按增减符号 */
+.chgrow__v.is-up { color: var(--zhu); }
+.chgrow__v.is-down { color: var(--good); }
 
 /* 确认框按钮行 */
 .overlay__row {
@@ -652,8 +882,8 @@
   min-width: 9rem;
 }
 
-/* ---------- 窄屏 ---------- */
-@media (max-width: 880px) {
+/* ---------- 窄屏 / 短横屏(横屏手机高度 ≤520px 同此处理) ---------- */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   /* 雷达图在窄屏必须整块去掉,而不是缩小:
    * svg 用 width:100% + viewBox 会等比撑高——右栏在竖排布局里整行展开时,
    * 828px 宽的雷达会长到 856px 高,直接把叙事区挤成 22px。
@@ -683,12 +913,80 @@
 
   .panel-scroll {
     border-image-width: 30px 38px 30px 38px;
-    border-image-slice: 50 62 50 62;
+    /* fill 不能丢(2026-10-20 五拍):窄屏覆盖 slice 时漏掉 fill 关键字,
+       中段纸纹整块不绘制 → 画卷内部透明透出棋盘底图,像被挖空 */
+    border-image-slice: 50 62 50 62 fill;
     border-width: 30px 38px 30px 38px;
+  }
+  /* 窄屏弹框内边距跟着画稿边框(30/38px)收小,别把内容挤没;
+     与桌面规则同优先级(0,2,0),靠媒体查询 + 源序靠后生效。
+     章末/结局弹框定向收窄(2026-10-19 三拍):rem 不随视口缩(见 base.css body 注),
+     46/38rem 宽幅在手机上占 70%+,这里改用视口比例封顶 —— 58vw 约占屏六成,
+     30rem 兜住平板等较宽窄屏;确认框同口径一并收窄 */
+  .overlay--dim .overlay__box--scroll {
+    width: min(30rem, 58vw);
+    /* 内容压进边框画稿修复(2026-10-19 晚):.panel-scroll--summary 系只写了
+       border-image-width:62px 而布局 border-width 为 0 —— 贴图画了 62px 边框,
+       内容区却按 0 算,窄屏 20px 内边距直接把标题压进画稿。窄屏把贴图宽与
+       布局边框一并对齐(26px),内边距保证 ≥ 26px,内容不再压边;
+       顶距收到 1.7rem 让标题尽量上移(2026-10-20 拍板) */
+    /* 顶距 1rem(2026-10-20 拍板):布局上边框同步收到 16px(=1rem),
+       贴图仍按 22px 画 —— 内容起点 16+16=32px > 贴图 22px,不压画稿 */
+    border-image-width: 22px;
+    border-width: 16px 22px 22px;
+    border-style: solid;
+    padding: 1rem 2.2rem 2.2rem;
+  }
+  /* 结局卷轴移动端上边距再收一档(2026-10-20 拍板);
+     宽度同步拉伸(2026-10-20 拍板):58vw→75vw,头部横排(印章+信息列)有更多余量;
+     必须放在上面的 .overlay--dim .overlay__box--scroll 同源序之后才能盖掉宽度 */
+  .overlay--dim .panel-scroll--ending {
+    padding-top: 1rem;
+    width: min(48rem, 75vw);
+    /* 头部上移(2026-10-20 拍板):弹框顶对齐并负 margin 贴蒙版上缘
+       (align-self:flex-start 下仍有约 21px 恒定布局偏移,实测负 margin 抵消) */
+    align-self: flex-start;
+    margin-top: -1.25rem;
+  }
+  /* 蒙版自身留白同步收小:--sp-lg(22px)上下在 390 高的横屏上吃掉 44px,
+     是「内容只差一口气就溢出」的大头 */
+  .overlay {
+    padding: var(--sp-sm);
+  }
+  /* 确认框内容少:移动端把撑高用的 min-height 同步收小,
+     否则 22rem(352px)在 390 高的手机横屏上占九成屏高 */
+  .menu__confirm .overlay__box--scroll,
+  .saves__confirm .overlay__box--scroll {
+    min-height: 13rem;
+  }
+  /* 图鉴结局详情弹框(overlay--settle 仅图鉴使用,2026-10-19 拍板):
+     桌面 min(34rem,100%) 在手机横屏上占六成半屏宽,太大,收窄一档;
+     高度封顶(太史公曰长文在 390 高的横屏上一屏放不下),内容矮时弹框
+     随文本自动收缩、高时框内滚动。
+     panel-dialog--tall 的 78px 九宫格边框在小弹框上太宽,收到 34px
+     (与 .panel-plain 同口径);内衬必须 ≥ 边框宽,滚动时文字才不会
+     滑到边框画稿下面(此前 29px 内衬 < 78px 边框,即「超出边」根因) */
+  .overlay--settle .overlay__box {
+    width: min(26rem, 70vw);
+    max-height: calc(100% - 2 * var(--sp-sm));
+    overflow-y: auto;
+    border-image-width: 34px;
+    /* 布局 border 宽度必须跟 border-image-width 对齐:不写的话是默认 medium(3px),
+       滚动裁切线在 3px 处,文字会滑到边框画稿上面(「超出边」的真正根因);
+       对齐后裁切线 = 画稿内缘,内容永远在框里 */
+    border-width: 34px;
+    /* 内容区与边框画稿内缘的间距 10px(2026-10-19 拍板) */
+    padding: 10px;
+  }
+  /* 太史公曰长文不再自设 40vh 内滚:弹框整体随内容拉伸,只留框级一根滚动条 */
+  .galdetail__zhuan {
+    max-height: none;
+    overflow-y: visible;
   }
   .panel-plain {
     border-image-width: 34px;
-    border-image-slice: 62 fill;
+    /* 六拍:去掉 fill——属性区只留边框画稿,内部透出棋盘底图,不再垫纸底 */
+    border-image-slice: 62;
   }
   .card {
     border-image-width: 34px;
@@ -700,15 +998,237 @@
     border-image-slice: 38 44 38 44 fill;
   }
   .backbtn {
-    width: 6rem;
-    height: 2.2rem;
-    font-size: var(--fs-cap);
+    /* 三拍:变化不明显就再缩一档,让牌匾明显小于返回罗盘 */
+    width: 4rem;
+    height: 1.75rem;
+    /* 九拍:高度改不动的根因与「继续」钮同源——.btn 的 min-height:2.6rem
+       (41.6px)在 min-height/height 冲突时优先,牌匾一直被托在 41.6px */
+    min-height: 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-indent: 0.1em;
   }
+  /* 对局顶栏复用存档页移动端口径(2026-10-19 拍板):满铺到屏幕边缘——
+     负 margin 抵掉 .stage 全局安全区内衬,贴顶 2vh、左右 1vw 与返回钮对齐;
+     罗盘返回钮(base 里锚 3vh/3vw,DOM 在 bar 内、定位相对 .stage)同步收进来 */
   .stage__bar {
+    margin: calc(-1 * (var(--safe-t) + var(--sp-sm)))
+      calc(-1 * (var(--safe-r) + var(--sp-sm))) 0
+      calc(-1 * (var(--safe-l) + var(--sp-sm)));
+    padding: 2vh 1vw 8px;
+    /* 标题绝对定位脱流后,流内只剩回溯钮:推到右缘,别叠到左边的返回钮上 */
+    justify-content: flex-end;
+  }
+  .stage__bar .pageback { top: 2vh; left: 1vw; }
+  /* 移动端对局改双栏(2026-10-20 拍板):画卷(立绘+文本)在左上,宽 66% 屏;
+     四卡区在画卷下方同宽;右列为属性面板(恢复桌面纵排行式,整列高)。
+     art.css 在 game.css 之后加载,同优先级选择器此处覆盖窄屏 flex 单列 */
+  .stage__cols {
+    display: grid;
+    /* 画卷列 66→75vw(2026-10-20 五拍):四卡与画卷同列,宽度自动跟随 */
+    grid-template-columns: minmax(0, 75vw) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    /* 行列间距与上下内衬一并收到最小(2026-10-20 四拍):画卷上下都加高 */
+    gap: var(--sp-xs);
+    /* 负 margin 抵掉 .stage 内衬(与顶栏同款),让画卷/卡区左缘 = 返回钮
+       左边距(1vw)、属性区居右贴边(1vw) */
+    margin-left: calc(-1 * (var(--safe-l) + var(--sp-sm)));
+    margin-right: calc(-1 * (var(--safe-r) + var(--sp-sm)));
+    padding: 0 1vw;
+  }
+  .stage__main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .stage__foot {
+    grid-column: 1;
+    grid-row: 2;
+    width: auto;
+    align-self: auto;
+    /* 旧单列口径的 max-height 30%/34% 兜底在双栏网格的 auto 行里会被
+       错误解析,把卡行掐成细条;新布局脚区独占一行,内容自然定高,去掉上限 */
+    max-height: none;
+  }
+  .stage__side {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    flex-direction: column;
+    align-items: stretch;
+    border-left: 1px solid var(--line);
+    border-bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: var(--sp-xs) var(--sp-sm);
   }
+  /* 属性区文字整体缩小一档(2026-10-20 拍板);
+     display 恢复规则必须保留(art.css 884 行的隐藏规则在此块之前) */
+  .stage__side .side__title {
+    display: block;
+    font-size: 0.9rem;
+    /* 九拍:标题下移,分隔线去掉(基础规则的 border-bottom 归零);
+       三轮:标题↔雷达间距归零(拍板),上边距保留 4px 作顶栏呼吸 */
+    margin: 4px 0 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+  .stage__side .kv {
+    display: grid;
+    grid-template-columns: 2.2em 1fr 2.4em;
+    grid-template-areas: 'k m v';
+    white-space: normal;
+    /* 二拍:继续缩小 */
+    font-size: 0.6rem;
+  }
+  .stage__side .kv .meter {
+    display: block;
+  }
+  /* 画卷后背景还原(2026-10-20 三拍):恢复 stage 棋盘底图——画卷内部本就
+     透明,底图回来后内外统一透出纹理,不再有「内层纯色」的观感 */
+  .stage[data-bg='game'] {
+    background-image: url('../assets/bg/game.webp');
+  }
+  /* 立绘下的圆像排改红点(2026-10-20 拍板):很小、不拉伸——固定 6px 圆点,
+     row 纵向居中防止被拉高;多立绘时点红点切换大立绘(点击逻辑原本就有) */
+  .castRow {
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    /* 五拍:铺满 castbox(=立绘宽),红点才能以立绘为中心居中 */
+    align-self: stretch;
+  }
+  .castRow .castChip {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(122, 38, 26, 0.32);
+    overflow: hidden;
+  }
+  .castRow .castChip .castChip__img,
+  .castRow .castChip .castChip__name {
+    display: none;
+  }
+  .castRow .castChip.is-on {
+    background: var(--zhu);
+    box-shadow: 0 0 0 1.5px rgba(122, 38, 26, 0.28);
+  }
+  /* 属性区展示雷达图(2026-10-20 拍板):桌面口径 width 70% 居中,取消移动端隐藏 */
+  .stage__side .radar {
+    display: block;
+    /* 九拍三轮:与标题、下方属性行的间距全部归零(拍板),腾出的空间给宽度
+       (75→88%);90% 时属性行曾溢出 23px,间距归零后可再放开一档 */
+    width: 88%;
+    margin: 0 auto;
+  }
+  /* 行距收紧,六行 + 页脚在屏内一屏放下(2026-10-20 拍板:属性区高度增加);
+     九拍三轮:雷达 88% 后归零,靠行高自身呼吸 */
+  .stage__side .kv {
+    margin-bottom: 0;
+  }
+  /* 四卡在 66vw 脚区里一排放下:放弃 8rem 基准宽,四等分均分内容宽,
+     否则 4×128px+间隙差 7px 就换行,把下方 auto 行撑爆、画卷被压扁 */
+  .stage__foot .card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  /* 标题位置复用选择页 selhead 口径(2026-10-20 拍板):绝对定位脱出顶栏流,
+     top 2vh 水平居中,与左右两钮同排 */
+  .stage__head {
+    position: absolute;
+    top: 2vh;
+    left: 0;
+    right: 0;
+    height: auto;
+    margin: 0;
+  }
+  .stage__chap {
+    font-size: 1.2rem;
+    /* 字间不加空(2026-10-20 拍板):page-title 的 0.3em 字距对长题名太散 */
+    letter-spacing: normal;
+    text-indent: 0;
+  }
+  /* 五拍:立绘居左 + 名签/红点以立绘为中心。
+     立绘按 2:3 受高度收缩,渲染宽随卷面高度变化——fit-content 会循环依赖
+     (img 的 max-content 永远按自然宽 512px 算,收缩包不住)。
+     改用容器查询:main 作 size 容器,castbox 宽 = 可用高(扣名签/红点预留)
+     × 2/3,恰好等于立绘渲染宽;名签与红点行铺满 castbox,居中即对齐立绘中心;
+     若预留略有出入,object-fit: contain + bottom 也保证像在盒内水平居中,
+     整块 castbox 钉在画卷内容区左缘(文本区自然左移)。 */
+  .stage__main {
+    container-type: size;
+    gap: var(--sp-sm);
+  }
   .castbox {
-    width: 7rem;
+    /* 七拍:立绘增大——名签字号缩小后,预留从 2.1rem 收到 1.75rem;
+       margin-bottom -10px 让立绘下探进卷底边框区(overflow-clip 32px 放行),
+       两项合计立绘高 +~25px、宽等比放大 */
+    width: calc((100cqh + 10px - 1.75rem) * 2 / 3);
+    max-width: 50%;
+    align-items: stretch;
+  }
+  .stage__main .castbox .portrait__name {
+    font-size: calc(var(--fs-ui) * 0.85);
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+  /* 正文文字缩小一档(四拍):桌面窄屏口径 0.95 → 0.85 */
+  .stage__main .prose {
+    font-size: calc(var(--fs-body) * 0.85);
+  }
+  /* 四卡字号缩小 + 露出介绍文字(四拍):
+     game.css 窄屏把 card__desc display:none(同优先级,art.css 源序靠后,盖得住) */
+  .stage__foot .card {
+    /* 七拍:文字稍稍下移——顶部内衬加大 */
+    padding: 6px var(--sp-sm) 2px;
+  }
+  .stage__foot .card__title {
+    font-size: calc(var(--fs-ui) * 0.85);
+  }
+  .stage__foot .card .card__desc {
+    display: block;
+    font-size: calc(var(--fs-cap) * 0.95);
+    line-height: 1.35;
+  }
+  /* 身外属性进度条压扁(四拍):桌面加粗到 12px 的口径在窄栏太高 */
+  .stage__side .kv .meter {
+    height: 6px;
+    border-radius: 3px;
+  }
+  .stage__side .kv .meter__fill {
+    border-radius: 3px;
+  }
+  /* 事件选项按钮 + 「继续」钮(七拍/八拍):高度实打实压下来。
+     「继续」钮此前压不动是 art.css .btn 的 min-height:2.6rem(41.6px) 兜着 */
+  .dock > .card {
+    height: 1.8rem;
+  }
+  .dock > .card .card__title {
+    font-size: calc(var(--fs-ui) * 0.85);
+    line-height: 1.2;
+  }
+  .dock > .btn {
+    min-height: 0;
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
+  /* 属性区边框整条去掉(七拍/八拍):不留画稿也不留边——
+     border-image-source:none 后会露出 .panel-plain 默认的 3px currentColor
+     边框(黑边根因),border:0 一并清掉 */
+  .stage__side.panel-plain {
+    border-image-source: none;
+    border: 0;
+  }
+  /* 窄屏轴杆随 38px 边框缩窄,宽屏的 -18px 位移量不适用;
+     六拍:改为 -8px——立绘再往左贴,探进画卷左内衬,落在轴头内沿旁
+     (main 的 overflow-clip-margin:32px 放行范围内,不会被裁)。
+     必须保持与宽屏规则同优先级的选择器(源序靠后)才盖得住 */
+  .stage__main:not(.stage__main--narrow) .castbox {
+    margin-left: -8px;
   }
   .deco-plum-tr {
     width: 12rem;
@@ -787,39 +1307,120 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
-/* 章末四项统计:横排 + 竖分隔(功业/存续/史评/影响);
-   属性全变时最多 11 格(三行),超高由窄卷轴内 prose-body 滚动兜底 */
-.statrow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin: var(--sp-xs) auto 0;
-  max-width: 32rem;
-  border-top: 1px solid var(--line);
-  padding-top: var(--sp-xs);
+/* 章末境遇:属性变化胶囊横排(2026-10-18 拍板,替掉四格 statrow),
+   与文本区 .prose-body .chglist 胶囊同族;居中、可换行、小号;
+   增=淡红底,减=淡绿底(2026-10-18 二拍) */
+.chglist--summary {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-xs);
+  max-width: none;
+  margin: var(--sp-sm) auto 0;
 }
-.statrow__cell {
-  text-align: center;
-  border-left: 1px solid var(--line-soft);
-}
-.statrow__cell:first-child {
-  border-left: 0;
-}
-.statrow__k {
-  display: block;
+.chglist--summary .chgrow {
+  display: inline-flex;
+  gap: 2px;
+  align-items: baseline;
+  padding: 2px var(--sp-xs);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--paper-card);
   font-size: var(--fs-note);
-  color: var(--ink-soft);
 }
-.statrow__v {
-  display: block;
-  font-family: var(--font-kai);
-  font-size: var(--fs-title);
-  color: var(--gold);
+.chglist--summary .chgrow__v {
+  font-size: var(--fs-note);
+}
+.chglist--summary .chgrow.is-up {
+  background: rgba(176, 67, 47, 0.1);
+  border-color: rgba(176, 67, 47, 0.35);
+}
+.chglist--summary .chgrow.is-down {
+  background: rgba(86, 116, 68, 0.12);
+  border-color: rgba(86, 116, 68, 0.35);
+}
+/* 「本章境遇」题签:在「偏离归因」行字号基础上再增大加粗(2026-10-18 二拍);
+   上方分隔线原图 628x26,按 100% x 0.6rem 强压会纵向压扁——
+   放宽 padding-top,背景宽度 100%、高度自适应保持原比例 */
+.panel-scroll--summary .divider__txt {
+  font-size: 1.2em;
+  font-weight: 700;
+  padding-top: 1.5rem;
+  background-size: 100% auto;
+}
+/* 结算弹框标题比全站 page-title 收小一档(2026-10-18 二拍) */
+.panel-scroll--summary .page-title {
+  font-size: 1.35rem;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+}
+/* 偏离归因记录:居中、字号比正文略大(2026-10-18 二拍) */
+.panel-scroll--summary .devrow {
+  text-align: center;
+  font-size: 1.05em;
+}
+/* 「进入下一章」与上方内容拉开一档(2026-10-18 三拍) */
+.panel-scroll--summary .overlay__row {
+  margin-top: 1.75rem;
+}
+/* 窄屏:结算弹框内容密度收紧(2026-10-19 拍板):
+   弹框宽度压到 38rem 后,标题 0.4em 宽字距会占满行宽,收一档;
+   题签上空与按钮上空各收一档,给小屏竖向腾高度。
+   放在源序靠后的媒体查询里,同优先级才能盖掉上面的桌面值 */
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
+  .panel-scroll--summary .page-title {
+    font-size: 1.15rem;
+    /* 字间距归零(2026-10-20 拍板):窄屏上 0.25em 字距对长题名太散,
+       与对局页标题移动端去字距(.stage__chap)同口径 */
+    letter-spacing: 0;
+    text-indent: 0;
+  }
+  .panel-scroll--summary .divider__txt {
+    padding-top: 0.6rem;
+  }
+  /* 「本章境遇」段(题签+属性胶囊)移动端整段去掉(2026-10-20 拍板):
+     弹框在 390 高的横屏上放不下,给标题/偏离/按钮腾高度 */
+  .summary__attrs { display: none; }
+  /* 偏离归因行:字号再收一档,与标题拉开一档(2026-10-20 三次拍板) */
+  .panel-scroll--summary .summary__dev {
+    font-size: 0.95rem;
+    margin-top: var(--sp-md);
+  }
+  /* 偏离记录行再大一档(2026-10-20 三次拍板)。⚠ 用 rem 不用 em:
+     body 字号随 --ui-scale 缩放(844×390 时仅约 0.54 倍),em 基数太小,
+     上轮 1.05em→1.15em 实际只差 1px,视觉上「没起作用」 */
+  /* 偏离记录行:字号再小一档,上下间距加大(2026-10-20 四次拍板) */
+  .overlay--dim .overlay__box--scroll .devrow {
+    font-size: 0.8rem;
+    padding: var(--sp-sm) 0;
+  }
+  /* 偏离记录与下方注记拉开一档(2026-10-20 拍板) */
+  .overlay--dim .overlay__box--scroll .intro-note { margin-top: var(--sp-md); }
+  /* 章末结算弹框撑起最小高度,按钮钉到卷轴底部(2026-10-20 二次拍板)。
+     :has 限定只有章末结算(含 .summary__dev)生效,退出/删档确认框的
+     min-height 13rem 口径不受影响 */
+  .overlay--dim .overlay__box--scroll:has(> .summary__dev) {
+    display: flex;
+    flex-direction: column;
+    min-height: 18rem;
+  }
+  .panel-scroll--summary .overlay__row {
+    /* 按钮靠下(2026-10-20 拍板):flex 下 margin-top:auto 钉底,留一档最小间距 */
+    margin-top: auto;
+    padding-top: 1.25rem;
+  }
 }
 
 /* ---------- 装饰变体 ---------- */
 /* 对局页去掉左侧竹子(2026-10-16 拍板):竹竿与底部选项卡抢视觉重心 */
 .stage__deco[data-variant='game'] .deco-bamboo-l {
   display: none;
+}
+/* 对局页梅花缩至 75%(2026-10-18 拍板) */
+.stage__deco[data-variant='game'] .deco-plum-tr {
+  transform: scale(0.66);
+  transform-origin: right top;
 }
 .stage__deco[data-variant='summary'] .deco-plum-tr {
   background-image: url('../assets/decor/plum-tr2.webp');

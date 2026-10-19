@@ -105,9 +105,16 @@
 
 /* ---------- 逐行渐显(2026-10-17:逐句改为按排版逐行) ----------
  * 字符 span 先 is-off 占位(visibility 隐藏,版面不抖),追加后按视觉行分组,轮到哪行摘哪行。
- * 不进渐显的 prose(结算/回显)没有 is-off,直接全显。 */
+ * 不进渐显的 prose(结算/回显)没有 is-off,直接全显。
+ * 墨染(motion-design):摘 is-off 时字符从「淡 + 糊」晕染到实,240ms --ease-ink——
+ * 首行在同任务里摘类仍瞬时全显(无过渡起点),后续行天然带墨感。 */
+.prose__ch {
+  transition: opacity 240ms var(--ease-ink), filter 240ms var(--ease-ink);
+}
 .prose__ch.is-off {
   visibility: hidden;
+  opacity: 0;
+  filter: blur(1.5px);
 }
 
 /* ---------- 决策区 ---------- */
@@ -138,11 +145,19 @@
   aspect-ratio: 2 / 1;
   min-height: 0;
   overflow: hidden;
-  /* 2026-10-16 加深:双层投影,远层大模糊给浮起感,近层小阴影定边缘 */
-  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
+  /* 2026-10-16 加深:双层投影,远层大模糊给浮起感,近层小阴影定边缘;
+     2026-10-20 拍板:阴影改暖色(赭褐,呼应画卷朱漆/木轴),不再用中性深灰 */
+  box-shadow: 0 6px 16px rgba(96, 48, 20, 0.32), 0 1.5px 4px rgba(96, 48, 20, 0.22);
   animation: card-flip-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
 }
-.stage__foot .card:nth-child(2) { animation-delay: 0.06s; }
+/* secondary 层(motion-design):卡面落定后,牌面内容延迟 0.18s 跟进淡入——
+ * 卡是 hero,内容是 secondary;阴影随卡整体走,不再单独补。 */
+.stage__foot .card .card__body {
+  animation: card-body-in 0.3s var(--ease-ink) 0.18s backwards;
+}
+@keyframes card-body-in {
+  from { opacity: 0; transform: translateY(4px); }
+}.stage__foot .card:nth-child(2) { animation-delay: 0.06s; }
 .stage__foot .card:nth-child(3) { animation-delay: 0.12s; }
 .stage__foot .card:nth-child(4) { animation-delay: 0.18s; }
 .stage__foot .card:nth-child(5) { animation-delay: 0.24s; }
@@ -174,7 +189,7 @@
   min-width: 8rem;
   padding: var(--sp-xs) var(--sp-md);
   border-style: solid;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform var(--dur-quick) var(--ease-ink), filter var(--dur-quick) var(--ease-ink);
 }
 .card--tappable {
   cursor: pointer;
@@ -182,6 +197,8 @@
 /* 选项牌匾对齐效果图:文字居中,标题两侧饰以金色菱纹 */
 .card--opt {
   text-align: center;
+  /* 「史」角标的定位上下文(2026-10-19) */
+  position: relative;
 }
 .card--opt .card__title::before,
 .card--opt .card__title::after {
@@ -190,9 +207,15 @@
   font-size: 0.72em;
   margin: 0 0.55em;
 }
+/* 事件/结尾事件选项不带菱纹(2026-10-19 拍板):题字前后不加 ◇,抉择卡保留 */
+.card--opt.card--plain .card__title::before,
+.card--opt.card--plain .card__title::after {
+  content: none;
+}
 .card--tappable:hover,
 .card--tappable:focus-visible {
-  border-color: var(--gold);
+  /* 2026-10-18 三拍:去掉 border-color 金描边——border-image 切图边缘会透出底色,
+   * hover 时在卡框外缘挂一圈细线(用户反馈);高亮交给 art.css 的 card-hi 换图 */
   transform: translateY(-2px);
   box-shadow: 0 0.35rem 0.75rem rgba(42, 37, 29, 0.12);
   outline: none;
@@ -231,6 +254,26 @@
   color: var(--zhu);
   letter-spacing: 0.1em;
 }
+
+/* 「史」角标(2026-10-19 拍板):史书记载的选项在卡右上角贴一枚小圆签,
+ * 不再以「〔史〕」占正文一行(dock 卡 overflow:hidden,角标收在框内) */
+.card__hist {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 1.05rem;
+  height: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--zhu);
+  border-radius: 50%;
+  color: var(--zhu);
+  background: rgba(246, 239, 224, 0.88);
+  font-size: var(--fs-cap);
+  line-height: 1;
+  pointer-events: none;
+}
 .card__risk {
   font-size: var(--fs-cap);
 }
@@ -258,7 +301,8 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%;
-  box-shadow: 0 6px 16px rgba(42, 37, 29, 0.32), 0 1.5px 4px rgba(42, 37, 29, 0.22);
+  /* 2026-10-20 拍板:四卡阴影改暖色(赭褐,呼应画卷朱漆/木轴);card--action 只在四卡区使用 */
+  box-shadow: 0 6px 16px rgba(96, 48, 20, 0.32), 0 1.5px 4px rgba(96, 48, 20, 0.22);
 }
 .card.card--action.t-jin,
 .card.card--action.t-shou,
@@ -278,6 +322,11 @@
 .card.card--action.card--tappable:focus-visible {
   filter: brightness(1.06) saturate(1.05);
   box-shadow: 0 0.5rem 1.1rem rgba(42, 37, 29, 0.34), 0 2px 5px rgba(42, 37, 29, 0.24);
+}
+/* 四卡区悬停:暖色影与主影同族(2026-10-20 拍板),选择器加 .stage__foot 压过上面的通用悬停 */
+.stage__foot .card.card--action.card--tappable:hover,
+.stage__foot .card.card--action.card--tappable:focus-visible {
+  box-shadow: 0 0.5rem 1.1rem rgba(96, 48, 20, 0.34), 0 2px 5px rgba(96, 48, 20, 0.24);
 }
 /* 正文让开左侧角签 */
 .card.card--action .card__body {
@@ -325,8 +374,9 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%, cover;
-  /* 卡背是占位不是可点卡(2026-10-17 拍板):去厚投影、降饱和压暗、不吃点击,一眼知道不能点 */
-  box-shadow: 0 2px 7px rgba(42, 37, 29, 0.18);
+  /* 卡背是占位不是可点卡(2026-10-17 拍板):去厚投影、降饱和压暗、不吃点击,一眼知道不能点;
+     2026-10-20 拍板:投影同样改暖色 */
+  box-shadow: 0 2px 7px rgba(96, 48, 20, 0.18);
   filter: saturate(0.55) brightness(0.96);
   cursor: default;
   pointer-events: none;
@@ -369,7 +419,7 @@
   padding: var(--sp-sm) var(--sp-lg);
   border-radius: var(--r-md);
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-quick) var(--ease-ink);
 }
 .btn--primary {
   border: 0;
@@ -432,6 +482,10 @@
 }
 .meter__fill {
   height: 100%;
+  /* scaleX 化(motion-design 性能项):填充量走 transform,不再触发 layout。
+   * JS 侧(kit.meter / session.applySideDelta)同步改写 scaleX。 */
+  width: 100%;
+  transform-origin: 0 50%;
 }
 
 /* ---------- 结算浮层 ---------- */
@@ -482,9 +536,11 @@
   font-size: var(--fs-ui);
 }
 .seal--big {
-  width: 3rem;
-  height: 3rem;
-  font-size: var(--fs-title);
+  /* 2026-10-19 拍板:结局/详情里的评级只留朱色文字,去掉红框 */
+  border: none;
+  width: auto;
+  height: auto;
+  font-size: var(--fs-h2);
 }
 
 /* ---------- 竖排/印章(备用) ---------- */
@@ -541,7 +597,8 @@
   overflow-y: auto;
 }
 .side__title {
-  margin: 0 0 var(--sp-sm);
+  /* 2026-10-18 拍板:标题位置不动,下间距收窄(sm→xs)让雷达图上移 */
+  margin: 0 0 var(--sp-xs);
   font-size: var(--fs-cap);
   letter-spacing: 0.3em;
   color: var(--gold);
@@ -576,10 +633,17 @@
   min-width: 0;
   min-height: 0;
   /* 卷轴本体不滚动:正文在 .prose-body 内滚,立绘列原地不动(2026-10-15 拍板) */
-  overflow: hidden;
+  overflow: clip;
+  /* 2026-10-18 二拍:hidden→clip 且右缘放开 16px——prose-body 的滚动条
+   * 再向右推 12px 探进边框区贴轴头(art.css),不被裁掉 */
+  /* 2026-10-19 修:overflow-clip-margin 只接受单个长度,四值写法非法整段被丢,
+   * 滚动条被裁掉看不见;改单值。二拍:滚动条再右移至距轴杆 10px,
+   * 右缘探到 padding 盒外 30px,放开值同步提到 32px(其余三边无负边距内容,无害) */
+  overflow-clip-margin: 32px;
   /* 四边同距:正文与立绘之间由 flex gap(sp-lg)分隔,
    * 文本区与画卷内缘(轴杆内沿的金线)也保持同样的边距(2026-10-14 拍板) */
-  padding: var(--sp-lg);
+  /* 2026-10-18 三拍:卷轴(边框)位置不动,卷面内容再下移(上 padding sp-lg+sp-sm*2) */
+  padding: calc(var(--sp-lg) + var(--sp-sm) * 2) var(--sp-lg) var(--sp-lg);
 }
 /* 卷轴横向铺满 7fr 轨:左右轴头外缘与选项卡行两端对齐(2026-10-17 用户拍板,
  * 取代 10-15 的「定比例居中不变形」)。九宫格边框图横拉只拉伸纸纹中段,
@@ -590,8 +654,8 @@
  * 且窄屏叙事区要占满全宽(viewports 测试盯着占比),不能再收。 */
 @media (min-width: 881px) {
   .stage__main:not(.stage__main--narrow) {
-    /* 上下留白(2026-10-17 四拍):高度继续增加(上 sm、下 0),中心位置基本不变 */
-    margin: var(--sp-sm) var(--sp-lg) 0;
+    /* 上下留白(2026-10-18 拍板):卷面高度再增,上留白收到 0(下本就 0) */
+    margin: 0 var(--sp-lg);
   }
 }
 
@@ -599,7 +663,7 @@
 /* 常驻按钮;引擎 canBacktrack() 为假时压暗并置 aria-disabled(对齐 Lua shell.lua:113) */
 .backbtn {
   flex: 0 0 auto;
-  font-family: var(--font-sans);
+  font-family: var(--font-kai);
   font-size: var(--fs-note);
   letter-spacing: 0.1em;
   padding: var(--sp-xs) var(--sp-sm);
@@ -617,7 +681,7 @@
 }
 
 /* ============================================================================
- * 窄屏降级
+ * 窄屏 / 短横屏降级
  *
  * 两栏布局在小屏上会崩:右栏是 0 0 13rem(=208px)定宽,在 667px 视口已占 31%,
  * 到竖屏 390px 更占到 53%,叙事区只剩 166px;且竖屏下 .stage 被压成 219px 高,
@@ -625,8 +689,12 @@
  *
  * 对策:880px 以下把右栏从「侧栏」改成「顶部横向属性条」,叙事区独占整宽;
  * 决策区限高并内部滚动。P3 的雷达图上到这里也要跟着改成紧凑形态。
+ *
+ * 2026-10-19 补:横屏手机(如 iPhone Pro Max 横 932×430)宽度 932 > 880,
+ * 原本落进桌面双栏,但高度仅 430px,foot 两行卡就吃掉 242px,叙事区被挤到 96px、
+ * 卷轴里只剩轴杆。凡是横屏且高度 ≤520px 的视口,一律按窄屏处理。
  * ========================================================================== */
-@media (max-width: 880px) {
+@media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   /* 窄屏退回纵向 flex:7/3 分栏在小屏上叙事区过窄(同原 13rem 定宽的问题) */
   .stage__cols {
     display: flex;
@@ -665,13 +733,27 @@
     color: var(--ink-strong);
   }
 
-  .stage__main {
+  .stage__cols .stage__main:not(.stage__main--narrow) {
     padding: var(--sp-sm);
+    /* min-width:881px 的「卷轴与卡行对齐」margin 在堆叠布局里会吃掉叙事区宽度,
+     * 短横屏(932×430 这类)同时命中两条规则时必须归零,叙事区才占满整行;
+     * 选择器加 .stage__cols 前缀以盖过 min-width:881 的 :not() 优先级 */
+    margin: 0;
+  }
+  /* 窄屏同口径:滚动条贴右侧轴头(宽屏规则在 art.css,这里用 sp-sm 覆盖) */
+  .stage__main .prose-body {
+    margin-right: calc(-1 * (var(--sp-sm) + 12px));
+    padding-right: calc(var(--sp-sm) - 2px);
   }
   .prose {
     font-size: calc(var(--fs-body) * 0.95);
     line-height: 1.75;
   }
+  /* 选项卡行距收到 1.2(2026-10-19 拍板):卡内题名与说明文字在窄屏下更紧 */
+  .card__title { line-height: 1.2; }
+  .card__desc,
+  .card__hint,
+  .card__warn { line-height: 1.2; }
 
   /* 决策区限高:百分比相对 .stage 的确定高度,竖屏下才不会顶穿棋盘。
    * 46% 在 360px 高的横屏上会把叙事区压到 50px 出头,收到 30%。 */
@@ -801,10 +883,23 @@
   align-self: stretch;
 }
 .dock > .card {
-  /* 横向均分(2026-10-17 四拍):basis 12rem,窄了自动折行,宽了平分一行 */
-  flex: 1 1 12rem;
+  /* 两枚一行(2026-10-18 二拍):行宽=剧情文本区宽(dock 自带 stretch),每枚各半;
+   * 高度统一、内部容得下两行,文字水平垂直双居中 */
+  flex: 1 1 calc(50% - var(--sp-sm) / 2);
+  max-width: calc(50% - var(--sp-sm) / 2);
   min-width: 0;
   margin: 0;
+  height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.dock > .card .card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .dock > .btn {
   display: block;
@@ -845,7 +940,9 @@
 }
 
 /* 文本区属性变化清单:胶囊形(2026-10-17 二拍,与题签胶囊同族);
-   只罩文本区(prose-body),结算弹框里的清单仍用整行版式 */
+   只罩文本区(prose-body),结算弹框里的清单仍用整行版式。
+   2026-10-19 拍板:胶囊挪到正文下方后改回题签内联版的小号样式
+   (0 sp-xs 内边距 / 2px 间隙 / note 字号),现在的中号太大 */
 .prose-body .chglist {
   display: flex;
   flex-direction: row;
@@ -856,20 +953,30 @@
 }
 .prose-body .chglist .chgrow {
   display: inline-flex;
-  gap: var(--sp-xs);
+  /* 带备注的结果行:备注 flex-basis:100% 依赖换行才生效,不开 wrap 会把
+     名称挤到最小宽度(两字竖排)、备注也顶不下去(2026-10-20 拍板修复) */
+  flex-wrap: wrap;
+  gap: 2px;
   align-items: baseline;
-  padding: var(--sp-xs) var(--sp-sm);
+  padding: 0 var(--sp-xs);
   border: 1px solid var(--line-soft);
   border-radius: 999px;
   background: var(--paper-card);
+  font-size: var(--fs-note);
+}
+.prose-body .chglist .chgrow__v {
+  font-size: var(--fs-cap);
 }
 .prose-body .chglist .chgrow__note {
   flex-basis: 100%;
 }
 
 /* 滚动条:细条古铜,跟画卷配色走(替换浏览器默认灰条);
-   文本区滚动容器是 .prose-body(2026-10-15 起 main 不再滚动) */
-.prose-body,
+   文本区滚动容器是 .prose-body(2026-10-15 起 main 不再滚动)
+   2026-10-19:.prose-body 摘出标准 scrollbar-width/color —— Chromium 下声明
+   这两个属性会启用 Fluent 悬浮滚动条,静止即自动隐藏(文本区滚动条忽隐忽现的根因);
+   摘掉后走下面的 ::-webkit-scrollbar 自绘样式,经典形态、常驻不消失。
+   代价:Firefox 上 prose-body 退回默认滚动条(本项目跑 Chromium 内核,可接受)。 */
 .stage__side,
 .stage__foot,
 .overlay__box {
@@ -896,6 +1003,11 @@
 .overlay__box::-webkit-scrollbar-track {
   background: transparent;
 }
+/* 文本区轨道常显(2026-10-19):内容不满一屏时没有滑块,
+   透明轨道会让滚动条看起来「不存在」;铺一条淡古铜底与 meter 用色同族 */
+.prose-body::-webkit-scrollbar-track {
+  background: rgba(138, 106, 52, 0.16);
+}
 
 /* ---------- 关键事件内联提示 ---------- */
 .prompt--key.is-live {
@@ -921,7 +1033,7 @@
   animation: chg-flash 2.4s ease-out;
 }
 .meter__fill {
-  transition: width 1s ease;
+  transition: transform 1s var(--ease-ink);
 }
 .flychg {
   position: fixed;
@@ -932,10 +1044,10 @@
   font-size: var(--fs-ui);
 }
 .flychg.is-up {
-  color: var(--good);
+  color: var(--zhu);
 }
 .flychg.is-down {
-  color: var(--zhu);
+  color: var(--good);
 }
 /* ---------- 行动卡结算动画序列(2026-10-17 拍板) ---------- */
 /* 出牌残影:克隆牌面从选项区飞向文本区,落定即散。
@@ -977,23 +1089,30 @@
     transform: scale(1);
   }
 }
-/* ---------- 险招摇骰动画 ---------- */
+/* ---------- 险招摇骰动画(motion-design 重排) ----------
+ * 旧版 linear infinite 匀速抖动是「机器人感」主因。重排为三段:
+ * 摇(预备起势 + 2 次缓摆,曲线内建)→ 落(squash 压扁回弹)→ 归位。
+ * 节奏仍由 session.diceTitle 的 0.9s 定时器掌控,这里只演。 */
 @keyframes dice-shake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  25% { transform: translateX(-2px) rotate(-2deg); }
-  75% { transform: translateX(2px) rotate(2deg); }
+  0%   { transform: translateY(0) rotate(0deg); }
+  15%  { transform: translateY(-2px) rotate(-4deg); }  /* 起手先抬,预备 */
+  35%  { transform: translateY(0) rotate(3deg); }
+  55%  { transform: translateY(-1px) rotate(-3deg); }
+  75%  { transform: translateY(0) rotate(2deg); }
+  100% { transform: translateY(0) rotate(-1deg); }
 }
 @keyframes dice-land {
-  0% { transform: scale(1.25); opacity: 0.4; }
-  60% { transform: scale(0.96); opacity: 1; }
+  0%  { transform: scale(1.28); opacity: 0.35; }
+  55% { transform: scale(0.94, 1.05); opacity: 1; }  /* 落定压扁 */
+  80% { transform: scale(1.02, 0.985); }              /* 回弹 */
   100% { transform: scale(1); }
 }
 .dice-rolling {
   display: inline-block;
-  animation: dice-shake 0.18s linear infinite;
+  animation: dice-shake 0.9s ease-in-out infinite;
   letter-spacing: 0.08em;
 }
 .dice-land {
   display: inline-block;
-  animation: dice-land 0.32s ease-out;
+  animation: dice-land 0.42s var(--ease-ink);
 }
