@@ -30,6 +30,14 @@ const appVersion: string = JSON.parse(
  * 无需 @rollup/plugin-commonjs——加了反而会触发 preferBuiltinFeature 警告。
  */
 export default defineConfig({
+  /**
+   * 相对路径产物。
+   *
+   * 默认的 '/' 只能在域名根目录部署;TapTap 创意工坊(H5)把包放在
+   * 带 hash 的子路径下,绝对路径会全站 404(审查报告已把这列为部署前提)。
+   * './' 在根目录同样能用,所以不设开关,统一相对。
+   */
+  base: './',
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
   },
