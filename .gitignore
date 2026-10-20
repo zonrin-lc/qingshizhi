@@ -44,3 +44,13 @@ CLAUDE.md
 
 # 其他 AI 客户端本地配置
 .workbuddy/
+
+# 本地打包产物(发布用 zip 有 160MB+,不入库)
+h5/release/
+
+# 本机 npm install 出来的 Windows 壳与原生绑定
+# (仓库里留的是容器构建用的 linux-x64 那套,win32 只在本地跑构建用)
+h5/node_modules/.bin/*.cmd
+h5/node_modules/.bin/*.ps1
+h5/node_modules/@rolldown/binding-win32-*/
+h5/node_modules/lightningcss-win32-*/
