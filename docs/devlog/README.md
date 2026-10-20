@@ -15,6 +15,7 @@
 | [devlog-day11.md](devlog-day11.md) | DAY 11 | 立绘 13→72 张补齐;全量审校重做 19 张;对局页 v2 落地;配音与音乐上线 |
 | [devlog-day12.md](devlog-day12.md) | DAY 12 | 配音全量覆盖 1927 条 + 五首主题曲;封存 Lua 版,转向 H5(规则引擎原样复用) |
 | [devlog-day13.md](devlog-day13.md) | DAY 13–16 | H5 四天:六页面+罗盘 → 全量审查(5 高危 15 中危)→ 存档语义换代(v2.2.0 轮次存档)→ 云存档/图鉴/朝代预告 |
+| [devlog-day17.md](devlog-day17.md) | DAY 17–19 | 配音换整段合并口径(3854→1200 条)+ 音效系统 + 财富见底锁 + 动效体系四批落地 |
 | [devlog-material-overturns.md](devlog-material-overturns.md) | 附 | 投稿物料翻车记录(非日更) |
 
 ## 阅读线索
