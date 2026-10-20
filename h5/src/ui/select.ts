@@ -22,11 +22,11 @@ import { renderTeaser } from './teaser';
 import { createWheel, type WheelHandle } from './wheel';
 
 import wheelRing from '../assets/lua/wheel-ring.webp';
-import archQin from '../assets/lua/arch-qin.png';
-import archHan from '../assets/lua/arch-han.png';
-import archTang from '../assets/lua/arch-tang.png';
-import archSong from '../assets/lua/arch-song.png';
-import archMing from '../assets/lua/arch-ming.png';
+import archQin from '../assets/lua/arch-qin.webp';
+import archHan from '../assets/lua/arch-han.webp';
+import archTang from '../assets/lua/arch-tang.webp';
+import archSong from '../assets/lua/arch-song.webp';
+import archMing from '../assets/lua/arch-ming.webp';
 import scenPlate from '../assets/lua/scen-plate.webp';
 import vortexImg from '../assets/lua/vortex-gold.webp';
 import coverLisi from '../assets/cover/lisi.webp';

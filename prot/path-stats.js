@@ -1,9 +1,27 @@
 /* 路径统计 v2：状态图 BFS（最短）+ DAG 记忆化 DFS（最长简单路径）
  * 状态 = (章, 事件, 阶段, 属性, 偏离, Flag, 史评, 功业)；修正事件随机性固定为不触发。
+ *
+ * v2.1.5 统计口径诚实化（GDD 附录 U.16）：本工具是**有界搜索**，不是穷尽证明。
+ *   · 展开上限可调：--cap N（0 = 不限，慎用）；另有时间预算 --budget 秒（默认 1800，
+ *     即与旧口径「跑满 40 万展开」等效，仅作超时保险）。
+ *   · 触上限/超预算时，所有派生结论（结局覆盖、从未走到的事件、最短路径）一律标注
+ *     「下界·未穷尽」，并给出未展开队列规模——**不得把「测不到」读成「不存在」**
+ *     （与 balance-sim 的 U.12「策略集即测量栅栏」同源错误）。
+ *   · 展开范围本身有限：回合阶段只 playCard(0) 走关键卡，行动卡不入状态图；
+ *     际遇（R-*）受 randomChance / randomMax / cond 与章内牌堆非重复抽取限制，危机注入
+ *     （C-*）在其确定性路径下可进入。注意本工具主 rng 虽为常量 0.99，但 `_stream('event')`
+ *     会从主 rng 派生独立事件流并按序取值，故际遇闸门**并非恒不过**（实测 R-2 等已进入）。
+ *     故覆盖统计按「章节事件 / 随机际遇 / 危机注入」三类分别列出未走到项，不混判。
  */
 const D = require('./game-data.js');
 const E = require('./engine.js');
 const rng = () => 0.99;
+function arg(name, def) {
+  const i = process.argv.indexOf('--' + name);
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def;
+}
+const CAP = parseInt(arg('cap', '400000'), 10) === 0 ? Infinity : Math.max(1000, parseInt(arg('cap', '400000'), 10));
+const BUDGET = Math.max(1, parseInt(arg('budget', '1800'), 10)) * 1000; // 默认 30min：与旧口径（跑满 --cap 40 万）一致，仅作超时保险
 
 function clone(g) {
   const n = new E.Game(D, 'normal', rng);
@@ -130,11 +148,13 @@ function bfs2() {
   const queue = [{ node: first, d: 0, c: first.clicks, path: [] }];
   let endMin = null; const perEnding = new Map();
   let expanded = 0;
+  let truncated = false, reason = '';
   const t0 = Date.now();
   while (queue.length) {
+    if (expanded >= CAP) { truncated = true; reason = `展开上限 ${CAP}`; break; }
+    if (Date.now() - t0 > BUDGET) { truncated = true; reason = `时间预算 ${BUDGET / 1000}s`; break; }
     const cur = queue.shift(); expanded++;
     if (expanded % 20000 === 0) console.log(`  …已展开 ${expanded}，队列 ${queue.length}，去重状态 ${best.size}，${Date.now() - t0}ms`);
-    if (expanded > 400000) { console.log('  达到展开上限 40 万，提前截止'); break; }
     if (cur.node.kind === 'ending') {
       const e = cur.node.ending;
       const k = e.id + (e.variant ? '/' + e.variant : '');
@@ -158,12 +178,14 @@ function bfs2() {
       queue.push({ node: nxt, d: nd, c: nc, path: cur.path.concat([[cur.node.evId, o.t]]) });
     }
   }
-  return { endMin, perEnding, expanded, states: best.size };
+  return { endMin, perEnding, expanded, states: best.size, truncated, reason, pending: queue.length };
 }
 
 console.log('—— 最短路径（BFS，单位成本=1 决策）——');
 const r = bfs2();
-console.log(`展开决策点 ${r.expanded} 个，去重状态 ${r.states} 个`);
+const SCOPE = r.truncated ? `下界·未穷尽（${r.reason} 处截止，尚有 ${r.pending} 个状态未展开）` : '穷尽';
+console.log(`展开决策点 ${r.expanded} 个，去重状态 ${r.states} 个 ｜ 搜索范围：${SCOPE}`);
+if (r.truncated) console.log(`!! 本次为**下界**：以下结局覆盖与「从未走到的事件」都可能只是展开未及——需 --cap 0 或加大 --cap 复测后才可作结论。`);
 if (r.endMin) {
   console.log(`全局最短：${r.endMin.d} 决策 / ${r.endMin.c} 点击 → ${r.endMin.ending}「${r.endMin.name}」`);
   console.log('路径：' + r.endMin.path.map(p => p[0] + '「' + p[1].slice(0, 12) + '」').join(' → '));
@@ -174,12 +196,28 @@ console.log('\n各结局最短到达：');
   console.log(`  ${e.ending}「${e.name}」：${e.d} 决策 / ${e.c} 点击`);
 });
 
-console.log('\n—— 覆盖与死内容（基于 BFS，达展开上限时为下界） ——');
-console.log('结局覆盖：' + [...endingsSeen].sort().join('、'));
+console.log(`\n—— 覆盖与死内容（BFS，口径：${SCOPE}） ——`);
+console.log('结局覆盖' + (r.truncated ? '（下界）' : '') + '：' + [...endingsSeen].sort().join('、'));
 console.log('节点异变触发：' + (mutationNotes.size ? [...mutationNotes].join('；') : '（仅章节固定事件）'));
 const allEv = [];
 D.CHAPTERS.forEach(c => c.events.forEach(e => allEv.push(e.id)));
-console.log('从未走到的事件：' + (allEv.filter(id => !eventsSeen.has(id)).join('、') || '（全部覆盖）'));
+const randomIds = (D.RANDOM_EVENTS || []).map(e => e.id);
+const crisisIds = [];
+if (D.CRISIS_EVENTS) {
+  if (Array.isArray(D.CRISIS_EVENTS.plots)) D.CRISIS_EVENTS.plots.forEach(p => crisisIds.push(p.id));
+  if (D.CRISIS_EVENTS.death && D.CRISIS_EVENTS.death.id) crisisIds.push(D.CRISIS_EVENTS.death.id);
+  if (D.CRISIS_EVENTS.qingsuan && D.CRISIS_EVENTS.qingsuan.id) crisisIds.push(D.CRISIS_EVENTS.qingsuan.id);
+}
+console.log(`覆盖口径：${r.truncated ? '下界·未穷尽' : '穷尽'}（回合阶段只走关键卡，行动卡不入展开）`);
+[['章节事件', allEv], ['随机际遇', randomIds], ['危机注入', crisisIds]].forEach(([label, ids]) => {
+  const miss = ids.filter(id => !eventsSeen.has(id));
+  const why = miss.length === 0 ? '' : (r.truncated
+    ? '  ← 下界·可能只是展开未及，勿判作死内容（先用 --cap 0 或加大 --cap 复测）'
+    : '  ← 穷尽口径下仍未进入：际遇类多为概率闸门/条件/配额未命中，亦非死内容');
+  console.log(`${label}：${ids.length} 条，未走到 ${miss.length} 条 → ${miss.join('、') || '（全部覆盖）'}${why}`);
+});
+console.log('另注：BACKLASH（逆天反噬，偏离≥71 每章一次）与 C-DEATH/C-QS 属确定性注入，本工具会走到；');
+console.log('      行动卡收益与「多买一回合」的路径不在本表内（回合阶段只 playCard(0)）。');
 
 console.log('\n—— 最长路径（无重复状态的简单路径，预算 120s） ——');
 const DFS_BUDGET = 120000;

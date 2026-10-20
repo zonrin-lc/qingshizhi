@@ -145,11 +145,15 @@ ASSETS = [
     ("lua", r"repo:ui\title-calligraphy.png",   "lua/title-calligraphy.webp", None, 900, 92),
     ("lua", r"repo:ui\bg-select.jpg",           "lua/bg-select.webp",        1920, None, 74),
     ("lua", r"repo:ui\parts\wheel_ring.png",    "lua/wheel-ring.webp",       880,  None, 86),
-    ("lua", r"repo:arch\qin.jpg",               "lua/arch-qin.webp",         420,  None, 80),
-    ("lua", r"repo:arch\han.jpg",               "lua/arch-han.webp",         420,  None, 80),
-    ("lua", r"repo:arch\tang.jpg",              "lua/arch-tang.webp",        420,  None, 80),
-    ("lua", r"repo:arch\song.jpg",              "lua/arch-song.webp",        420,  None, 80),
-    ("lua", r"repo:arch\ming.jpg",              "lua/arch-ming.webp",        420,  None, 80),
+    # 朝代图（2026-10-20）：源图由 arch\*.jpg 换为带圆形 alpha 遮罩的 512 PNG，
+    # 尺寸 420→512、质量 80→88。旧 420 无 alpha 的 WebP 在圆盘上会露出硬边，
+    # 且与 src/assets/lua 下同名 PNG 构成重复（同一素材两份，其中一份还被 import）。
+    # 注：assets/arch 下新源图当前文件名为 *_副本.png，此处按无后缀名引用。
+    ("lua", r"repo:arch\qin.png",               "lua/arch-qin.webp",         512,  None, 88),
+    ("lua", r"repo:arch\han.png",               "lua/arch-han.webp",         512,  None, 88),
+    ("lua", r"repo:arch\tang.png",              "lua/arch-tang.webp",        512,  None, 88),
+    ("lua", r"repo:arch\song.png",              "lua/arch-song.webp",        512,  None, 88),
+    ("lua", r"repo:arch\ming.png",              "lua/arch-ming.webp",        512,  None, 88),
     ("lua", r"repo:ui\parts\card_frame.png",    "lua/card-frame.webp",       None, None, 90),
     ("lua", r"repo:ui\parts\scen_plate.png",    "lua/scen-plate.webp",       None, None, 92),
     ("lua", r"repo:ui\parts\diff_on.png",       "lua/diff-on.webp",          560,  None, 88),

@@ -534,8 +534,20 @@ const merged = {};
 stratNames.forEach(sn => Object.keys(stats[sn].endings).forEach(e => { merged[e] = (merged[e] || 0) + stats[sn].endings[e]; }));
 Object.keys(ROUTES).forEach(r => {
   const n = ROUTES[r].reduce((a, e) => a + (merged[e] || 0), 0);
-  log(`${r}（${ROUTES[r].join('/')}）：${n} 局`);
+  /* v2.1.5：路线「多少局」不等于「多少条策略能走通」。仅由 1–2 条策略达成的路线属
+   * **策略依赖**（须刻意规划才到，换玩家未必复现），不能读作"这条线普遍存在"——
+   * 这是 U.12「策略集即测量栅栏」在读数侧的对应物：合并表会把 1/13 条策略的成果
+   * 读成"路线可达"。可达性与普遍性分开报。 */
+  const who = stratNames.filter(sn => ROUTES[r].some(e => stats[sn].endings[e]));
+  const dep = who.length === 0
+    ? `  ⚠ 本批样本无策略达成（0/${stratNames.length} 条）——先加大 --games 复测再下结论`
+    : who.length <= 2
+      ? `  ⚠ 策略依赖：仅 ${who.join('/')} 达成（${who.length}/${stratNames.length} 条）`
+      : `  （${who.length}/${stratNames.length} 条策略可达成）`;
+  log(`${r}（${ROUTES[r].join('/')}）：${n} 局${dep}`);
 });
+log('注：本表是 13 条策略的**合并**读数，只回答"路线是否可达"；标 ⚠ 的路线需刻意规划（策略依赖），');
+log('    不能读作"随便玩就能到"。普遍性请对照下方「各策略结局明细」。');
 
 log('\n—— 准则 3：单一属性策略通关率（压力测试，非验收门槛 · GDD 附录 D #25 / 附录 O.1）——');
 log('说明：GDD v1.6.1 起本项定位为「极端压力测试」，不设 PASS/FAIL 门槛——「每步只最大化单一属性」本就不是真实玩家行为。');
