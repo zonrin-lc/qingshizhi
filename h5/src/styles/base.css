@@ -92,12 +92,11 @@
   --vh: 720px;
 }
 
-/* ---------- 内嵌字体:霞鹜文楷(全游戏统一,2026-10-14) ---------- */
-@font-face {
-  font-family: 'LXGW WenKai';
-  src: url('/fonts/qingshi-kai.ttf') format('truetype');
-  font-display: swap;
-}
+/* ---------- 内嵌字体:霞鹜文楷(全游戏统一,2026-10-14) ----------
+   @font-face 声明在 index.html 内联 <style> 里(2026-10-20):
+   绝对路径 '/fonts/…' 在 TapTap 子路径部署下会 404;css 里写相对路径
+   dev 模式又会解析到 /src/fonts。内联在 html 中用 './fonts/…',
+   两种环境都相对入口解析,唯一正确的位置。 */
 
 /* ---------- reset ---------- */
 /* hidden 属性必须能压过组件自己的 display。

@@ -105,10 +105,12 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
 
   // 播放策略:加载即下 idle(进游戏就播);入局后 inst 主播 + vocal 后台预载。
   // 缓存可能让个别文件不出现在网络日志里,所以按「逻辑名子集 + 主播放器状态」双向验。
-  // 2026-10-17 起入局还会拉配音(章首 intro 等),那是 voice.cjs 的管辖范围,这里剔除再断言。
+  // 2026-10-17 起入局还会拉配音(章首 intro 等),那是 voice.cjs 的管辖范围,这里剔除再断言;
+  // 2026-10-20 起入局链路有点击/入局等 UI 音效(sfx.ts),同样剔除。
   const expectSet = ['idle', 'lisi-inst', 'lisi-vocal'];
   const isVoiceName = (g) => /^(intro|\d+-\d+|cj-|choice_|ending_|crisis_|corr_)/.test(g);
-  const bgmGot = got.filter((g) => !isVoiceName(g));
+  const isSfxName = (g) => /^(back|card|chapter|click|coin|dialog|dice-land|dice-roll|down|ending|enter|fail|gain|seal)$/.test(g);
+  const bgmGot = got.filter((g) => !isVoiceName(g) && !isSfxName(g));
   add('BGM 拉取集合 ⊆ {idle, inst, vocal}', bgmGot.every((g) => expectSet.includes(g)),
     `实到: ${bgmGot.join(', ')}`);
   add('入局拉了当前剧本纯音乐版', got.includes('lisi-inst'), `实到: ${got.join(', ')}`);
