@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "provider": "elevenlabs",
+  "character_name": "史官旁白",
+  "character_description": "中年男声，四十五岁上下，低沉沙哑，胸腔共鸣，气息绵长。语速缓慢，留有气口与停顿，字与字之间有回味，关键句放慢。情感克制内敛，疲惫而清醒，像深夜独自在书房自言自语，不是朗诵，不是广告腔。纪录片旁白质感，专业录音棚音质，发音清晰，无背景噪音。",
+  "audition_line": "夜深了，烛火摇曳，一案一灯，书房里只剩下纸页被风翻动的轻响。窗外更漏声声。太史公的笔……停在了最后一页。易水的风，乌江的浪，大泽乡的雨——都还在。可这一页……是空白的。夜还长，烛火未熄，天就要亮了——而这一笔，还未落。",
+  "created_at": "2026-10-20T06:26:59.942Z",
+  "recommended_index": 1,
+  "candidates": [
+    {
+      "index": 1,
+      "provider": "elevenlabs",
+      "generated_voice_id": "D41jOCg49yS51Z8QDvdB",
+      "audio_url": "https://tapcode-sce.spark.xd.com/assets/audio/audition/f68e465658fb1892_4860240a97948314_candidate_1_1792477619135.mp3",
+      "oss_path": "audio/audition/f68e465658fb1892_4860240a97948314_candidate_1_1792477619135.mp3",
+      "duration_seconds": 40.90958333333333,
+      "description": "中年男声，四十五岁上下，低沉沙哑，胸腔共鸣，气息绵长。语速缓慢，留有气口与停顿，字与字之间有回味，关键句放慢。情感克制内敛，疲惫而清醒，像深夜独自在书房自言自语，不是朗诵，不是广告腔。纪录片旁白质感，专业录音棚音质，发音清晰，无背景噪音。"
+    }
+  ],
+  "use_voice_design": true
+}
