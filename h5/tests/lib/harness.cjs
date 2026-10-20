@@ -218,6 +218,18 @@ async function withPage(fn, opts = {}) {
       );
       await client.send('Page.navigate', { url }, sessionId);
       await sleep(opts.settleMs || 900);
+      // 等应用真的起来(主菜单渲染完)再往下走。固定 sleep 在机器忙/首启冷缓存时
+      // 偶发不够,表现为「批量跑时大批用例莫名失败、单独跑又都好」——
+      // 那些用例等的是 window.__QS__,应用没起来自然就 undefined。
+      for (let i = 0; i < 60; i += 1) {
+        const r = await client.send(
+          'Runtime.evaluate',
+          { expression: `!!document.querySelector('.menu__item--start')`, returnByValue: true },
+          sessionId,
+        );
+        if (r.result && r.result.value) return;
+        await sleep(150);
+      }
     };
     await load(...(opts.viewport || []));
 
@@ -288,17 +300,20 @@ async function withPage(fn, opts = {}) {
     return await fn({ evaluate, cdp: client, url, consoleErrors, load, sessionId, enterGame, netLog, netReset });
   } finally {
     if (client) client.close();
-    chrome.kill();
+    // 强杀:Windows 上 chrome 常忽略 SIGTERM 拖住 profile 目录不释放,
+    // 临时目录里会攒出几百个 qingshi-cdp-*(每个几十 MB),拖慢后续每套的启动,
+    // 表现为「整套批量跑时大批用例莫名失败、单独跑又都好」——那正是它干的。
+    // SIGKILL 在 Windows 上即 TerminateProcess,进程一落 profile 就解锁。
+    chrome.kill('SIGKILL');
     srv.close();
-    // Windows 上 chrome 退出是异步的,立刻 rm 多半因文件占用失败,Temp 里
-    // 曾因此泄漏了几百个 qingshi-cdp-* 目录。等进程真正退出再删,兜底重试。
-    await new Promise((r) => { chrome.once('exit', r); setTimeout(r, 3000); });
-    for (let i = 0; i < 5; i++) {
+    // 等进程真正退出再删目录,删不掉就多兜几轮
+    await new Promise((r) => { chrome.once('exit', r); setTimeout(r, 5000); });
+    for (let i = 0; i < 12; i++) {
       try {
         fs.rmSync(profile, { recursive: true, force: true });
         break;
       } catch {
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 300));
       }
     }
   }
@@ -367,7 +382,7 @@ const STEP_SNIPPET = `
       const g = window.__QS__ && window.__QS__.game;
       if (!g || g.phase !== 'round') return true;
       if (document.querySelector('.stage__foot .card[role="button"]')) return true;
-      if (document.querySelector('.stage__main .prompt--key.is-live')) return true;
+      if (document.querySelector('.prompt--key.is-live')) return true;
       await new Promise(r => setTimeout(r, 80));
     }
     return false;

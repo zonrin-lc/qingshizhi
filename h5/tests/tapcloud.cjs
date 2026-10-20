@@ -15,7 +15,7 @@
  * A. 无 mock(普通浏览器):设置页显示「仅本地」,整页无报错 —— 降级不砸页面
  * B. 有 mock:登录 → 存档 → debounce 上传 → 频控内再存只传一次 → 窗口后补传
  * C. 有 mock 且云端预置了更新的存档:启动对账 → 云端整包覆写本地
- * D. 有 mock:退出游戏 → 容器收到 exitMiniProgram 请求,落幕页兜底、「再执笔」回菜单
+ * D. 有 mock:退出游戏 → 容器收到 exitMiniProgram 请求,不跳落幕页,进静默终态
  * E. 有 mock:设置页手动「上 传」「下 载」两个操作(上传真传一次、下载覆盖本地)
  */
 const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
@@ -141,6 +141,10 @@ async function runA() {
     await evaluate(`(() => { const b = document.querySelector('.menu__confirm .menu__cbtn--yes'); if (b) b.click(); })()`);
     await sleep(300);
     checks.push(['环境拒绝退出时落幕页兜底', await evaluate(`!!document.querySelector('.menu__farewell')`)]);
+    // 浏览器兜底页带「再执笔」:能收回菜单
+    await evaluate(`(() => { const b = document.querySelector('.menu__farewell .menu__cbtn--yes'); if (b) b.click(); })()`);
+    await sleep(300);
+    checks.push(['「再执笔」收起落幕页', await evaluate(`!document.querySelector('.menu__farewell')`)]);
 
     const errs = consoleErrors();
     checks.push(['控制台无错误', errs.length === 0, errs.join(' / ')]);
@@ -253,7 +257,7 @@ async function runC(bundleJson) {
   return report('C. 容器内:云端新 → 覆写本地', checks);
 }
 
-/** D 组:容器内的真退出 —— exitMiniProgram 被调到,落幕页兜底 UI 照常,再执笔可回 */
+/** D 组:容器内的真退出 —— exitMiniProgram 被调到,不跳落幕页,直接进静默终态 */
 async function runD() {
   const checks = [];
   const add = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
@@ -266,11 +270,17 @@ async function runD() {
     await sleep(300);
     const log = await evaluate('window.__TAPLOG__');
     add('容器收到退出请求(exitMiniProgram 一次)', log.exits === 1, `exits=${log.exits}`);
-    // mock 不会真杀进程:落幕页作为「环境拒绝时的兜底」必须照样出现
-    add('落幕页兜底出现', await evaluate(`!!document.querySelector('.menu__farewell')`));
-    await evaluate(`(() => { const b = document.querySelector('.menu__farewell .menu__cbtn--yes'); if (b) b.click(); })()`);
-    await sleep(300);
-    add('「再执笔」收起落幕页', await evaluate(`!document.querySelector('.menu__farewell')`));
+    // 2026-10-21 用户拍板:移动端点退出直接停机,不跳落幕页
+    add('容器里不跳落幕页', await evaluate(`!document.querySelector('.menu__farewell')`));
+    add('菜单进静默终态(is-sealed)', await evaluate(`!!document.querySelector('.menu.is-sealed')`));
+    add('终态里入口区不再可点', await evaluate(`(() => {
+      const e = document.querySelector('.menu__entry');
+      return !!e && getComputedStyle(e).visibility === 'hidden';
+    })()`));
+    add('提示用胶囊的关闭按钮退出', await evaluate(`(() => {
+      const t = document.querySelector('.toast');
+      return !!t && (t.textContent || '').includes('胶囊');
+    })()`));
     const errs = consoleErrors();
     add('控制台无错误', errs.length === 0, errs.join(' / '));
   }, { enter: false, inject: mockTap(null) });

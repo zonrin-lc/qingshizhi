@@ -36,7 +36,7 @@ import {
   whyCannotSave, type Slot, type SecRec,
 } from './game/saves';
 import { injectCollection } from './game/collection';
-import { initTapCloud, requestExit as requestAppExit } from './game/tapcloud';
+import { initTapCloud, isTapEnv, requestExit as requestAppExit } from './game/tapcloud';
 import { btn, el, lbl } from './ui/kit';
 
 /** 引擎导出面自检 */
@@ -286,11 +286,14 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
       onExit: () => {
         bgm.stop();
         voice.stop();
-        // 真退出(2026-10-16 拍板):容器杀进程 / 浏览器关页;环境拒绝时落幕页兜底
+        // 真退出(2026-10-16 拍板):容器杀进程 / 浏览器关页
         // (别名 requestAppExit:本文件 163 行的 requestExit 是对局页「返回」确认流)
         requestAppExit();
       },
       onExitBack: () => bgm.idle(),
+      // 2026-10-21 用户拍板:移动端(TapTap 容器)点「退出」直接停机,不跳落幕页;
+      // 普通浏览器关页常被拒,仍留落幕页兜底(带「再执笔」)。
+      exitMode: isTapEnv() ? 'seal' : 'farewell',
       hasSaves,
     });
   };

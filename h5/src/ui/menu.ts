@@ -16,7 +16,7 @@
  *   次级项含「图 鉴」「设 置」文案;继续按钮无档时 disabled + .is-off;
  *   退出确认 .menu__confirm .menu__cbtn--yes;落幕页 .menu__farewell。
  */
-import { el, lbl, btn } from './kit';
+import { el, lbl, btn, toast } from './kit';
 import { getLatestAuto, DIFF_LABEL } from '../game/saves';
 import { sfx } from '../game/sfx';
 
@@ -44,6 +44,13 @@ export interface MenuActions {
   onExit(): void;
   /** 落幕页「再执笔」回到菜单:恢复 idle 曲 */
   onExitBack(): void;
+  /**
+   * 退出后的形态(2026-10-21 用户拍板):
+   * - 'seal'(容器内/移动端):直接停机,不跳任何页;页面若还活着就静默终态
+   *   (场景/动画/视频全停),并提示用 TapTap 胶囊的关闭按钮彻底退出;
+   * - 'farewell'(普通浏览器):关页常被浏览器拒,给一页落幕兜底(带「再执笔」)。
+   */
+  exitMode?: 'seal' | 'farewell';
   /** 是否有可用存档(决定继续/存档两项亮不亮) */
   hasSaves(): boolean;
 }
@@ -223,11 +230,18 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     const no = btn('返 回', { variant: 'ghost', cls: 'menu__cbtn' });
     yes.addEventListener('click', () => {
       ov.remove();
-      root.classList.add('is-farewell');
-      // 落幕即终态:容器里关不掉进程(无退出 API),至少让这页彻底静下来 ——
-      // 音乐/配音已由 act.onExit 停,循环视频在这里停解码,行舟动画由 CSS 冻结。
+      // 2026-10-21 用户拍板:移动端(容器内)点「退出」直接停机,不跳任何页;
+      // 容器没有退出接口(tapcloud.requestExit 已把能试的都试了),页面若还活着
+      // 就进静默终态:场景/动画/视频全停,只留一张纸,提示用胶囊的关闭按钮。
+      // 普通浏览器关页常被拒,仍走落幕页兜底(带「再执笔」回菜单)。
+      const seal = act.exitMode === 'seal';
+      root.classList.add(seal ? 'is-sealed' : 'is-farewell');
       restVids();
       act.onExit();
+      if (seal) {
+        toast(root, '已停止 · 若仍在后台,请用 TapTap 胶囊的关闭按钮退出');
+        return;
+      }
       const fw = el('div', 'menu__farewell');
       const again = el('button', 'menu__cbtn menu__cbtn--yes', '再 执 笔');
       again.type = 'button';

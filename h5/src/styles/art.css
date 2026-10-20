@@ -185,6 +185,13 @@
   padding: var(--sp-sm) var(--sp-lg);
   align-items: center;
 }
+/* 品牌 logo(2026-10-21 拍板):仅移动端对局页钉右上,桌面端不出现 */
+/* PC 端不展示(2026-10-21 拍板)。⚠ 必须 .stage__bar 前缀提优先级:
+ * select.css 在本文件之后加载,其 .seltop__brand{display:flex} 会盖掉同权重的
+ * .stage__brand{display:none}(对局页 logo 露出、叠到回溯钮上,实测复现) */
+.stage__bar .stage__brand {
+  display: none;
+}
 .stage__chap {
   font-size: var(--fs-title);
   color: var(--ink-heavy);
@@ -508,9 +515,13 @@
   padding-top: 0.55rem;
 }
 .rule {
-  height: 0.85rem;
-  width: 60%;
-  margin: 0 auto var(--sp-sm);
+  /* 素材 1100×101(2026-10-20 拍板:结果分隔线被压扁 → aspect-ratio 锁形):
+     此前 60% × 0.85rem 把 10.9:1 的金线素材竖向压 3 倍,菱形压成扁片;
+     定宽 min(20rem,60%),高度按素材比例自动推出,PC/移动端同比例不变形 */
+  width: min(20rem, 60%);
+  height: auto;
+  aspect-ratio: 1100 / 101;
+  margin: var(--sp-xs) auto var(--sp-sm);
   background: url('../assets/deco/title.webp') center / 100% 100% no-repeat;
 }
 
@@ -547,6 +558,8 @@
   /* 2026-10-17 四拍:与上下(标题分隔线/身外属性行)的间距收窄 */
   margin: 0 auto;
   overflow: visible;
+  /* 2026-10-21 拍板:雷达图加投影,从棋盘底图上浮起来 */
+  filter: drop-shadow(0 2px 6px rgba(74, 58, 30, 0.35));
 }
 .radar__ring {
   stroke: var(--line);
@@ -593,7 +606,9 @@
  * 2026-10-18 拍板:名/值两列定宽(原 auto),各行的进度条因此一样长。 */
 .stage__side .kv {
   display: grid;
-  grid-template-columns: 2.2em 1fr 2.4em;
+  /* 值列 minmax:硬核模式不出数字、出四字状态词(2026-10-21 拍板),
+     固定 2.4em 放不下会折行;放宽到 auto 让词一气呵成,进度条(1fr)让位 */
+  grid-template-columns: 2.2em 1fr minmax(2.4em, auto);
   grid-template-areas: 'k m v';
   column-gap: var(--sp-sm);
   line-height: 1.4;
@@ -602,21 +617,24 @@
   margin-bottom: var(--sp-sm);
   /* 2026-10-14 用户拍板:身外维度字号加大(0.75→0.85rem);
    * 2026-10-15:与边框的间距再加大(sp-sm→sp-md);
-   * 2026-10-17 四拍:名字与数值字号统一,再放大到 0.95rem */
+   * 2026-10-17 四拍:名字与数值字号统一,再放大到 0.95rem;
+   * 2026-10-21 拍板:再增大一档 */
   padding: 0 var(--sp-md);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  /* 2026-10-21 拍板:身外属性行加投影,文字与进度条整体从底图上浮起来 */
+  filter: drop-shadow(0 1px 3px rgba(74, 58, 30, 0.3));
 }
 .stage__side .kv__k { grid-area: k; color: var(--ink); white-space: nowrap; }
-.stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; text-align: center; }
+.stage__side .kv__v { grid-area: v; color: var(--zhu-hi); font-weight: 700; text-align: center; white-space: nowrap; }
 /* meter 相对定位:增减徽标(.attrdelta)浮在进度条中央(2026-10-18 拍板) */
 .stage__side .kv .meter { grid-area: m; position: relative; }
-/* 维度进度条再加粗(8→12px,2026-10-17 拍板);偏离条(side__foot 的 meter)不动 */
+/* 维度进度条再加粗(8→12px,2026-10-17 拍板;2026-10-21 拍板 12→14px);偏离条(side__foot 的 meter)不动 */
 .stage__side .kv .meter {
-  height: 12px;
-  border-radius: 6px;
+  height: 14px;
+  border-radius: 7px;
 }
 .stage__side .kv .meter__fill {
-  border-radius: 6px;
+  border-radius: 7px;
 }
 /* 身外/自身属性悬浮交互(2026-10-17 拍板):行底色晕染 + 条增亮;雷达图轻微浮起 */
 .stage__side .kv {
@@ -918,6 +936,12 @@
     border-image-slice: 50 62 50 62 fill;
     border-width: 30px 38px 30px 38px;
   }
+  /* 对局页主卷轴布局边框(2026-10-20 晚拍板,DevTools 实测定值):
+     上 20 / 右 36 / 下 16 / 左 18,正文更贴近纸面;
+     贴图仍按 30/38 画(轴杆与金线的绘制宽度不变,只动布局边距) */
+  .stage__main.panel-scroll {
+    border-width: 20px 36px 16px 18px;
+  }
   /* 窄屏弹框内边距跟着画稿边框(30/38px)收小,别把内容挤没;
      与桌面规则同优先级(0,2,0),靠媒体查询 + 源序靠后生效。
      章末/结局弹框定向收窄(2026-10-19 三拍):rem 不随视口缩(见 base.css body 注),
@@ -1000,11 +1024,12 @@
   .backbtn {
     /* 三拍:变化不明显就再缩一档,让牌匾明显小于返回罗盘 */
     width: 4rem;
-    height: 1.75rem;
+    /* 十拍(2026-10-20 拍板):高度再减一档,牌匾紧跟标题、与标题上下居中 */
+    height: 1.4rem;
     /* 九拍:高度改不动的根因与「继续」钮同源——.btn 的 min-height:2.6rem
        (41.6px)在 min-height/height 冲突时优先,牌匾一直被托在 41.6px */
     min-height: 0;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-indent: 0.1em;
   }
@@ -1016,10 +1041,20 @@
       calc(-1 * (var(--safe-r) + var(--sp-sm))) 0
       calc(-1 * (var(--safe-l) + var(--sp-sm)));
     padding: 2vh 1vw 8px;
-    /* 标题绝对定位脱流后,流内只剩回溯钮:推到右缘,别叠到左边的返回钮上 */
-    justify-content: flex-end;
+    /* 十拍(2026-10-20 拍板):标题回到流内,回溯钮紧跟标题成组居中,
+       不再单推到右缘;罗盘返回钮仍是绝对定位不占流 */
+    justify-content: center;
   }
   .stage__bar .pageback { top: 2vh; left: 1vw; }
+  /* 品牌 logo 钉右上(2026-10-21 拍板):复用选择页 kit.brandLogo,
+     缩印 0.45 倍免得压过标题;落款副题行在对局页太闹,一并藏掉 */
+  .stage__bar .stage__brand {
+    /* 复用设置页口径(2026-10-21 拍板):brandcorner 已钉右上(3vh/3vw),
+       尺寸走 .seltop__brand 的 vh 自然大小,不再缩印/藏副题;
+       副题由 base.css 全站移动端规则隐藏,与设置页同观感 */
+    display: flex;
+    pointer-events: none;
+  }
   /* 移动端对局改双栏(2026-10-20 拍板):画卷(立绘+文本)在左上,宽 66% 屏;
      四卡区在画卷下方同宽;右列为属性面板(恢复桌面纵排行式,整列高)。
      art.css 在 game.css 之后加载,同优先级选择器此处覆盖窄屏 flex 单列 */
@@ -1062,22 +1097,22 @@
   }
   /* 属性区文字整体缩小一档(2026-10-20 拍板);
      display 恢复规则必须保留(art.css 884 行的隐藏规则在此块之前) */
+  /* 「属 性」两字标题去掉(2026-10-20 拍板):雷达直接顶到属性区顶部,
+     腾出的一行给下方内容,整列更容易一屏放下 */
   .stage__side .side__title {
-    display: block;
-    font-size: 0.9rem;
-    /* 九拍:标题下移,分隔线去掉(基础规则的 border-bottom 归零);
-       三轮:标题↔雷达间距归零(拍板),上边距保留 4px 作顶栏呼吸 */
-    margin: 4px 0 0;
-    padding-bottom: 0;
-    border-bottom: 0;
+    display: none;
   }
   .stage__side .kv {
     display: grid;
-    grid-template-columns: 2.2em 1fr 2.4em;
+    /* 值列 minmax:硬核四字状态词不折行(2026-10-21 拍板),与桌面同口径 */
+    grid-template-columns: 2.2em 1fr minmax(2.4em, auto);
     grid-template-areas: 'k m v';
     white-space: normal;
-    /* 二拍:继续缩小 */
-    font-size: 0.6rem;
+    /* 二拍:继续缩小;2026-10-21 拍板:稍稍增大一档 */
+    font-size: 0.68rem;
+  }
+  .stage__side .kv__v {
+    white-space: nowrap;
   }
   .stage__side .kv .meter {
     display: block;
@@ -1120,9 +1155,9 @@
   /* 属性区展示雷达图(2026-10-20 拍板):桌面口径 width 70% 居中,取消移动端隐藏 */
   .stage__side .radar {
     display: block;
-    /* 九拍三轮:与标题、下方属性行的间距全部归零(拍板),腾出的空间给宽度
-       (75→88%);90% 时属性行曾溢出 23px,间距归零后可再放开一档 */
-    width: 88%;
+    /* 十拍(2026-10-20 拍板):标题去掉后雷达放大到满栏宽、顶到属性区顶部;
+       是否一屏放得下由探针实测兜底 */
+    width: 100%;
     margin: 0 auto;
   }
   /* 行距收紧,六行 + 页脚在屏内一屏放下(2026-10-20 拍板:属性区高度增加);
@@ -1130,19 +1165,23 @@
   .stage__side .kv {
     margin-bottom: 0;
   }
+  /* 偏离度字号与身外属性行一致(2026-10-20 拍板):0.6rem 对齐 .kv,
+     段位·年岁的 .txt 一并对齐,页脚整行统一 */
+  .stage__side .side__foot,
+  .stage__side .side__foot .txt {
+    font-size: 0.6rem;
+  }
   /* 四卡在 66vw 脚区里一排放下:放弃 8rem 基准宽,四等分均分内容宽,
      否则 4×128px+间隙差 7px 就换行,把下方 auto 行撑爆、画卷被压扁 */
   .stage__foot .card {
     flex: 1 1 0;
     min-width: 0;
   }
-  /* 标题位置复用选择页 selhead 口径(2026-10-20 拍板):绝对定位脱出顶栏流,
-     top 2vh 水平居中,与左右两钮同排 */
+  /* 标题回到顶栏流内(2026-10-20 拍板,改原「绝对定位居中」口径):
+     回溯钮紧贴标题右侧,顶栏 align-items:center 让两者上下居中对齐 */
   .stage__head {
-    position: absolute;
-    top: 2vh;
-    left: 0;
-    right: 0;
+    position: static;
+    flex: 0 0 auto;
     height: auto;
     margin: 0;
   }
@@ -1194,18 +1233,25 @@
     font-size: calc(var(--fs-cap) * 0.95);
     line-height: 1.35;
   }
-  /* 身外属性进度条压扁(四拍):桌面加粗到 12px 的口径在窄栏太高 */
+  /* 身外属性进度条压扁(四拍):桌面加粗到 12px 的口径在窄栏太高;
+     2026-10-21 拍板:6→9px,与字号增大配套,加宽一档 */
   .stage__side .kv .meter {
-    height: 6px;
-    border-radius: 3px;
+    height: 9px;
+    border-radius: 4.5px;
   }
   .stage__side .kv .meter__fill {
-    border-radius: 3px;
+    border-radius: 4.5px;
   }
   /* 事件选项按钮 + 「继续」钮(七拍/八拍):高度实打实压下来。
      「继续」钮此前压不动是 art.css .btn 的 min-height:2.6rem(41.6px) 兜着 */
   .dock > .card {
     height: 1.8rem;
+  }
+  /* 事件/抉择选项卡例外(2026-10-21 拍板):附加信息内联后可能折到第二行,
+     固定高会裁字,改最小高兜底 */
+  .dock > .card--opt {
+    height: auto;
+    min-height: 1.8rem;
   }
   .dock > .card .card__title {
     font-size: calc(var(--fs-ui) * 0.85);
@@ -1417,10 +1463,9 @@
 .stage__deco[data-variant='game'] .deco-bamboo-l {
   display: none;
 }
-/* 对局页梅花缩至 75%(2026-10-18 拍板) */
+/* 对局页梅枝去掉(2026-10-21 拍板,原 2026-10-18 拍板为缩至 66%):右上只剩品牌 logo */
 .stage__deco[data-variant='game'] .deco-plum-tr {
-  transform: scale(0.66);
-  transform-origin: right top;
+  display: none;
 }
 .stage__deco[data-variant='summary'] .deco-plum-tr {
   background-image: url('../assets/decor/plum-tr2.webp');

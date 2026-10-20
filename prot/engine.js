@@ -564,6 +564,11 @@
         c = { ok: cr.hardOk, reason: cr.hardReason };
         if (cr.hardOk && cr.rate != null) risky = { rate: cr.rate, unmet: cr.unmet };
       }
+      // 治病卡财富门槛（2026-10-21 拍板）：身无分文不得求医——否则 paid=0 白治一场；
+      // 0<财富<药资 仍走「举债求医」（有多少付多少，注记债台高筑）
+      if (e.id === '__cure__' && self.d.ILLNESS && self.attrs.caifu <= 0) {
+        c = { ok: false, reason: '囊中羞涩——连延医的药资都拿不出' };
+      }
       var used = self.actionUses[e.id] || 0;
       var noDim = self.d.ACTION_RULES && self.d.ACTION_RULES.diminish === false;
       return { type: 'action', action: a, locked: !c.ok, reason: c.reason || null, usedCount: used, diminishing: !noDim && used > 0, risky: risky, choice: (a && a.choice) ? true : null };
@@ -614,6 +619,8 @@
     // 治病卡（v1.8）：清病 + 药资，视作本轮行动（推进倒计时，不收益递减）
     if (entry.id === '__cure__') {
       if (!this.ill || !this.d.ILLNESS) return null;
+      // 引擎兜底（2026-10-21 拍板）：财富见底不得求医（UI 锁只是展示层）
+      if (this.attrs.caifu <= 0) return null;
       var ILL = this.d.ILLNESS, wasMajor = this.ill.type === 'major';
       this.ill = null;
       var paid = Math.min(this.attrs.caifu, ILL.cost), owed = this.attrs.caifu < ILL.cost;
@@ -1032,6 +1039,19 @@
     this._weijiClamp += this.attrs.weiji - 95;
     this.attrs.weiji = 95;
     return null;
+  };
+
+  /* 险招失败收束（2026-10-21 H5 拍板：失败即事件终结，不再留在本事件改选）。
+   * choose() 的失败分支已把选项烧毁、相位留在 event；UI 展示完失败结算后调这里收束路由：
+   * 际遇/危机插入 → RETURN 回主线（不重复触发随机，proceed 的 _skipRandom 口径）；
+   * 主线/关键事件 → 空路由，proceed 兜底回回合重发牌。关键卡倒计时照走，
+   * 事件未记通过（passedEvents 不写），可再经倒计时/选项耗尽重新进入——烧毁的选项不会复原。
+   * 只在 event 相位有效；非 event 调用返回 null（UI 据此走原 proceed 流程）。 */
+  Game.prototype.abandonEvent = function () {
+    if (this.phase !== 'event') return null;
+    this.phase = 'settle';
+    this._next = this.currentRandom ? { type: 'return' } : { type: 'none' };
+    return this.proceed();
   };
 
   Game.prototype.applyEff = function (eff) {

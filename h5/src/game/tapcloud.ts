@@ -390,25 +390,36 @@ export async function pullSaves(): Promise<PullResult> {
 }
 
 /**
- * 真退出(2026-10-16 拍板):容器里请求结束游戏进程,浏览器里请求关页。
+ * 容器退出接口候选名。
  *
- * 2026-10-21 实测结论:TapTap 小游戏/H5 的 API 全表(文档站 634 条路由
- * 全部核对过)没有「退出/关页」接口,base/app/life-cycle 只有
- * onShow/onHide/getLaunchOptionsSync;类比平台的 tt.exitMiniProgram 也
- * 只是切后台不杀进程。容器收到落幕页前,进程确实关不掉 —— 这是容器
- * 行为(圆形退出按钮挂后台同理),H5 里没有途径改变它。能做的尽力而为:
- * 1. 特性探测 tap.exitMiniProgram(若容器未来补此甲,退出用得上);
- * 2. window.close() 兜底(脚本未打开的窗口会被拒,只留 warning);
- * 3. 退出前把脏档尽力传一波(同步链在后台继续跑,关页被掐也无损:
- *    本地已在 localStorage,下次启动 reconcile 补传)。
+ * 2026-10-21 复核:TapTap 小游戏/H5 的 API 全表(文档站 634 条路由全核对过)没有
+ * 「退出/关页」接口,base/app/life-cycle 只有 onShow/onHide/getLaunchOptionsSync;
+ * 类比平台的 tt.exitMiniProgram 也只是切后台不杀进程。所以这几个名字都是
+ * 「容器将来可能补」的探测位(按 wx / 各类小程序命名习惯),有就用,没有就跳过。
+ */
+const EXIT_API_NAMES = ['exitMiniProgram', 'exitApplication', 'exit'] as const;
+
+/**
+ * 真退出(2026-10-16 拍板;2026-10-21 改):尽最大努力结束进程。
+ * - 容器:把几个可能的退出接口都探测一遍(文档站没有,纯探测);
+ * - 浏览器/WebView:window.close() 兜底(脚本未打开的窗口会被拒,只留 warning)。
+ * 点火即忘:退出成败都不可依赖回调(进程可能直接被掐),本地存档已在
+ * localStorage,未上云的部分下次启动 reconcile 会补传,不在退出时抢传。
  */
 export function requestExit(): void {
   void uploadNow().catch(() => { /* 尽力而为,失败不拦退出 */ });
   const t = typeof window !== 'undefined' ? window.tap : undefined;
-  try {
-    if (t && typeof t.exitMiniProgram === 'function') t.exitMiniProgram({});
-  } catch { /* 容器拒绝:继续走 window.close */ }
+  if (t) {
+    const bag = t as unknown as Record<string, unknown>;
+    for (const name of EXIT_API_NAMES) {
+      const fn = bag[name];
+      if (typeof fn !== 'function') continue;
+      try {
+        (fn as (o: object) => void).call(t, {});
+      } catch { /* 容器拒绝:继续试下一个 */ }
+    }
+  }
   try {
     window.close();
-  } catch { /* 被浏览器拒绝:落幕页兜底 */ }
+  } catch { /* 被浏览器拒绝:由界面进静默终态兜底 */ }
 }

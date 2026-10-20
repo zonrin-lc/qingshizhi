@@ -1,6 +1,6 @@
 /* js/ui-core.js —— 基础工具与共享状态（自 index.html 内联脚本原样搬移，行为零变化） */
 
-  var APP_VERSION = '1.0.0';   // 界面版本号唯一来源（与 package.json version 同步，test-ui-contract.js 校验）
+  var APP_VERSION = '1.0.1';   // 界面版本号唯一来源（与 package.json version 同步，test-ui-contract.js 校验）
   var D = window.GAME_DATA, E = window.QINGSHI_ENGINE;
 
   var selScen = 'lisi', selDiff = 'normal';

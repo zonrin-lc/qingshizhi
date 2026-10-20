@@ -71,7 +71,8 @@ const DRIVER = `(async () => {
     const box = q('.gallery .galdetail');
     detail.opened = !!(ov && !ov.hidden && box);
     detail.hasName = !!box && box.textContent.includes('东市之叹');
-    detail.hasStat = !!box && box.textContent.includes('乙') && box.textContent.includes('55') && box.textContent.includes('达成 2 回');
+    // 2026-10-20 拍板:详情浮层达成行改版为「累计达成N回」(落在太史公曰后,无空格)
+    detail.hasStat = !!box && box.textContent.includes('乙') && box.textContent.includes('55') && box.textContent.includes('累计达成2回');
     detail.hasZhuan = !!box && box.textContent.includes('太史公曰');
     const closeBtn = box ? [...box.querySelectorAll('.btn')].find(b => b.textContent.includes('收')) : null;
     if (closeBtn) closeBtn.click();

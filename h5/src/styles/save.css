@@ -327,22 +327,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* 内容居中:框高由下面的 min-height 定,题字等居中排 */
+  justify-content: center;
   gap: var(--sp-sm);
   padding: var(--sp-xl) var(--sp-xl) var(--sp-lg);
   border-image: url('../assets/save/guide.webp') 40 fill / 18px stretch;
   text-align: center;
-}
-.saves__guideseal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.2rem;
-  height: 3.2rem;
-  border-radius: var(--r-sm);
-  background: rgba(138, 106, 52, 0.14);
-  border: 1px solid var(--line);
-  font-size: var(--fs-h2);
-  color: var(--ink-dim);
+  /* 2026-10-21 用户拍板:空态框增高 —— 与「有记录」时 6 条槽位列表同高,
+   * 这样空/有记录两种态下,下方暂存框的位置与高度都对得上(整页不跳)。
+   * 槽位行 min-height 3.1rem + 行距 --sp-xs,这里照抄同一口径。 */
+  min-height: calc(6 * 3.1rem + 5 * var(--sp-xs));
 }
 .saves__guidetitle {
   font-size: var(--fs-h2);
@@ -396,6 +390,11 @@
 }
 .slot--stash {
   border-image-source: url('../assets/save/slot-empty.webp');
+}
+/* 2026-10-21 用户拍板:暂存框空态与有记录同高(有记录那条是「题签 + 元信息」
+ * 两行,实测 6.2rem)—— 空态只留一行也占这么高,暂存框不会一有记录就长高一截 */
+.slot--stash.is-empty {
+  min-height: 6.2rem;
 }
 .slot__idx--stash {
   /* 2026-10-19 拍板:弃圆角横条贴图,改小方块纯色(取自原贴图中心色),占位更省 */
@@ -500,9 +499,15 @@
   .saves__stashhead {
     flex: none;
   }
-  /* 无档引导卡溶解后成为右栏直接子项,补上原先来自列表的占位 */
+  /* 无档引导卡溶解后成为右栏直接子项,补上原先来自列表的占位。
+   * 2026-10-21 用户拍板:空态框按 6 条槽位的份量(flex-grow 6)占,
+   * 这样空态与有记录态下,下方暂存框拿到的高度一样(整页不跳)。 */
   .saves__guide {
-    flex: 1 1 0;
+    flex: 6 1 0;
+    min-height: 0;
+  }
+  /* 空暂存行在移动端按份量均分,不吃桌面那条固定 min-height */
+  .slot--stash.is-empty {
     min-height: 0;
   }
   .slot {

@@ -283,6 +283,8 @@ export interface Game {
   chooseCardOption(i: number): CardResult | null;
   cancelChoice(): boolean;
   choose(i: number): CardResult | null;
+  /** 险招失败收束(2026-10-21 拍板):事件终结不再改选,际遇回主线/主线回回合;非 event 相位返回 null */
+  abandonEvent(): Route;
   proceed(): Route;
   /** 际遇判定:命中则引擎已切到 event 相位并回填 currentRandom */
   maybeRandom(): GameEvent | null;

@@ -40,8 +40,8 @@ export class Sfx {
   /** 名字 → 元素池。元素一经创建常驻,浏览器自己缓存音频数据。 */
   private pools = new Map<string, HTMLAudioElement[]>();
   private wanted = true;
-  /** 音量:设置页滑杆驱动(默认 0.8),这里是设置加载前的兜底 */
-  private volume = 0.8;
+  /** 音量:设置页滑杆驱动(默认 0.5),这里是设置加载前的兜底 */
+  private volume = 0.5;
 
   get enabled(): boolean {
     return this.wanted;

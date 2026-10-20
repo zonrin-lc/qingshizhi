@@ -39,7 +39,10 @@ const DRIVER = `(async () => {
   }
   if (g.phase !== 'ending') return { ok: false, why: '6000 步内没走到结局', phase: g.phase, steps };
 
-  // 结局弹框 DOM(2026-10-17 起为深色蒙版弹框):评等印鉴、四维评分、总分行、返回主页
+  // 结局弹框内容是异步落定的(相位切来时上一相位 DOM 可能还在),等总分行出现再采样
+  for (let i = 0; i < 40 && !q('.score--total'); i++) await sleep(100);
+
+  // 结局弹框 DOM(2026-10-20 拍板复用图鉴详情弹框):印鉴 + 头部总分/评级 + 累计达成 + 返回主页
   const dom = {
     seal: !!q('.seal--big'),
     scores: qa('.score').length,
@@ -58,8 +61,8 @@ const DRIVER = `(async () => {
   const endKeys = col && col.endings ? Object.keys(col.endings) : [];
   const endRec = endKeys.length ? col.endings[endKeys[0]] : null;
 
-  // 结局页进度行:「此结局第 N 回达成 · 剧本结局 x/y」
-  const progLine = qa('.txt').map(t => t.textContent).find(t => t.includes('回达成'));
+  // 结局页累计达成行:2026-10-20 拍板措辞「累计达成N回」(galdetail__meta)
+  const progLine = qa('.txt').map(t => t.textContent).find(t => t.includes('累计达成'));
 
   // 返回主页(弹框内按钮) → 主菜单出现
   const backBtn = qa('.overlay .btn--primary')[0];
@@ -79,12 +82,13 @@ withPage(async ({ evaluate, consoleErrors }) => {
   const ok = report('结局页', [
     ['整局走到 ending 相位', out.ok === true],
     ['评等印鉴渲染', out.dom?.seal === true],
-    ['四维评分 + 总分行', (out.dom?.scores ?? 0) >= 5 && out.dom?.total === true],
+    // 2026-10-20 拍板:四维评分行并入头部总分/评级,不再单列
+    ['总分行 + 评等印鉴(复用图鉴详情弹框)', (out.dom?.scores ?? 0) >= 1 && out.dom?.total === true && out.dom?.seal === true],
     ['提供「返 回 主 页」', (out.dom?.back ?? []).some((t) => t.includes('返'))],
     ['结局后自动档已清', out.autoCleared === true],
     ['跨局收藏已写回(col_v1)', !!out.col && Array.isArray(out.col.gloss) && Array.isArray(out.col.ach)],
     ['结局达成记录落地(次数≥1)', !!out.endRec && out.endRec.c >= 1 && typeof out.endRec.n === 'string'],
-    ['结局页有进度行(第 N 回达成 · x/y)', !!out.progLine && /第 \d+ 回达成/.test(out.progLine) && /结局 \d+\/\d+/.test(out.progLine)],
+    ['结局页有累计达成行(2026-10-20 拍板措辞)', !!out.progLine && /累计达成\d+回/.test(out.progLine)],
     ['返回主页回到主菜单', out.menuBack === true],
     ['控制台无错误', consoleErrors().length === 0],
   ]);

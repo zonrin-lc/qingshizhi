@@ -370,12 +370,20 @@
 .menu.is-farewell .menu__glow,
 .menu.is-farewell .menu__clouds,
 /* 场景层整层冻结:行舟 CSS 动画停、画面不再重绘(视频解码由 menu.ts 停) */
-.menu.is-farewell .menu__scene {
+.menu.is-farewell .menu__scene,
+/* 容器内「直接停机」的静默终态(2026-10-21):与落幕页同款冻结,只是不挂落幕页 */
+.menu.is-sealed .menu__titlewrap,
+.menu.is-sealed .menu__entry,
+.menu.is-sealed .menu__glow,
+.menu.is-sealed .menu__clouds,
+.menu.is-sealed .menu__scene {
   visibility: hidden;
   animation-play-state: paused;
 }
 .menu.is-farewell .menu__boat,
-.menu.is-farewell .menu__boat-body {
+.menu.is-farewell .menu__boat-body,
+.menu.is-sealed .menu__boat,
+.menu.is-sealed .menu__boat-body {
   animation-play-state: paused;
 }
 

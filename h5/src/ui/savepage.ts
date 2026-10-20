@@ -259,11 +259,12 @@ function slotRow(
   return row;
 }
 
-/** 无存档引导卡(save-guide 底图):印章 + 题字 + 说明 + 开始新局 */
+/** 无存档引导卡(save-guide 底图):题字 + 说明 + 开始新局
+ *  2026-10-21 用户拍板:去掉顶上的「空」印章 —— 整块已经写明「尚未落笔」,
+ *  再顶个「空」字是重复;空态框本身改用与有记录同高的留白(见 save.css)。 */
 function guideCard(meta: ScenarioMeta, o: SavePageOpts): HTMLElement {
   const g = el('div', 'saves__guide');
   g.append(
-    el('span', 'saves__guideseal u-kai', '空'),
     lbl('尚 未 落 笔', 'saves__guidetitle u-kai'),
     el('div', 'saves__guiderule'),
     // .saves__empty 类名留给存档链路测试辨认「过滤为空」态

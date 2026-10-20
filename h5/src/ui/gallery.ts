@@ -163,13 +163,15 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
       seal(rec.g, 'seal--big'),
     );
     info.append(total);
-    info.append(lbl(`此结局累计达成 ${rec.c} 回`, 'galdetail__meta u-dim'));
     head.append(info);
     box.append(head);
     if (e.zhuan) {
       box.append(divider('太史公曰'));
       box.append(lbl(e.zhuan, 'prose u-qing galdetail__zhuan'));
     }
+    // 累计达成(2026-10-20 拍板):从头部信息列移出,落在太史公曰与按钮之间,
+    // 字号随 .galdetail__meta 对齐正文
+    box.append(lbl(`累计达成${rec.c}回`, 'galdetail__meta u-dim'));
     const row = el('div', 'overlay__row');
     row.append(btn('收 起', { variant: 'primary', onClick: closeDetail }));
     box.append(row);
@@ -361,7 +363,10 @@ function entry(ent: Entry, variant: boolean, onDetail: (e: Entry) => void): HTML
   const col = el('div', 'galent__col');
   col.append(lbl(rec.n || name, 'galent__name u-kai'));
   if (ent.intro) col.append(lbl(ent.intro, 'galent__quote u-dim'));
-  col.append(lbl(`达成 ${rec.c} 回 · 最佳 ${rec.b}`, 'galent__meta u-dim'));
+  const meta = lbl(`达成 ${rec.c} 回`, 'galent__meta u-dim');
+  // 「· 最佳 N」独立成段(2026-10-21 拍板):移动端整体隐藏,PC 保持原样
+  meta.append(lbl(` · 最佳 ${rec.b}`, 'galent__best'));
+  col.append(meta);
   row.append(icon, col);
   if (rec.g) row.append(lbl(rec.g, `galent__grade u-kai${rec.g === '甲上' ? ' is-top' : ''}`));
   row.classList.add('is-done');

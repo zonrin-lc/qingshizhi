@@ -70,6 +70,13 @@
 .intro-note {
   margin: 0 0 var(--sp-sm);
   font-size: var(--fs-note);
+  /* 数据值增减提示在文本区居中(2026-10-20 拍板);
+     落位淡入与 is-pending 配套——章首先 toast,队列走完才在此原位显现 */
+  text-align: center;
+  transition: opacity 480ms var(--ease-ink);
+}
+.intro-note.is-pending {
+  opacity: 0;
 }
 .devrow {
   display: flex;
@@ -122,7 +129,7 @@
  * 原来「右缘让出 30%」的对齐计算不再需要(2026-10-15)。 */
 .stage__foot {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   flex-wrap: wrap;
   /* 卡片宽高比锁 2:1(2026-10-15 拍板不拉伸):高度由比例推出,
@@ -136,6 +143,31 @@
   background: transparent;
   border-top: 0;
   padding: var(--sp-sm) var(--sp-lg) var(--sp-md);
+}
+
+/* ---------- 关键事件提示条宿主(2026-10-20 拍板) ----------
+ * 独立网格行钉在画卷(row1)与选项卡(row3)之间:提示条不再是画卷内的边框卡,
+ * 去框后的纯文字居中排;无提示时整行塌 0,版面与旧版一致 */
+.stage__keybar {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px var(--sp-lg) 0;
+}
+.stage__keybar:empty {
+  display: none;
+}
+.stage__keybar .prompt {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  margin: 0;
+  max-width: none;
+  text-align: center;
 }
 
 /* 选项卡统一 2:1 + 阴影 + 翻面入场(2026-10-15 拍板):
@@ -255,14 +287,15 @@
   letter-spacing: 0.1em;
 }
 
-/* 「史」角标(2026-10-19 拍板):史书记载的选项在卡右上角贴一枚小圆签,
- * 不再以「〔史〕」占正文一行(dock 卡 overflow:hidden,角标收在框内) */
+/* 「史」角标(2026-10-19 拍板):史书记载的选项在卡上贴一枚小圆签,
+ * 不再以「〔史〕」占正文一行(dock 卡 overflow:hidden,角标收在框内)。
+ * 2026-10-21 拍板:移到右下角并缩小一档,像一枚钤在落款处的小印 */
 .card__hist {
   position: absolute;
-  top: 2px;
+  bottom: 2px;
   right: 4px;
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 0.78rem;
+  height: 0.78rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,9 +303,24 @@
   border-radius: 50%;
   color: var(--zhu);
   background: rgba(246, 239, 224, 0.88);
-  font-size: var(--fs-cap);
+  font-size: 0.5rem;
   line-height: 1;
   pointer-events: none;
+}
+/* 事件/抉择选项附加信息内联(2026-10-21 拍板):锁因/险招不另起一行,
+ * 跟在选项文字后同一流内排,长了自然折行 */
+.card__optline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.45em;
+}
+.card__optline .txt {
+  margin: 0;
+}
+.card__optline .card__lock,
+.card__optline .card__risk {
+  font-size: var(--fs-cap);
 }
 .card__risk {
   font-size: var(--fs-cap);
@@ -585,7 +633,8 @@
  * 纵跨文本行与选项行两行,下缘与选项卡行下缘对齐(2026-10-15 拍板)。 */
 .stage__side {
   grid-column: 2;
-  grid-row: 1 / 3;
+  /* 纵跨三行(叙事 + 提示条 + 选项),下缘仍与选项行对齐 */
+  grid-row: 1 / 4;
   /* 纵 flex:页脚(偏离/年岁)以 margin-top:auto 沉到底边(2026-10-17 三拍) */
   display: flex;
   flex-direction: column;
@@ -614,7 +663,8 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* 三行:叙事行 | 关键事件提示条行(空则塌 0)| 选项行(2026-10-20 拍板) */
+  grid-template-rows: minmax(0, 1fr) auto auto;
   padding: var(--sp-xs) var(--sp-lg);
 }
 /* 入局淡入(2026-10-18 拍板:漩涡放大 + 粒子穿梭转场已去,只留对局页自身淡入)。
@@ -760,6 +810,15 @@
   .stage__foot {
     max-height: 30%;
     padding: var(--sp-xs) var(--sp-sm);
+  }
+  /* 窄屏 cols 退成纵向 flex:提示条排到属性条之后、选项区之前
+     (画卷与选项卡之间,与桌面网格行同位,2026-10-20 拍板) */
+  .stage__keybar {
+    order: 1;
+    padding: 2px var(--sp-sm) 0;
+  }
+  .stage__cols > .stage__foot {
+    order: 2;
   }
   .card {
     flex: 1 1 8rem;

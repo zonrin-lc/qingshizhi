@@ -9,7 +9,7 @@
  */
 import type { AttrKey, CardResult, ChangeView, Game, Route, ScenarioData, SummaryView } from '../../types/scenario';
 import { parseRuns } from './gloss';
-import { btn, card, clear, divider, el, kv, lbl, meter, seal } from '../ui/kit';
+import { btn, card, clear, divider, el, kv, lbl, meter, seal, toast } from '../ui/kit';
 import { renderRadar, renderRadarTween, RADAR_AXES } from '../ui/radar';
 import { castOf, renderCast, bigPortrait } from '../ui/cast';
 import { voice } from './voice';
@@ -105,6 +105,10 @@ export class Session {
   private pickHintToken = 0;
   /** 结算动画序列的重入令牌:飞卡/翻牌/自动推进的延时步都验它,dispose 或新结算即作废 */
   private settleToken = 0;
+  /** 关键事件提示条宿主:独立网格行钉在画卷与选项卡之间(2026-10-20 拍板) */
+  private readonly keybar: HTMLElement;
+  /** 章首数据值增减提示的 toast/落位定时器(dispose 时作废) */
+  private noteTimers: number[] = [];
   private readonly onFinish: (() => void) | null;
   /** 剧本 key(写自动档用);与选择页轻量表的 key 一致 */
   private readonly scenKey: string;
@@ -128,6 +132,9 @@ export class Session {
     this.overlay = mounts.overlay;
     this.stage = mounts.stage;
     this.deco = mounts.deco;
+    // 提示条宿主:cols 是 main 的父节点(shell.ts 里 main/side/foot 同挂 cols)
+    this.keybar = el('div', 'stage__keybar');
+    mounts.main.parentElement?.append(this.keybar);
     this.onFinish = onFinish ?? null;
     this.scenKey = opts?.scenKey ?? game.d.SCENARIO.id;
     this.backBtn = btn('回溯', { variant: 'ghost', cls: 'backbtn', onClick: () => this.doBacktrack() });
@@ -146,6 +153,9 @@ export class Session {
     this.skipReveal();
     this.settleToken += 1;
     this.backBtn.remove();
+    this.keybar.remove();
+    for (const t of this.noteTimers) window.clearTimeout(t);
+    this.noteTimers = [];
     this.main.removeEventListener('pointerdown', this.onSkipPointer);
   }
 
@@ -163,6 +173,14 @@ export class Session {
     voice.enqueue(ctx.s, ctx.c, clip);
   }
 
+  /** 选项落定后的结果配音(2026-10-20 拍板):先掐断事件正文的朗读,立即切换到
+   * 结果切片;切片不存在(主线/随机事件结算不配音)则只掐断 —— 结果已上屏,
+   * 还在念事件正文只会让人出戏。 */
+  private speakResult(clip: string | null): void {
+    voice.stop();
+    if (clip) this.speakOne(clip);
+  }
+
   /**
    * 换页面皮肤:背景图 + 卷轴底板 + 装饰枝叶。
    *
@@ -171,6 +189,9 @@ export class Session {
    */
   private skin(bg: 'game' | 'summary' | 'ending', deco: 'game' | 'summary' | 'ending'): void {
     this.stage.setAttribute('data-bg', bg);
+    // 提示条逐相位重挂:先清空(renderRound 里命中关键事件再回填),
+    // 否则上一相位的倒计时条会一直挂到事件结束
+    this.keybar.replaceChildren();
     const wide = deco === 'game';
     this.main.classList.toggle('stage__main--narrow', !wide);
     this.main.classList.toggle('panel-scroll', wide);
@@ -681,8 +702,28 @@ export class Session {
     return sec;
   }
 
+  /** 0 增量状态条目(2026-10-21 拍板)并入同属性的真实增减:
+   * 引擎的阈值标记(weiji≥70「流言四起」/≥90「命悬一线」)与疾病自愈都是 delta 0,
+   * 和真实增减并排出现观感像「出了两条危机」——合并进真实条目的注记,无真实条目才单列 */
+  private mergeZeroChanges(changes: ChangeView[]): ChangeView[] {
+    const hasReal = new Map<string, boolean>();
+    for (const c of changes) if (c.delta !== 0) hasReal.set(c.k, true);
+    if (!hasReal.size) return changes;
+    const out: ChangeView[] = [];
+    for (const c of changes) {
+      if (c.delta === 0 && hasReal.get(c.k)) {
+        const hit = out.find((x) => x.k === c.k && x.delta !== 0);
+        if (hit && c.note) hit.note = hit.note ? `${hit.note}；${c.note}` : c.note;
+        if (hit) continue;
+      }
+      out.push(c);
+    }
+    return out;
+  }
+
   /** 结算的属性增减列表(showSettle 浮层与内联结算共用);行带 data-attr 供飞行动画定位 */
   private chgList(changes: ChangeView[]): HTMLElement | null {
+    changes = this.mergeZeroChanges(changes);
     if (changes.length === 0) return null;
     const list = el('div', 'chglist');
     for (const c of changes) {
@@ -702,6 +743,7 @@ export class Session {
   /** 属性胶囊:挂在正文下方的块级胶囊排(2026-10-19 拍板,不再内联进题签);
    * 每枚仍叫 .chgrow[data-attr],flyChanges 的高亮/飞字钩子原样生效 */
   private chgTags(changes: ChangeView[]): HTMLElement | null {
+    changes = this.mergeZeroChanges(changes);
     if (changes.length === 0) return null;
     const wrap = el('div', 'chglist');
     for (const c of changes) {
@@ -963,7 +1005,14 @@ export class Session {
     // 那几行是 mainAdd 直接加的,只有 segs/notes 进 revealSegs 的 items。
     const items: HTMLElement[] = [];
     for (const seg of ch.intro ?? []) items.push(this.prose(seg));
-    for (const n of this.game.introNotes) items.push(lbl(n, 'intro-note u-qing'));
+    // 数据值增减提示(【…】行,2026-10-20 拍板):先 toast,队列走完再在正文原位淡入;
+    // is-pending 只是透明,占位不抖,落位动画见 .intro-note 的 transition
+    const pendingNotes: HTMLElement[] = [];
+    for (const n of this.game.introNotes) {
+      const line = lbl(n, 'intro-note u-qing is-pending');
+      pendingNotes.push(line);
+      items.push(line);
+    }
     // 回溯回来要说清代价,否则玩家会以为回溯能刷成就(GDD 6.4)
     if (fromBacktrack) {
       items.push(lbl('【回溯】你回到了本章开头。偏离度与已解锁的成就、声望、图鉴都不会重置——史书会记得。', 'intro-note u-warn'));
@@ -984,6 +1033,29 @@ export class Session {
       }));
       this.scrollMainBottom();
     });
+    this.toastThenSettle(pendingNotes);
+  }
+
+  /**
+   * 章首「【…】」数据值增减提示:先 toast 再落位(2026-10-20 拍板)。
+   * 逐条错峰 toast(展示时长与 kit.toast 的 2600ms 对齐),队列走完后
+   * 一次性摘 is-pending,各条在正文原位淡入。reduced-motion 不演,直接落位。
+   */
+  private toastThenSettle(notes: HTMLElement[]): void {
+    if (notes.length === 0) return;
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) {
+      for (const n of notes) n.classList.remove('is-pending');
+      return;
+    }
+    const STEP = 2600;
+    notes.forEach((n, i) => {
+      this.noteTimers.push(window.setTimeout(() => toast(this.stage, n.textContent ?? ''), i * STEP));
+    });
+    this.noteTimers.push(window.setTimeout(() => {
+      for (const n of notes) n.classList.remove('is-pending');
+      this.scrollMainBottom();
+    }, notes.length * STEP));
   }
 
   /** 「第一章 ｜ 兰陵问道」→「兰陵问道」;无竖线则原样返回 */
@@ -1007,33 +1079,25 @@ export class Session {
     this.evtHost = null;
     // 「经营 · 第N轮」小节只在行动/蓄势真正落定时才推(afterCardSettle),
     // 回合相位的卷轴只挂关键事件提示条——无题签小节,收起即隐,不再凭空多出第 1 轮
-    const { body } = this.pushSec();
+    this.pushSec();
 
-    // 关键事件不占底部选项位(2026-10-14 用户拍板):改为文本区底部的提示条,
-    // 可开启时是醒目的可点提示,不可开启时是倒计时说明。
-    // 2026-10-19 拍板:提示条只在最新一轮存在,历史轮次里的旧条整条摘掉。
+    // 关键事件不占底部选项位(2026-10-14 用户拍板):可开启时改为文本区底部的可点提示条。
+    // 2026-10-21 拍板:「余 N 轮」倒计时提示条去掉——未到点不打扰,只留可了断的那一条。
     for (const old of this.storyEl?.querySelectorAll('.prompt--key') ?? []) old.remove();
     const keyIdx = offer.findIndex((e) => e.type === 'key');
     const key = keyIdx >= 0 ? offer[keyIdx] : null;
-    if (key && key.type === 'key') {
-      const p = el(
-        'div',
-        `prompt prompt--key${key.enterable ? ' is-live' : ''}`,
-        key.enterable
-          ? `关键事件「${key.title}」已至——点此了断本章`
-          : `关键事件「${key.title}」余 ${key.roundsLeft ?? 0} 轮后自动开启`,
-      );
-      if (key.enterable) {
-        p.setAttribute('role', 'button');
-        p.tabIndex = 0;
-        p.dataset.offerIdx = String(keyIdx);
-        const fire = (): void => this.doPlayCard(keyIdx);
-        p.addEventListener('click', fire);
-        p.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
-        });
-      }
-      body.append(p);
+    if (key && key.type === 'key' && key.enterable) {
+      const p = el('div', 'prompt prompt--key is-live', `关键事件「${key.title}」已至——点此了断本章`);
+      p.setAttribute('role', 'button');
+      p.tabIndex = 0;
+      p.dataset.offerIdx = String(keyIdx);
+      const fire = (): void => this.doPlayCard(keyIdx);
+      p.addEventListener('click', fire);
+      p.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+      });
+      // 提示条不再进画卷文本区:独立行钉在画卷与选项卡之间(2026-10-20 拍板)
+      this.keybar.replaceChildren(p);
     }
 
     // 上回合选定的牌在结算动画收尾已翻背面(2026-10-17 拍板),此处兜底翻完再发新牌。
@@ -1197,15 +1261,21 @@ export class Session {
       const o = opts[i];
       if (!o) continue;
       const cardBody = el('div', 'card__body');
-      cardBody.append(lbl(o.opt.t, 'card__title u-kai'));
-      if (o.locked && o.reason) cardBody.append(lbl(`🔒 ${o.reason}`, 'card__lock u-zhu'));
-      if (o.risky) cardBody.append(lbl(this.riskText(o.risky), 'card__risk u-warn'));
+      // 附加信息(锁因/险招)不换行,内联跟在选项文字后(2026-10-21 拍板)
+      const line = el('div', 'card__optline');
+      line.append(lbl(o.opt.t, 'card__title u-kai'));
+      if (o.locked && o.reason) line.append(el('span', 'card__lock u-zhu', `🔒 ${o.reason}`));
+      if (o.risky) line.append(el('span', 'card__risk u-warn', this.riskText(o.risky)));
+      cardBody.append(line);
       const c = card({
         // 事件选项不带菱纹装饰(2026-10-19 拍板:card--plain 去 ◇)
         cls: `card--opt card--plain${o.locked ? '' : ' card--tappable'}`,
         locked: o.locked,
         onClick: () => this.doChoose(i),
       });
+      // 引擎选项下标随卡走:有锁定选项在前时,可点卡 DOM 序 ≠ 引擎下标,
+      // 测试驱动(e2e)按此定位,不按下标数
+      c.dataset.offerIdx = String(i);
       c.append(cardBody);
       // 「史」改角标(2026-10-19 拍板):不占正文一行,贴在卡右上角
       if (o.hist) c.append(el('span', 'card__hist', '史'));
@@ -1252,9 +1322,13 @@ export class Session {
           locked,
           onClick: () => this.doChooseCardOpt(i),
         });
+        c.dataset.offerIdx = String(i);
         const optBody = el('div', 'card__body');
-        optBody.append(lbl(o.t, 'card__title u-kai'));
-        if (locked && o.reason) optBody.append(el('div', 'card__lock u-zhu', `🔒 ${o.reason}`));
+        // 锁因内联跟在选项文字后,不单独占一行(与事件选项同口径,2026-10-21 拍板)
+        const line = el('div', 'card__optline');
+        line.append(lbl(o.t, 'card__title u-kai'));
+        if (locked && o.reason) line.append(el('span', 'card__lock u-zhu', `🔒 ${o.reason}`));
+        optBody.append(line);
         c.append(optBody);
         dock.append(c);
       }
@@ -1362,10 +1436,12 @@ export class Session {
 
     clear(this.overlay);
     this.overlay.className = 'overlay overlay--dim';
-    const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--ending');
+    // 最终结算(2026-10-20 拍板):完全复用图鉴成就详情弹框 —— 同皮
+    // (panel-scroll--summary + galdetail)同结构(头部印章+结局名·评级 /
+    // 太史公曰 / 累计达成 / 按钮),移动端的隐藏分数·收紧居中等规则全部自动继承
+    const body = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary galdetail');
 
-    // 头部区(2026-10-20 拍板:参考图鉴成就详情 galdetail__head)——印章图在前,
-    // 结局名 + 总分/等级 + 达成进度组成信息列跟在后面,横向一排
+    // 头部区:与 gallery.ts showDetail 同构 —— 印章图在前,信息列(结局名+总分/评级)跟后
     const head = el('div', 'galdetail__head');
     const sealTop = el('img', 'galdetail__seal') as HTMLImageElement;
     sealTop.src = sealImg(e.seal);
@@ -1381,29 +1457,14 @@ export class Session {
       seal(e.grade, 'seal--big'),
     );
     info.append(total);
-    if (prog) {
-      info.append(lbl(
-        `此结局第 ${prog.rec.c} 回达成 · 结局 ${prog.reached}/${prog.total}`,
-        'galdetail__meta u-dim',
-      ));
-    }
     head.append(info);
     body.append(head);
 
-    body.append(divider('评 分'));
-    const names: Record<string, string> = { gongye: '功业', cuncun: '存续', shiping: '史评', yingxiang: '影响' };
-    for (const k of ['gongye', 'cuncun', 'shiping', 'yingxiang'] as const) {
-      const v = e.scores[k];
-      const row = el('div', 'score');
-      row.append(
-        el('span', 'score__k u-dim', names[k] ?? k),
-        meter(v, 'var(--gold)'),
-        el('span', 'score__v u-kai', String(v)),
-      );
-      body.append(row);
+    if (e.zhuan) {
+      body.append(divider('太史公曰'));
+      body.append(lbl(e.zhuan, 'prose u-qing galdetail__zhuan'));
     }
-    if (e.zhuan) body.append(lbl(e.zhuan, 'prose u-qing'));
-    if (e.epilogue) body.append(this.prose(e.epilogue, 'prose u-qing'));
+    if (prog) body.append(lbl(`累计达成${prog.rec.c}回`, 'galdetail__meta u-dim'));
 
     const btnRow = el('div', 'overlay__row');
     btnRow.append(btn('返 回 主 页', {
@@ -1501,9 +1562,10 @@ export class Session {
 
   private renderCorrection(c: { title: string; segs: string[]; changes?: ChangeView[] } | null | undefined): void {
     this.showSettle(`历史修正 ｜ ${c?.title ?? ''}`, (c?.segs ?? []).join(''), c?.changes ?? []);
-    // 修正配音:corr_<N>,N 是 CORRECTIONS 里的下标(修正浮层不带 id,按 title 反查)
+    // 修正配音:corr_<N>,N 是 CORRECTIONS 里的下标(修正浮层不带 id,按 title 反查);
+    // 修正页整页替换,旧朗读一并掐断再切结果切片
     const idx = c ? this.game.d.CORRECTIONS.findIndex((corr) => corr.title === c.title) : -1;
-    if (idx >= 0) this.speakOne(`corr_${idx}`);
+    this.speakResult(idx >= 0 ? `corr_${idx}` : null);
     this.pendingAfterSettle = () => this.route(this.game.correctionContinue());
   }
 
@@ -1548,10 +1610,12 @@ export class Session {
       return;
     }
     // 选项结果配音:只有危机事件(C-*)有结算切片 crisis_<id>_o<N>;
-    // 主线/随机事件的选项结算不配音(2026-10-17 拍板)
-    if (this.game.eventId?.startsWith('C-') && !r.forcedEnding) {
-      this.speakOne(`crisis_${this.game.eventId}_o${i + 1}`);
-    }
+    // 主线/随机事件的选项结算不配音(2026-10-17 拍板)。三档都先掐正文朗读再切结果
+    this.speakResult(
+      this.game.eventId?.startsWith('C-') && !r.forcedEnding
+        ? `crisis_${this.game.eventId}_o${i + 1}`
+        : null,
+    );
     // 险招要亮骰点(Lua 的 riskTitle):掷骰 63 ＞ 50 · 败 / 硬核的「成算五成 · 败」。
     const title = [
       r.risk ? this.game.riskTitle(r) : '',
@@ -1583,14 +1647,18 @@ export class Session {
       host.body.append(this.prose(r.text));
     };
     if (r.failed && !r.forcedEnding) {
-      // 失败且未致命:结果与增减先写正文(题签不封,重选落定后才封),选项内联重挂
+      // 险招失败即事件终结(2026-10-21 拍板):不再原地重选,题签封口后与成功同流程推进。
+      // 属性变化只走 sealHead 胶囊一路(2026-10-21 补拍:chgList+sealHead 各渲染一遍会出双份)
       appendResult();
-      const list = this.chgList(r.changes);
-      if (list) {
-        host.body.append(list);
-        this.flyChanges(list);
-      }
-      this.renderEventOptsInline();
+      this.sealHead(host.head, host.body, optText, r.changes);
+      this.evtHost = null;
+      this.dock().append(btn('继 续', {
+        variant: 'primary',
+        onClick: (e) => {
+          (e.currentTarget as HTMLButtonElement).remove();
+          this.route(this.game.abandonEvent());
+        },
+      }));
       this.scrollMainBottom();
       return;
     }
@@ -1609,7 +1677,7 @@ export class Session {
   }
 
   /** 偶遇/随机事件的内联结算:结果直接续在事件小节正文后(不再单开「结果」小节),
-   * 属性增减以胶囊封进题签;险招失败可原地重选(失败回显暂写正文,落定才封题签)。
+   * 属性增减以胶囊封进题签;险招失败即事件终结,不再原地重选(2026-10-21 拍板)。
    * 落定后不再有「继 续」钮(2026-10-17 拍板):结果亮出后自动推进。 */
   private doChooseInline(r: CardResult, evtBody: HTMLElement, title: string): void {
     this.clearDock();
@@ -1620,13 +1688,17 @@ export class Session {
     };
     if (r.failed && !r.forcedEnding) {
       appendResult(evtBody);
-      const list = this.chgList(r.changes);
-      if (list) {
-        evtBody.append(list);
-        this.flyChanges(list);
-      }
-      this.renderEventOptsInline();
+      // 属性变化只走 sealHead 胶囊一路,不再叠加 chgList 行(同 key-event 失败分支口径)
+      this.sealHead(this.evtHost?.head ?? null, evtBody, '', r.changes);
+      this.inlineEvtBody = null;
+      this.evtHost = null;
       this.scrollMainBottom();
+      // 险招失败即事件终结:与成功同口径自动推进,abandonEvent 负责收束路由
+      const token = (this.settleToken += 1);
+      window.setTimeout(() => {
+        if (token !== this.settleToken) return;
+        this.route(this.game.abandonEvent());
+      }, 2600);
       return;
     }
     appendResult(evtBody);
@@ -1652,8 +1724,8 @@ export class Session {
       this.thaw('这一抉择眼下走不通（状态已变）。');
       return;
     }
-    // 抉择卡结算配音:choice_<id>_o<N>(2026-10-17 合并口径)
-    if (cardId) this.speakOne(`choice_${cardId}_o${i + 1}`);
+    // 抉择卡结算配音:choice_<id>_o<N>(2026-10-17 合并口径);先掐正文朗读再切结果
+    this.speakResult(cardId ? `choice_${cardId}_o${i + 1}` : null);
     // 抉择落定:结果续进抉择小节正文,题签封「——所选 +属性胶囊」,不新开小节、不弹浮层
     const host = this.choiceHost;
     // 底部选项区不动:其余卡在出牌时已翻背面,选中的留到下回合发牌前(2026-10-16 拍板)

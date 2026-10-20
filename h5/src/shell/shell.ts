@@ -12,7 +12,7 @@
  *         footer.stage__foot   选项区(与文本区同宽)
  *       .overlay               浮层
  */
-import { backBtn, clear, el, lbl } from '../ui/kit';
+import { backBtn, brandLogo, clear, el, lbl } from '../ui/kit';
 
 export type PageBg = 'game' | 'menu' | 'select' | 'save' | 'settings' | 'summary' | 'ending' | '';
 
@@ -50,7 +50,11 @@ export function buildShell(mount: HTMLElement): Shell {
   const chap = el('div', 'stage__chap u-kai u-heavy', '青史志');
   chapWrap.append(chap);
   const band = el('div', 'stage__band', '');
-  bar.append(back, chapWrap, band);
+  // 品牌 logo(2026-10-21 拍板):对局页右上角复用设置页口径——brandcorner 钉右上,
+  // 尺寸走 .seltop__brand 的 vh 自然大小;桌面端仍由 .stage__brand 基础规则隐藏
+  const brand = brandLogo();
+  brand.classList.add('brandcorner', 'stage__brand');
+  bar.append(back, chapWrap, band, brand);
 
   // ---------- 主体两栏 + 底部选项区 ----------
   // foot 收进 cols(2026-10-15 拍板):cols 变两行网格,属性区纵跨两行,

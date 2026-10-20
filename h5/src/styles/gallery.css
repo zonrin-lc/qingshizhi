@@ -340,8 +340,10 @@
 .galdetail__info .score--total .seal--big {
   font-size: 1rem;
 }
+/* 累计达成:落在太史公曰与按钮之间(2026-10-20 拍板),字号与太史公曰正文一致 */
 .galdetail__meta {
-  font-size: var(--fs-cap);
+  margin: var(--sp-sm) 0 0;
+  font-size: calc(var(--fs-body) * var(--text-scale, 1));
 }
 /* 「太史公曰」题签放大(2026-10-19 拍板):全站 divider 字号不动,只提详情浮层 */
 .galdetail .divider__txt {
@@ -358,16 +360,42 @@
   /* 不再自设 40vh 内滚(2026-10-20 拍板):长文让弹框整体长高,
      由 overlay 一级滚动兜底,文本区自身不出滚动条 */
 }
-/* 移动端「太史公曰」行距 1.1(2026-10-19 拍板):与全站窄屏行距口径一致,
-   双条件断点保证横屏矮窗(915×412 这类)也生效 */
+/* 移动端详情头部(2026-10-20 拍板):隐藏分数只留评级,第一行
+   「结局名 · 评级」;图标与文字列收紧成一个整体并保持居中;
+   「累计达成」已移出头部(见 .galdetail__meta 全局规则);
+   「·」分隔符用伪元素补在评级组前 */
 @media (max-width: 880px), (orientation: landscape) and (max-height: 520px) {
   .galdetail__zhuan { line-height: 1.1; }
+  /* 头部整体居中(2026-10-20 拍板) */
+  .galdetail__head { gap: var(--sp-sm); text-align: center; }
+  .galdetail__info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-sm);
+  }
+  .galdetail__info .overlay__title { margin: 0; font-size: 1.2rem; }
+  /* 成绩行外壳收成内联项;最佳分数隐藏 */
+  .galdetail__info .score--total { margin: 0; gap: var(--sp-sm); }
+  .galdetail__info .score__k,
+  .galdetail__info .score__v { display: none; }
+  .galdetail__info .score--total .seal--big { font-size: 1.2rem; }
+  .galdetail__info .score--total::before {
+    content: '·';
+    color: var(--ink-dim);
+    font-size: 1.2rem;
+  }
+  /* 累计达成(已移出头部):字号与窄屏太史公曰正文一致(game.css 同断点 .prose *0.95),文字居中 */
+  .galdetail__meta { font-size: calc(var(--fs-body) * 0.95); text-align: center; }
+  /* 结局卡小字(2026-10-21 拍板):移动端去掉「· 最佳 N」,只留达成回数 */
+  .galent__best { display: none; }
 }
 
 /* ---------- 窄屏(2026-10-19 三次拍板):布局逐条参照存档页 save.css 窄屏口径——
    顶栏贴边贴顶(负 margin 抵掉 .stage 全局安全区内衬)、左右边距与返回钮对齐(1vw)、
    两栏恢复左右排(立绘占左 25% 撑满高度)、缩略图横排两端对齐、右栏聚合条纵排 +
-   条目单列。缩略图尺寸/名签字号走 save.css 的全局窄屏规则(.stab/.saves__plate 一套),
+   条目双列。缩略图尺寸/名签字号走 save.css 的全局窄屏规则(.stab/.saves__plate 一套),
    本文件不重复定义。
    断点(2026-10-19 晚补):除 ≤880 外,横屏矮窗(手机横屏 915×412 这类)也走本块——
    与 art.css/game.css 的紧凑口径一致,否则这些宽度落回桌面版式,聚合条/列表全挤爆。 ---------- */
@@ -484,7 +512,9 @@
     height: 3.9rem;
   }
   .galsec__entries {
-    grid-template-columns: minmax(0, 1fr);
+    /* 2026-10-21 用户拍板:移动端成就卡两行一列改「两个一行」(桌面本来就是双列),
+     * 一屏能扫到的结局更多;卡片窄了名字/赞文按原样式省略号截断 */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--sp-xs);
   }
 }

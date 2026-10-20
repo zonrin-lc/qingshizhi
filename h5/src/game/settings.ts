@@ -14,7 +14,7 @@
  * 版本号唯一真源是 prot/package.json,由 vite.config.ts 在构建期注入 __APP_VERSION__
  * (那边的注释解释了为什么不能手抄第三份 —— ui-core.js 的契约上次就漂过了)。
  */
-export const APP_VERSION = `v${__APP_VERSION__} · H5 版`;
+export const APP_VERSION = `v${__APP_VERSION__}`;
 
 export interface Settings {
   scale: 'small' | 'default' | 'large';
@@ -36,7 +36,7 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   scale: 'default', segDelay: 650, textScale: 'normal',
   voice: true, voiceGain: 1.0, music: true, musicGain: 0.06,
-  sfx: true, sfxGain: 0.8,
+  sfx: true, sfxGain: 0.5,
 };
 
 /** 选项表(界面缩放/叙事速度/正文字号)与 Lua home.lua 的 *_OPTS 一一对应;

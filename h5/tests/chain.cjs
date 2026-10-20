@@ -160,7 +160,7 @@ const DRIVER = `(async () => {
       const all = qa('.stage__foot .card');
       const pick = (ci >= 0 && all.find(c => c.dataset.offerIdx === String(ci) && c.getAttribute('role') === 'button'))
         || acts[0] || cards[0]
-        || q('.stage__main .prompt--key.is-live');   // 行动全锁时关键事件提示条是唯一出路
+        || q('.prompt--key.is-live');   // 行动全锁时关键事件提示条是唯一出路(提示条已挪出画卷,挂 keybar)
       if (!pick) {
         // 结算动画序列真实耗时约 1.5–3.5s(2026-10-17 拍板):旧牌翻面/选定占位期间
         // 真等它走完,不算卡死;lastCard 还在说明结算进行中,同样等
@@ -223,7 +223,8 @@ const DRIVER = `(async () => {
                  now: (q('.portrait__name') || {}).textContent || '' });
         }
       }
-      const target = open[pick];
+      const target = qa('.stage__main .card--tappable, .stage__foot .card--tappable')
+        .find(c => c.dataset.offerIdx === String(pick)) || open[pick];
       if (!target) { await sleep(60); continue; }  // 选项重排窗口,下一拍再点
       target.click(); continue;
     }
