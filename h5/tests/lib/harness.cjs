@@ -162,6 +162,10 @@ async function withPage(fn, opts = {}) {
       // 合成 click 不算用户手势,不开这个旗标音频全程被 autoplay 策略压着,
       // 「隐藏暂停/回前台续播」这类真实播放状态就没法验
       '--autoplay-policy=no-user-gesture-required',
+      // 测试要验的是「元素在不在播」(paused/volume/网络请求),不是「扬声器有没有响」。
+      // 不加这条,headless Chrome 会真的出声——整轮测试在用户机器上放 BGM,
+      // 页面关掉/测试跑完后还余音绕梁(2026-10-20 用户报:关了游戏界面音乐还在响)。
+      '--mute-audio',
       `--user-data-dir=${profile}`,
       '--window-size=1280,720',
       'about:blank',
