@@ -1096,12 +1096,16 @@
     }
     // peak 已在 _setAttrRaw 内逐项维护（v2.0.6）
     // 属性触阈值隐性规则（危机正增量乘难度系数 diff.wj，GDD 4.4）
-    var wj = this.diff.wj, dT;
+    var wj = this.diff.wj, dT, oldT;
     var jxFrom2 = (this.d.PERSIST && this.d.PERSIST.junxinFrom != null) ? this.d.PERSIST.junxinFrom : 0;
     var shichongOn2 = !(this.d.PERSIST && this.d.PERSIST.junxinShichong === false);
-    if (this.attrs.quanshi >= 80 && !this._once._caizhi) { this._once._caizhi = true; dT = Math.round(8 * wj); this.attrs.weiji = clamp(this.attrs.weiji + dT); changes.push({ k: 'weiji', label: '危机', delta: dT, note: '权势过盛，君主猜忌' }); }
-    if (this.attrs.junxin <= 15 && shichongOn2 && this.chapterIdx >= jxFrom2 && !this._once._shichong) { this._once._shichong = true; dT = Math.round(10 * wj); this.attrs.weiji = clamp(this.attrs.weiji + dT); changes.push({ k: 'weiji', label: '危机', delta: dT, note: '失宠于上' }); }
-    if (this.attrs.caifu <= 0 && !this._once._menke) { this._once._menke = true; this.attrs.shengwang = clamp(this.attrs.shengwang - 5); changes.push({ k: 'shengwang', label: '声望', delta: -5, note: '门客散去' }); }
+    /* 三条阈值副作用同样只报**实际生效值**（v2.1.5）：此前推的是请求值 dT，
+     * 危机 96 时「权势过盛」请求 +8 实际只落 +4，面板却报 +8——
+     * 与上方 attrs/condAttrs 分支（v2.0.6 已修）口径不一致，条目之和与真实差值对不上。
+     * 触发一次即记账一次，所以请求值只用于落值，报数一律回读差值。 */
+    if (this.attrs.quanshi >= 80 && !this._once._caizhi) { this._once._caizhi = true; dT = Math.round(8 * wj); oldT = this.attrs.weiji; this.attrs.weiji = clamp(this.attrs.weiji + dT); dT = this.attrs.weiji - oldT; if (dT) changes.push({ k: 'weiji', label: '危机', delta: dT, note: '权势过盛，君主猜忌' }); }
+    if (this.attrs.junxin <= 15 && shichongOn2 && this.chapterIdx >= jxFrom2 && !this._once._shichong) { this._once._shichong = true; dT = Math.round(10 * wj); oldT = this.attrs.weiji; this.attrs.weiji = clamp(this.attrs.weiji + dT); dT = this.attrs.weiji - oldT; if (dT) changes.push({ k: 'weiji', label: '危机', delta: dT, note: '失宠于上' }); }
+    if (this.attrs.caifu <= 0 && !this._once._menke) { this._once._menke = true; oldT = this.attrs.shengwang; this.attrs.shengwang = clamp(this.attrs.shengwang - 5); dT = this.attrs.shengwang - oldT; if (dT) changes.push({ k: 'shengwang', label: '声望', delta: dT, note: '门客散去' }); }
     // GDD 6.3 阈值状态提示：危机首次 ≥70 / ≥90 各提示一次（只加 note，不改数值）
     if (this.attrs.weiji >= 70 && !this._once._liuyan) { this._once._liuyan = true; changes.push({ k: 'weiji', label: '危机', delta: 0, note: '流言四起，你已身处流言中心' }); }
     if (this.attrs.weiji >= 90 && !this._once._mingxuan) { this._once._mingxuan = true; changes.push({ k: 'weiji', label: '危机', delta: 0, note: '命悬一线' }); }

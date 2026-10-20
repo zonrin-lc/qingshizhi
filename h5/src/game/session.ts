@@ -1142,6 +1142,17 @@ export class Session {
 
   // ---------- 事件 ----------
 
+  /** 该事件的节点异变(altSegs)是否生效。mutations 在章首按条件置 flag。 */
+  private altActive(ev: { altSegs?: { flag: string } }): boolean {
+    return !!(ev.altSegs && this.game.flags[ev.altSegs.flag]);
+  }
+
+  /** 事件叙事文本:异变生效时用变体。封存 Lua(game.lua:374)与旧 JS UI(ui-event.js:35)
+   *  同口径;H5 移植时只读 segs,导致五本共 20 处变体文案永不显示。 */
+  private eventSegs(ev: { segs?: string[]; altSegs?: { flag: string; segs: string[] } }): string[] {
+    return this.altActive(ev) ? ev.altSegs!.segs : ev.segs ?? [];
+  }
+
   renderEvent(): void {
     this.skin('game', 'game');
     this.renderTop();
@@ -1153,20 +1164,22 @@ export class Session {
       return;
     }
     const inserted = g.currentRandom != null;
-    this.ensureStory(ev.segs ?? []);
+    const segs = this.eventSegs(ev);
+    this.ensureStory(segs);
     // 题签即分类:际遇不带选项名(结果直接续正文),关键事件落定后由 sealHead 补「——所选」
     const host = this.pushSec(inserted ? `际遇 · 随机事件——${ev.title}` : `关键事件 · ${ev.title}`);
     this.evtHost = host;
     const { body } = host;
     // 配音(2026-10-17 合并口径):主线事件播 <事件id>(segs 已合并为一条);
     // 危机插入(id 以 C- 开头)播 _shared 的 crisis_<id>;随机事件(R-*)不配音。
+    // 异变文案没有对应录音(build-voice.py 只按基础 segs 合成),宁可静音也不放另一版的词。
     if (inserted) {
       if (g.eventId?.startsWith('C-')) this.speakOne(`crisis_${g.eventId}`);
-    } else {
+    } else if (!this.altActive(ev)) {
       this.speakOne(ev.id);
     }
     // 选项等渐显结束再挂:没读完就做选择不是我们要的
-    const items = (ev.segs ?? []).map((seg) => this.prose(seg));
+    const items = segs.map((seg) => this.prose(seg));
     // 偶遇/随机事件(含危机插入)与关键事件:选项都内联在文本区、跟在剧情文本下居中,
     // 不占底部决策区、不弹浮层(2026-10-14/15 用户拍板;关键事件 10-15 起同口径——
     // 「赵高来访」「蒙嘉之门」等 5 选项事件在底部会撑出第 5 张卡,内联竖排无此约束)。
@@ -1215,12 +1228,13 @@ export class Session {
       this.renderRound();
       return;
     }
-    this.ensureStory(v.segs ?? []);
+    const segs = this.eventSegs(v);
+    this.ensureStory(segs);
     const host = this.pushSec(`抉择 · ${v.title}`);
     this.choiceHost = host;
     const { body } = host;
 
-    const items = (v.segs ?? []).map((seg) => this.prose(seg));
+    const items = segs.map((seg) => this.prose(seg));
     this.revealSegs(body, items, () => {
       // 抉择卡剧情配音:segs 已合并为一条 choice_<id>(2026-10-17 合并口径)
       this.speakOne(`choice_${v.id}`);
@@ -1414,15 +1428,17 @@ export class Session {
       this.route(this.game.proceedAfterEndEvent());
       return;
     }
-    this.ensureStory(ev.segs ?? []);
-    // 章末事件配音:segs 已合并为一条 <事件id>(如 cj-yaojia,2026-10-17 合并口径)
-    this.speakOne(ev.id);
+    const segs = this.eventSegs(ev);
+    this.ensureStory(segs);
+    // 章末事件配音:segs 已合并为一条 <事件id>(如 cj-yaojia,2026-10-17 合并口径)。
+    // 异变文案同理没有录音,静音处理(见 renderEvent)。
+    if (!this.altActive(ev)) this.speakOne(ev.id);
     const { body } = this.pushSec(ev.title);
     body.append(el('div', 'rule'));
 
     // 选项卡不再走底部决策区、结算不再弹浮层:全部内联在文本区里,
     // 且等剧情渐显完再挂,免得没读完就点了
-    const items = (ev.segs ?? []).map((seg) => this.prose(seg));
+    const items = segs.map((seg) => this.prose(seg));
     this.revealSegs(body, items, () => {
       const dock = this.dock();
       for (let i = 0; i < ev.options.length; i += 1) {

@@ -17,7 +17,7 @@ const fs = require('node:fs');
 
 const DIR = __dirname;
 // 浏览器里跑的
-const ALL = ['chain.cjs', 'viewports.cjs', 'backtrack.cjs', 'save.cjs', 'stash.cjs', 'audio.cjs', 'voice.cjs', 'reveal.cjs', 'ending.cjs', 'settings.cjs', 'hardcore.cjs', 'gallery.cjs', 'tapcloud.cjs', 'wheel.cjs'];
+const ALL = ['chain.cjs', 'viewports.cjs', 'backtrack.cjs', 'save.cjs', 'stash.cjs', 'audio.cjs', 'voice.cjs', 'reveal.cjs', 'altsegs.cjs', 'ending.cjs', 'settings.cjs', 'hardcore.cjs', 'gallery.cjs', 'tapcloud.cjs', 'wheel.cjs'];
 // 纯 Node 断言(不碰浏览器、不需要 dist),单独跑但一样计入总览
 const PURE = ['scenarios.cjs'];
 const only = process.argv.slice(2).filter((a) => [...ALL, ...PURE].some((f) => f.includes(a)));

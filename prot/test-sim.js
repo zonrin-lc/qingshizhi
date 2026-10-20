@@ -1947,5 +1947,29 @@ function expect(name, actual, wantId, wantVariant) {
     console.log(`${ok ? '✔' : '✘'} 危机 95 封顶：同章两次触顶累加记账（记 ${acc}，应为 10）`);
   }
 
-  console.log(`\n结果：${pass} 通过，${fail} 失败`);
+    // 72. 阈值副作用只报实际生效值（v2.1.5）：危机顶到上限时不得虚报请求值
+    //     此前「权势过盛」把 dT=8 原样写进结算条目，而 96+8 被 clamp 到 100——
+    //     面板说 +8，玩家实际只涨 4，且条目之和与章末差值对不上。
+    {
+      const g = mkGame('normal', rngHigh);
+      g.start();
+      g.attrs.quanshi = 79;      // 差 1 跨 80 门槛
+      g.attrs.weiji = 96;        // 余量只有 4
+      g._once = {};
+      const b = { weiji: g.attrs.weiji, quanshi: g.attrs.quanshi };
+      const chg = g.applyEff({ attrs: { quanshi: 2 } });
+      const a = { weiji: g.attrs.weiji, quanshi: g.attrs.quanshi };
+      const realW = a.weiji - b.weiji;
+      const reported = chg.filter(c => c.note === '权势过盛，君主猜忌');
+      const ok1 = reported.length === 1 && reported[0].delta === realW && realW === 4;
+      if (ok1) pass++; else fail++;
+      console.log(`${ok1 ? '✔' : '✘'} 阈值副作用差额：报 ${reported.length ? reported[0].delta : '缺失'}，实际 ${realW}（应为 4）`);
+      const sum = chg.reduce((s, c) => s + c.delta, 0);
+      const real = realW + (a.quanshi - b.quanshi);
+      const ok2 = sum === real;
+      if (ok2) pass++; else fail++;
+      console.log(`${ok2 ? '✔' : '✘'} 结算条目之和 = 属性真实变化（${sum} vs ${real}）`);
+    }
+
+    console.log(`\n结果：${pass} 通过，${fail} 失败`);
 process.exit(fail > 0 ? 1 : 0);

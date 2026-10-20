@@ -34,7 +34,7 @@ lua-tools/
 schemas/
 skills/
 templates/
-tools/
+/tools/
 urhox-libs/
 AGENTS.md
 CLAUDE.md

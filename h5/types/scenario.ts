@@ -230,6 +230,9 @@ export interface EndEventView {
   id: string;
   title: string;
   segs?: string[];
+  /** 节点异变变体(与 GameEvent.altSegs 同构)。现有五本数据未用,但引擎原样透传,
+   *  保留字段以免将来章末事件加异变时被类型层挡住。 */
+  altSegs?: { flag: string; segs: string[] };
   options: EventOption[];
 }
 

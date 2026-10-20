@@ -13,13 +13,25 @@
   2. 源码里出现的中文字,字体子集全部覆盖(注释里的字不算 —— 它们不进页面)
 
 用法:
-    python3 tools/check-font.py          # 检查
-    python3 tools/check-font.py --all    # 连注释里的字一起报(诊断用)
+    node tools/run-python.cjs tools/check-font.py   # 推荐:npm run verify:font 走这条
+    python tools/check-font.py                      # 直接跑也可以
+    python tools/check-font.py --all                # 连注释里的字一起报(诊断用)
+
+Windows 注意:控制台默认 GBK,直接打印 '✓'/'✗' 会抛 UnicodeEncodeError 让门禁
+以"失败"收场 —— 明明字体是全覆盖的。下面统一把标准流改到 UTF-8 并容错。
 """
 
 import re
 import sys
 import pathlib
+
+# Windows 控制台/重定向默认 GBK:打印 '✓' 会 UnicodeEncodeError。
+# 直接运行时这里兜底;经 tools/run-python.cjs 启动时还额外设了 PYTHONIOENCODING。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FONT = ROOT / "public" / "fonts" / "qingshi-kai.ttf"
