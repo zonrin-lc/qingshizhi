@@ -87,6 +87,9 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     v.setAttribute('disablepictureinpicture', '');
     return v;
   };
+  // 引用留好:落幕与进后台时要停解码(见 restVids)
+  const pineVid = vid('menu__scene-vid menu__scene-vid--pine', pineLoopVid);
+  const bambooVid = vid('menu__scene-vid menu__scene-vid--bamboo', bambooTallLoopVid);
   // 白云:四朵由多层 radial-gradient 拼成的云团,贴着湖面缓缓左→右飘,
   // 在场景内置于底图之上、舟/礁石/松竹视频之下(前景层后面),参数见 menu.css
   const clouds = el('div', 'menu__clouds');
@@ -97,12 +100,32 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     boat,
     layer('menu__scene-rocks-l', rocksRImg),
     layer('menu__scene-rocks-r', rocksLImg),
-    vid('menu__scene-vid menu__scene-vid--pine', pineLoopVid),
-    vid('menu__scene-vid menu__scene-vid--bamboo', bambooTallLoopVid),
+    pineVid,
+    bambooVid,
   );
 
   // ---------- 柔光层 ----------
   root.append(scene, el('div', 'menu__glow'));
+
+  // ---------- 后台节能:循环视频解码随可见性起停(音频由 audio.ts 管理档) ----------
+  // TapTap 容器没有退出接口,玩家用容器圆形按钮把游戏挂后台时,能省的功耗
+  // 只有这一层:视频停解码、行舟动画由 CSS(is-farewell 同款 visibility)冻结。
+  const restVids = (): void => {
+    pineVid.pause();
+    bambooVid.pause();
+  };
+  const wakeVids = (): void => {
+    for (const v of [pineVid, bambooVid]) void v.play().catch(() => { /* 手势缺失时下轮再补 */ });
+  };
+  const onSceneVisibility = (): void => {
+    // is-bg:进后台时把行舟动画与场景重绘也停掉(视频解码由 restVids 停)
+    root.classList.toggle('is-bg', document.hidden);
+    if (document.hidden) restVids();
+    else if (!root.classList.contains('is-farewell')) wakeVids();
+  };
+  document.addEventListener('visibilitychange', onSceneVisibility);
+  // 菜单渲染时页面可能已经在后台(容器恢复旧页):初始态也对齐一次
+  root.classList.toggle('is-bg', document.hidden);
 
   // ---------- 组合主 logo(花纹 + 书法 + 朱印),居中偏上 ----------
   const titleWrap = el('div', 'menu__titlewrap');
@@ -201,6 +224,9 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     yes.addEventListener('click', () => {
       ov.remove();
       root.classList.add('is-farewell');
+      // 落幕即终态:容器里关不掉进程(无退出 API),至少让这页彻底静下来 ——
+      // 音乐/配音已由 act.onExit 停,循环视频在这里停解码,行舟动画由 CSS 冻结。
+      restVids();
       act.onExit();
       const fw = el('div', 'menu__farewell');
       const again = el('button', 'menu__cbtn menu__cbtn--yes', '再 执 笔');
@@ -208,6 +234,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
       again.addEventListener('click', () => {
         fw.remove();
         root.classList.remove('is-farewell');
+        wakeVids();
         act.onExitBack();
       });
       fw.append(lbl('青史长存 · 后会有期', 'menu__farewelltext u-kai'), again);
@@ -223,6 +250,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
   return {
     root,
     destroy() {
+      document.removeEventListener('visibilitychange', onSceneVisibility);
       root.remove();
     },
   };

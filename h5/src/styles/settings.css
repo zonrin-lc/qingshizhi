@@ -123,11 +123,17 @@
   display: flex;
   align-items: center;
   gap: var(--sp-md);
+  flex-wrap: wrap;
 }
 .tapsync__status {
   font-size: var(--fs-note);
   color: var(--ink-soft);
   letter-spacing: 0.06em;
+}
+/* 上传/下载两枚按钮(2026-10-21 用户拍板:移动端要能自己上/下) */
+.tapsync__acts {
+  display: flex;
+  gap: var(--sp-sm);
 }
 .tapsync__btn {
   font-family: var(--font-kai);
@@ -142,6 +148,14 @@
   transition: transform var(--dur-quick) var(--ease-ink);
 }
 .tapsync__btn:disabled { opacity: 0.45; cursor: default; }
+
+/* 下载云端存档的二次确认浮层按钮行(与存档页删除确认同款) */
+.settings__confirmrow {
+  display: flex;
+  gap: var(--sp-lg);
+  margin-top: var(--sp-sm);
+  justify-content: center;
+}
 
 /* ---------- 底部:版本号 + 返回 ---------- */
 .settings__foot {
@@ -187,4 +201,12 @@
   .settings__foot { margin-top: var(--sp-sm); }
   /* 云存档状态文案较长,允许换行到按钮下方,避免挤压溢出 */
   .tapsync { flex-wrap: wrap; }
+  /* 状态一行、两枚按钮一行:手指按得准(移动端主场景) */
+  .tapsync__status { flex: 1 1 100%; }
+  .tapsync__acts { flex: 1 1 100%; }
+  .tapsync__btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    font-size: var(--fs-ui);
+  }
 }

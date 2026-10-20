@@ -12,12 +12,28 @@
  * 拖动期间不重画整行(重画会销毁滑杆、打断拖拽),只就地更新图标与填充。
  * 音乐/音效/朗读的改动立刻生效(分别推给 Bgm/Sfx/Voice 实例)。
  */
-import { backBtn, brandLogo, clear, el, lbl } from './kit';
+import { backBtn, brandLogo, btn, clear, el, lbl, toast } from './kit';
 import {
   APP_VERSION, applyVisual, loadSettings, updateSettings, type Settings,
 } from '../game/settings';
 import { fmtTime } from '../game/saves';
-import { getStatus, onStatus, syncNow } from '../game/tapcloud';
+import { getStatus, onStatus, pullSaves, pushSaves, type PullResult, type PushResult } from '../game/tapcloud';
+
+/** 上传/下载的结果文案(给玩家看的实话,别把频控说成失败) */
+const PUSH_TEXT: Record<PushResult, string> = {
+  uploaded: '已上传到云端',
+  clean: '本地没有改动,无需上传',
+  throttled: '官方限制:一分钟内只能上传一次',
+  offline: '未连接 TapTap',
+  busy: '正在同步,请稍候',
+  failed: '上传失败,请稍后再试',
+};
+const PULL_TEXT: Record<PullResult, string> = {
+  applied: '已用云端存档覆盖本地',
+  'no-cloud': '云端还没有存档',
+  offline: '未连接 TapTap',
+  failed: '下载失败,请稍后再试',
+};
 
 export interface SettingsPage {
   root: HTMLElement;
@@ -111,36 +127,62 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
 
   // ---------- TapTap 云存档(2026-10-16) ----------
   // 只反映状态,不造状态:同步本体在 game/tapcloud.ts。非 TapTap 容器里
-  // 按钮藏起来,只留一行说明;容器内显示登录/同步状态 + 「立即同步」。
+  // 按钮藏起来,只留一行说明;容器内显示登录/同步状态 + 「上 传」「下 载」
+  // 两个手动操作(2026-10-21 用户拍板:移动端要能自己上传和下载)。
   const tapRow = el('div', 'srow srow--tap');
   tapRow.append(el('div', 'srow__title', '云存档同步'));
   const tapBox = el('div', 'tapsync');
   const tapText = el('span', 'tapsync__status');
-  const tapBtn = el('button', 'tapsync__btn', '立即同步') as HTMLButtonElement;
-  tapBtn.type = 'button';
+  const tapActs = el('div', 'tapsync__acts');
+  const upBtn = el('button', 'tapsync__btn', '上 传') as HTMLButtonElement;
+  const downBtn = el('button', 'tapsync__btn', '下 载') as HTMLButtonElement;
+  upBtn.type = 'button';
+  downBtn.type = 'button';
+  upBtn.setAttribute('aria-label', '上传本地存档到云端');
+  downBtn.setAttribute('aria-label', '下载云端存档覆盖本地');
   const paintTap = (): void => {
     const s = getStatus();
     if (!s.env) {
       tapText.textContent = '仅在 TapTap 客户端内可用,当前为本地存档';
-      tapBtn.hidden = true;
+      tapActs.hidden = true;
       return;
     }
-    tapBtn.hidden = false;
+    tapActs.hidden = false;
     tapText.textContent = !s.online ? '未连接 TapTap'
       : s.syncing ? '同步中…'
         : s.pending ? '有改动待同步'
           : s.lastSync ? `已同步 · ${fmtTime(s.lastSync)}`
             : '已连接 TapTap';
   };
-  tapBtn.addEventListener('click', () => {
-    tapBtn.disabled = true;
-    // 官方频控一分钟一次;撞上窗口时这次按 false 收,状态行照常刷新
-    void syncNow().then(() => {
-      tapBtn.disabled = false;
+  /** 同步进行中时两个按钮一起锁:避免连点撞频控 */
+  const lockActs = (on: boolean): void => {
+    upBtn.disabled = on;
+    downBtn.disabled = on;
+  };
+  upBtn.addEventListener('click', () => {
+    if (upBtn.disabled) return;
+    lockActs(true);
+    // 官方频控一分钟一次;撞上窗口时这次按 'throttled' 收,状态行照常刷新
+    void pushSaves().then((r) => {
+      lockActs(false);
       paintTap();
+      toast(root, PUSH_TEXT[r]);
     });
   });
-  tapBox.append(tapText, tapBtn);
+  downBtn.addEventListener('click', () => {
+    if (downBtn.disabled) return;
+    // 下载会覆盖本机进度,先二次确认(与删存档同口径)
+    confirmPull(root, () => {
+      lockActs(true);
+      void pullSaves().then((r) => {
+        lockActs(false);
+        paintTap();
+        toast(root, PULL_TEXT[r]);
+      });
+    });
+  });
+  tapActs.append(upBtn, downBtn);
+  tapBox.append(tapText, tapActs);
   tapRow.append(tapBox);
   // 设置页没有 destroy 钩子(.hidePages 直接 remove),断开时自我退订
   const offStatus = onStatus(() => {
@@ -174,6 +216,34 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
       }
     },
   };
+}
+
+/**
+ * 下载云端存档的二次确认浮层(2026-10-21:下载会覆盖本机进度,不能一键完成)。
+ * 与删存档浮层同口径:深色蒙版 + 窄幅悬挂卷轴;.settings__confirm 只作契约
+ * 标记(测试定位),样式全走 overlay--dim 一套。
+ */
+function confirmPull(root: HTMLElement, onYes: () => void): void {
+  root.querySelector('.settings__confirm')?.remove();
+  const ov = el('div', 'settings__confirm overlay overlay--dim');
+  const box = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary');
+  box.append(
+    lbl('下载云端存档？', 'overlay__title u-kai u-strong'),
+    lbl('云端存档会覆盖本机当前进度。', 'overlay__body'),
+    lbl('本机旧档会留一份备份。', 'overlay__body u-dim'),
+  );
+  const row = el('div', 'settings__confirmrow');
+  row.append(
+    btn('下 载', { variant: 'primary', onClick: () => { ov.remove(); onYes(); } }),
+    btn('返 回', { variant: 'ghost', onClick: () => ov.remove() }),
+  );
+  box.append(row);
+  ov.append(box);
+  // 点遮罩空白处视为取消
+  ov.addEventListener('click', (e) => {
+    if (e.target === ov) ov.remove();
+  });
+  root.append(ov);
 }
 
 /**

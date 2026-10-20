@@ -368,8 +368,25 @@
 .menu.is-farewell .menu__titlewrap,
 .menu.is-farewell .menu__entry,
 .menu.is-farewell .menu__glow,
-.menu.is-farewell .menu__clouds {
+.menu.is-farewell .menu__clouds,
+/* 场景层整层冻结:行舟 CSS 动画停、画面不再重绘(视频解码由 menu.ts 停) */
+.menu.is-farewell .menu__scene {
   visibility: hidden;
+  animation-play-state: paused;
+}
+.menu.is-farewell .menu__boat,
+.menu.is-farewell .menu__boat-body {
+  animation-play-state: paused;
+}
+
+/* 进后台(TapTap 容器圆形按钮把游戏挂后台):场景与行舟一起停,回前台恢复 */
+.menu.is-bg .menu__scene,
+.menu.is-bg .menu__clouds {
+  visibility: hidden;
+}
+.menu.is-bg .menu__boat,
+.menu.is-bg .menu__boat-body {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -73,16 +73,28 @@ export function isTapEnv(): boolean {
   return tapEnv() !== null;
 }
 
-/** 回调风格包 Promise:官方虽标 Promise 风格可用,包回调对两种实现都成立 */
+/**
+ * 回调风格包 Promise:官方虽标 Promise 风格可用,包回调对两种实现都成立。
+ * 容器回调偶发不返回(弱网/容器抖动):15 秒超时兜底(对齐判官 cloudsave.js 的
+ * 同名守卫),超时错误带 timeout 标记;迟到的回调因 Promise 已 settle 一不再受理。
+ */
 function call<T, O extends object>(
   fn: (opts: O) => void,
   opts: Omit<O, 'success' | 'fail' | 'complete'>,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(Object.assign(new Error('tap api 无响应'), { timeout: true })),
+      15000,
+    );
     fn({
       ...opts,
-      success: (res: T) => resolve(res),
+      success: (res: T) => {
+        clearTimeout(timer);
+        resolve(res);
+      },
       fail: (err: { errMsg?: string; errno?: number; code?: number }) => {
+        clearTimeout(timer);
         reject(new Error(err?.errMsg ?? `tap api failed (${err?.errno ?? err?.code ?? '?'})`));
       },
     } as O);
@@ -162,11 +174,37 @@ function bundlePath(t: TapGlobal): string {
  * 失败不丢数据:meta.lastChange 不动,下个窗口调度器还会再来。
  */
 async function uploadNow(): Promise<boolean> {
+  const r = await runUpload();
+  return r === 'uploaded' || r === 'clean';
+}
+
+/** 上传结果分类:手动上传要区分「没得传」与「被频控挡了」,文案才说得准 */
+export type PushResult =
+  | 'uploaded'  // 已传上云
+  | 'clean'     // 本地没有改动,无需传
+  | 'throttled' // 官方频控:一分钟内只能一次
+  | 'offline'   // 不在容器里 / 未登录
+  | 'busy'      // 已有同步在跑
+  | 'failed';   // 容器或网络报错
+
+/** 下载结果分类 */
+export type PullResult =
+  | 'applied'   // 云端整包已覆盖本地
+  | 'no-cloud'  // 云端还没有存档
+  | 'offline'   // 不在容器里 / 未登录
+  | 'failed';   // 容器或网络报错
+
+/**
+ * 上传本体(调度器与手动上传共用)。返回分类而不是 boolean:
+ * 手动上传要把「没得传」「被频控挡了」「失败」分别告诉玩家。
+ */
+async function runUpload(): Promise<PushResult> {
   const t = tapEnv();
-  if (!t || !online || syncing) return false;
+  if (!t || !online) return 'offline';
+  if (syncing) return 'busy';
   const meta = readMeta();
-  if (meta.lastChange === 0 || meta.lastChange <= meta.lastUpload) return true; // 没脏数据
-  if (Date.now() - meta.lastUpload < uploadInterval()) return false;
+  if (meta.lastChange === 0 || meta.lastChange <= meta.lastUpload) return 'clean';
+  if (Date.now() - meta.lastUpload < uploadInterval()) return 'throttled';
 
   syncing = true;
   emitStatus();
@@ -194,10 +232,10 @@ async function uploadNow(): Promise<boolean> {
     }
     writeMeta({ ...meta, lastUpload: Date.now() });
     lastSync = Date.now();
-    return true;
+    return 'uploaded';
   } catch (e) {
     console.warn('[青史志] 云存档上传失败(下轮再试):', e instanceof Error ? e.message : e);
-    return false;
+    return 'failed';
   } finally {
     syncing = false;
     emitStatus();
@@ -224,6 +262,40 @@ function scheduleUpload(): void {
 
 /* ---------------- 下载(reconcile) ---------------- */
 
+/**
+ * 把云端整包落到本地(覆写前 saves.ts 留本地备份)。返回是否真的覆写了。
+ * 启动对账与设置页手动「下载」共用这一段:手动下载不做新旧比较,
+ * 一律以云端为准(玩家明说要下云端的)。
+ */
+async function applyCloudBundle(t: TapGlobal, found: TapArchiveDetail): Promise<boolean> {
+  const fs = t.getFileSystemManager();
+  const cloud = t.getCloudSaveManager();
+  const path = bundlePath(t);
+  const got = await call<{ filePath: string }, TapCallbackOpts<{ filePath: string }> & { archiveUUID: string; archiveFileId: string; targetFilePath?: string }>(cloud.getArchiveData.bind(cloud), {
+    archiveUUID: found.uuid, archiveFileId: found.fileId, targetFilePath: path,
+  });
+  const text = await call<{ data: string }, TapCallbackOpts<{ data: string }> & { filePath: string; encoding?: string }>(fs.readFile.bind(fs), { filePath: got.filePath ?? path, encoding: 'utf8' });
+  const bundle = JSON.parse(text.data) as { v?: number; at?: number; saves?: Parameters<typeof importSavesBundle>[0] };
+  if (bundle && typeof bundle === 'object' && bundle.saves) {
+    // importSavesBundle 会经 writeAutos/writeStash 触发 onSaveMutated,
+    // 压住监听并清掉可能已排期的定时器,再把 meta 对齐云端(不回传)
+    suppressMutated = true;
+    try {
+      importSavesBundle(bundle.saves);
+    } finally {
+      suppressMutated = false;
+    }
+    window.clearTimeout(uploadTimer);
+    const cloudAt = found.modifiedTime * 1000;
+    writeMeta({ lastChange: cloudAt, lastUpload: cloudAt });
+    lastSync = Date.now();
+    emitStatus();
+    return true;
+  }
+  console.warn('[青史志] 云端存档包结构非法,已忽略');
+  return false;
+}
+
 /** 启动对账:云端比本地新 → 整包覆写本地;本地脏 → 调度上传。返回本地是否被覆写 */
 async function reconcile(t: TapGlobal): Promise<boolean> {
   const cloud = t.getCloudSaveManager();
@@ -234,30 +306,7 @@ async function reconcile(t: TapGlobal): Promise<boolean> {
 
   if (found && cloudAt > meta.lastChange) {
     // 云端新:下载整包覆写本地(saves.ts 内部会先留本地备份)
-    const fs = t.getFileSystemManager();
-    const path = bundlePath(t);
-    const got = await call<{ filePath: string }, TapCallbackOpts<{ filePath: string }> & { archiveUUID: string; archiveFileId: string; targetFilePath?: string }>(cloud.getArchiveData.bind(cloud), {
-      archiveUUID: found.uuid, archiveFileId: found.fileId, targetFilePath: path,
-    });
-    const text = await call<{ data: string }, TapCallbackOpts<{ data: string }> & { filePath: string; encoding?: string }>(fs.readFile.bind(fs), { filePath: got.filePath ?? path, encoding: 'utf8' });
-    const bundle = JSON.parse(text.data) as { v?: number; at?: number; saves?: Parameters<typeof importSavesBundle>[0] };
-    if (bundle && typeof bundle === 'object' && bundle.saves) {
-      // importSavesBundle 会经 writeAutos/writeStash 触发 onSaveMutated,
-      // 压住监听并清掉可能已排期的定时器,再把 meta 对齐云端(不回传)
-      suppressMutated = true;
-      try {
-        importSavesBundle(bundle.saves);
-      } finally {
-        suppressMutated = false;
-      }
-      window.clearTimeout(uploadTimer);
-      writeMeta({ lastChange: cloudAt, lastUpload: cloudAt });
-      lastSync = Date.now();
-      emitStatus();
-      return true;
-    }
-    console.warn('[青史志] 云端存档包结构非法,已忽略');
-    return false;
+    return applyCloudBundle(t, found);
   }
   if (meta.lastChange > meta.lastUpload) scheduleUpload();
   return false;
@@ -311,21 +360,50 @@ export async function initTapCloud(): Promise<InitResult> {
   }
 }
 
-/** 设置页「立即同步」按钮:不等调度器,直接试传一轮(仍受官方频控约束) */
-export async function syncNow(): Promise<boolean> {
-  return uploadNow();
+/**
+ * 设置页「上传」:手动把本地档传到云端。
+ * 官方频控一分钟一次仍在(400001),撞窗时返回 'throttled' —— 这是平台限制,
+ * 不做本地绕道,文案照实说。
+ */
+export async function pushSaves(): Promise<PushResult> {
+  return runUpload();
+}
+
+/**
+ * 设置页「下载」:拉云端整包覆盖本地(覆写前留本地备份)。
+ * 与启动对账不同:不做新旧比较,玩家点了就是以云端为准。
+ */
+export async function pullSaves(): Promise<PullResult> {
+  const t = tapEnv();
+  if (!t || !online) return 'offline';
+  try {
+    const cloud = t.getCloudSaveManager();
+    const list = await call<{ saves: TapArchiveDetail[] }, TapCallbackOpts<{ saves: TapArchiveDetail[] }>>(cloud.getArchiveList.bind(cloud), {});
+    const found = (list.saves ?? []).find((s) => s.name === ARCHIVE_NAME);
+    if (!found) return 'no-cloud';
+    const applied = await applyCloudBundle(t, found);
+    return applied ? 'applied' : 'failed';
+  } catch (e) {
+    console.warn('[青史志] 云存档下载失败:', e instanceof Error ? e.message : e);
+    return 'failed';
+  }
 }
 
 /**
  * 真退出(2026-10-16 拍板):容器里请求结束游戏进程,浏览器里请求关页。
- * - TapTap 容器:优先 tap.exitMiniProgram(对齐 wx 命名;文档站未收录,
- *   故特性探测,没有就跳过);
- * - 浏览器/WebView:window.close()。脚本未打开的窗口会被浏览器拒绝
- *   (只留一条 warning 级日志,不算错误),调用方必须自备兜底 UI(落幕页)。
- * 点火即忘:退出成败都不可依赖回调(进程可能直接被掐),本地存档已在
- * localStorage,未上云的部分下次启动 reconcile 会补传,不在退出时抢传。
+ *
+ * 2026-10-21 实测结论:TapTap 小游戏/H5 的 API 全表(文档站 634 条路由
+ * 全部核对过)没有「退出/关页」接口,base/app/life-cycle 只有
+ * onShow/onHide/getLaunchOptionsSync;类比平台的 tt.exitMiniProgram 也
+ * 只是切后台不杀进程。容器收到落幕页前,进程确实关不掉 —— 这是容器
+ * 行为(圆形退出按钮挂后台同理),H5 里没有途径改变它。能做的尽力而为:
+ * 1. 特性探测 tap.exitMiniProgram(若容器未来补此甲,退出用得上);
+ * 2. window.close() 兜底(脚本未打开的窗口会被拒,只留 warning);
+ * 3. 退出前把脏档尽力传一波(同步链在后台继续跑,关页被掐也无损:
+ *    本地已在 localStorage,下次启动 reconcile 补传)。
  */
 export function requestExit(): void {
+  void uploadNow().catch(() => { /* 尽力而为,失败不拦退出 */ });
   const t = typeof window !== 'undefined' ? window.tap : undefined;
   try {
     if (t && typeof t.exitMiniProgram === 'function') t.exitMiniProgram({});

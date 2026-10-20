@@ -16,6 +16,7 @@
  * B. 有 mock:登录 → 存档 → debounce 上传 → 频控内再存只传一次 → 窗口后补传
  * C. 有 mock 且云端预置了更新的存档:启动对账 → 云端整包覆写本地
  * D. 有 mock:退出游戏 → 容器收到 exitMiniProgram 请求,落幕页兜底、「再执笔」回菜单
+ * E. 有 mock:设置页手动「上 传」「下 载」两个操作(上传真传一次、下载覆盖本地)
  */
 const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 
@@ -123,11 +124,11 @@ async function runA() {
     await sleep(400);
     const row = await evaluate(`(() => {
       const r = document.querySelector('.srow--tap');
-      const btn = document.querySelector('.tapsync__btn');
-      return r ? { text: r.textContent || '', btnHidden: btn ? btn.hidden : null } : null;
+      const acts = document.querySelector('.tapsync__acts');
+      return r ? { text: r.textContent || '', actsHidden: acts ? acts.hidden : null } : null;
     })()`);
     checks.push(['非容器:同步行显示「仅本地」', !!row && row.text.includes('仅在 TapTap')]);
-    checks.push(['非容器:同步按钮隐藏', !!row && row.btnHidden === true]);
+    checks.push(['非容器:上传/下载按钮隐藏', !!row && row.actsHidden === true]);
 
     // 退出游戏:无容器时 window.close 被浏览器拒(只有 warning,不算错误),落幕页兜底。
     // 先在 .settings 里圈返回钮回主菜单(壳层有同名 .pageback 没挂回调,裸选会点错)
@@ -276,12 +277,113 @@ async function runD() {
   return report('D. 容器内:真退出请求', checks);
 }
 
+/**
+ * E 组:手动上传/下载(2026-10-21 用户拍板:移动端要能自己上传、下载)
+ * - 设置页两枚按钮都在;
+ * - 「上 传」:有改动时真的传一次,没改动时如实说「无需上传」;
+ * - 「下 载」:先出二次确认浮层,确认后云端整包覆盖本地(本地旧档留备份)。
+ */
+async function runE() {
+  const checks = [];
+  const add = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
+  await withPage(async ({ evaluate, consoleErrors, enterGame }) => {
+    const toastText = () => evaluate(`(() => { const t = document.querySelector('.toast'); return t ? (t.textContent || '') : ''; })()`);
+    await sleep(800);
+    await enterGame();
+    await sleep(600);
+    const s1 = await evaluate(DRIVE_AND_SAVE);
+    add('打出一条本地自动档(上传的料)', s1.ok === true, JSON.stringify(s1));
+
+    // 回主菜单(设置页挂在主菜单上,对局里没有)
+    await evaluate(`(() => { window.__QS__.goMenu(); return true; })()`);
+    await sleep(500);
+
+    // 等调度器自动传完第一轮(云端此刻有这份档)
+    await sleep(UPLOAD_MS + 800);
+    const log1 = await evaluate('window.__TAPLOG__');
+    add('调度器已传过一次', log1.uploads.length === 1, JSON.stringify(log1.uploads));
+
+    // 进设置页
+    await evaluate(`(() => {
+      const b = [...document.querySelectorAll('.menu__item')].find((x) => (x.textContent || '').includes('设 置'));
+      if (b) b.click();
+      return !!b;
+    })()`);
+    await sleep(500);
+    const acts = await evaluate(`(() => {
+      const bs = [...document.querySelectorAll('.tapsync__btn')].map((b) => (b.textContent || '').trim());
+      return { n: bs.length, labels: bs };
+    })()`);
+    add('设置页有上/下两枚按钮', acts.n === 2, JSON.stringify(acts));
+    add('按钮文案是 上传/下载', acts.labels.join('/') === '上 传/下 载', JSON.stringify(acts.labels));
+
+    // 没改动时点上传:如实说无需上传,且不再产生上传
+    await evaluate(`(() => {
+      const b = [...document.querySelectorAll('.tapsync__btn')].find((x) => (x.textContent || '').includes('上 传'));
+      if (b) b.click();
+      return !!b;
+    })()`);
+    await sleep(400);
+    const t1 = await toastText();
+    add('无改动上传:提示无需上传', t1.includes('无需上传'), t1);
+    const log2 = await evaluate('window.__TAPLOG__');
+    add('无改动上传:云端没多出存档', log2.uploads.length === 1, JSON.stringify(log2.uploads));
+
+    // 攒一次新改动:上一轮自动上传已过频控窗口,此时点上传应当真传一次
+    // (别等太久:调度器在改动后 1.5s 自己也会传,那轮就不算手动操作了)
+    await evaluate(`(() => { window.__QS__.saveGame(); return true; })()`);
+    await sleep(300);
+    await evaluate(`(() => {
+      const b = [...document.querySelectorAll('.tapsync__btn')].find((x) => (x.textContent || '').includes('上 传'));
+      if (b) b.click();
+      return !!b;
+    })()`);
+    await sleep(600);
+    const t2 = await toastText();
+    add('有改动上传:提示已上传', t2.includes('已上传'), t2);
+    const log3 = await evaluate('window.__TAPLOG__');
+    add('有改动上传:云端多了一次 update', log3.uploads.length === 2 && log3.uploads[1].type === 'update',
+      JSON.stringify(log3.uploads));
+
+    // 本地改动(直接改 localStorage,模拟本机进度与云端分家),再走下载
+    await evaluate(`(() => {
+      localStorage.setItem('qingshi.autos.v1', JSON.stringify({ lisi: [] }));
+      return true;
+    })()`);
+    await evaluate(`(() => {
+      const b = [...document.querySelectorAll('.tapsync__btn')].find((x) => (x.textContent || '').includes('下 载'));
+      if (b) b.click();
+      return !!b;
+    })()`);
+    await sleep(300);
+    add('下载先出二次确认浮层', await evaluate(`!!document.querySelector('.settings__confirm')`));
+    await evaluate(`(() => {
+      const b = document.querySelector('.settings__confirm .btn--primary');
+      if (b) b.click();
+      return !!b;
+    })()`);
+    await sleep(800);
+    const t3 = await toastText();
+    add('下载完成:提示已覆盖本地', t3.includes('覆盖本地'), t3);
+    const autos = await evaluate(`JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}')`);
+    const nAutos = Object.keys(autos).reduce((n, k) => n + (Array.isArray(autos[k]) ? autos[k].length : 0), 0);
+    add('本地被云端整包覆盖(档回来了)', nAutos > 0, JSON.stringify(autos));
+    const backup = await evaluate(`localStorage.getItem('qingshi.cloudbackup.v1')`);
+    add('覆盖前留了本地备份', backup !== null);
+
+    const errs = consoleErrors();
+    add('控制台无错误', errs.length === 0, errs.join(' / '));
+  }, { enter: false, inject: mockTap(null) });
+  return report('E. 容器内:手动上传/下载', checks);
+}
+
 (async () => {
   const a = await runA();
   const b = await runB();
   const c = b.bundleJson ? await runC(b.bundleJson) : (console.log('\n=== C 组跳过:B 没拿到种子 ==='), false);
   const d = await runD();
-  const ok = a && b.ok && c && d;
+  const e = await runE();
+  const ok = a && b.ok && c && d && e;
   console.log(`\n${ok ? 'ok  ' : 'FAIL'}  tapcloud 总览`);
   process.exit(ok ? 0 : 1);
 })();
