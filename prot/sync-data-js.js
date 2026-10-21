@@ -1,9 +1,12 @@
 /* prot/*-data.js 再生成器：prot/lua-data/<scen>.json → prot/<scen>-data.js
- * 背景：剧本回灌（import-script-md.js）只更新 lua-data/*.json 与 scripts/qingshi/data/*.lua，
- * JS 侧数据文件不会自动跟进，导致 p1-golden（读 *-data.js）与 p2-replay（读 Lua 数据）分叉。
+ * 背景：剧本回灌（import-script-md.js）只更新 lua-data/*.json（现役数据真源），
+ * JS 侧数据文件不会自动跟进，游戏里跑的就是旧数据。
  * 本工具把 json 内容以 JS 字面量嵌入原 UMD 包装（全局变量名与历史文件一致），
  * 生成后用键序无关的 canon 对拍验证 require(new) 与 json 全等。
  * 用法: node sync-data-js.js [scen...]   （不带参数则处理全部五剧本）
+ *
+ * 2026-10-21:Lua 引擎版下线后,这条链是**唯一**的生成方向
+ * (prot/lua-data/*.json → prot/*-data.js);门禁见 prot/verify-data-js.js。
  */
 const fs = require('fs');
 const path = require('path');

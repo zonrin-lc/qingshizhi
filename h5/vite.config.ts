@@ -39,6 +39,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@engine': resolve(repoRoot, 'prot/engine.js'),
+      // prot/lua-data 目录名里的 "lua" 是历史遗留(数据本身是 JSON):
+      // 它是现役剧本数据真源,Lua 引擎版已于 2026-10-21 下线(见 封存/lua-2026-10-21/)。
       '@data': resolve(repoRoot, 'prot/lua-data'),
     },
   },

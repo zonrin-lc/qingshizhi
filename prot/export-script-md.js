@@ -95,7 +95,7 @@ for (const scen of targets) {
   const out = [];
   out.push('# 《' + d.SCENARIO.name + '》剧本全文（完整版）', '');
   out.push('- 导出日期：' + dateStr);
-  out.push('- 数据来源：scripts/qingshi/data/' + scen + '.lua（经 prot/lua-data/' + scen + '.json 转储）');
+  out.push('- 数据来源：prot/lua-data/' + scen + '.json（现役数据真源）');
   out.push('- 年代：' + d.SCENARIO.era + '　主角：' + d.SCENARIO.protag);
   out.push('- 剧本简介：' + d.SCENARIO.desc + '（' + d.SCENARIO.sub + '）');
   if (d.SCENARIO.recommend) out.push('- 推荐语：' + d.SCENARIO.recommend);
