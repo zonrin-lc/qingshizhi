@@ -125,16 +125,30 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   add('固定下 webm(不再做格式探测分流)', !!instReq && extOf(instReq.url) === 'webm',
     `支持webm=${supportsWebm},实际下 ${instReq ? extOf(instReq.url) : '(无)'}`);
 
-  const el = await evaluate(`(() => {
+  const probeEl = `(() => {
     const as = [...document.querySelectorAll('audio')];
     const bg = as.find(x => (x.getAttribute('src') || '').includes('lisi-inst'));
-    if (!bg) return { ok: false, why: '找不到在播 lisi-inst 的 audio 元素',
+    if (!bg) return { ok: false, why: '找不到 lisi-inst 的 audio 元素',
                       srcs: as.map(x => (x.getAttribute('src') || '').split('/').pop()) };
     const pre = as.find(x => x !== bg && (x.getAttribute('src') || '').includes('lisi-vocal'));
     return { ok: true, src: bg.getAttribute('src') || '', loop: bg.loop, vol: bg.volume,
-             paused: bg.paused, preloading: !!pre };
-  })()`);
-  add('主播放器在播当前剧本纯音乐版', el.ok, el.why ? `${el.why}: ${(el.srcs || []).join(', ')}` : '');
+             paused: bg.paused, readyState: bg.readyState, preloading: !!pre };
+  })()`;
+  // 「在播」不等于「有个 src 含 lisi-inst 的 <audio>」——那只是元素挂上了。
+  // 得真的在放(paused === false)而且浏览器已经把音频解出来了
+  // (readyState >= 2 = HAVE_CURRENT_DATA),否则可能只是把 src 写上去、
+  // 还没拉到数据,断言照样通过(恒真)。
+  // 等条件成立而不是赌固定时长:解码快慢跟机器负载、磁盘冷热都有关系。
+  let el = { ok: false, why: '还没等到 lisi-inst 的 audio 元素', srcs: [] };
+  for (let i = 0; i < 40; i += 1) {
+    el = await evaluate(probeEl);
+    if (el.ok && el.paused === false && el.readyState >= 2) break;
+    await sleep(200);
+  }
+  add('主播放器在播当前剧本纯音乐版', el.ok && el.paused === false,
+    el.ok ? `paused=${el.paused}` : `${el.why}: ${(el.srcs || []).join(', ')}`);
+  add('主播放器已解码(readyState >= 2)', el.ok && el.readyState >= 2,
+    el.ok ? `readyState=${el.readyState}` : (el.why || '没有 lisi-inst 元素'));
   add('双轨轮播(不开单曲循环)', el.ok && el.loop === false, `loop=${el.loop}`);
   add('vocal 已在后台预载', el.ok && el.preloading === true);
   // 音量是设置项驱动的(设置页滑杆,默认 0.06,见 game/settings.ts)。

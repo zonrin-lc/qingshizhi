@@ -19,6 +19,41 @@ const { spawn } = require('node:child_process');
 const DIST = path.resolve(__dirname, '..', '..', 'dist');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ============================================================================
+ * UTF-8 报告(2026-10-21 加)
+ *
+ * 控制台仍然只打 ASCII 短标记(ok / FAIL),但完整判定明细另写一份
+ * tests/.report/<套名>.txt(UTF-8)。原因很实在:失败详情原先只写 stdout,
+ * 一旦把输出重定向到文件,Windows 上按 cp936 解码就是一堆乱码,
+ * 事后根本分不清「这条断言失败了」还是「这里只是编码不对」。
+ * ========================================================================== */
+const REPORT_DIR = path.resolve(__dirname, '..', '.report');
+const reportLines = [];
+{
+  const suiteName = path.basename(process.argv[1] || 'suite').replace(/\.[cm]?js$/, '');
+  const origOut = process.stdout.write.bind(process.stdout);
+  const origErr = process.stderr.write.bind(process.stderr);
+  const tee = (orig) => (chunk, enc, cb) => {
+    try { reportLines.push(String(chunk)); } catch { /* 报告写失败不许影响测试结果 */ }
+    return orig(chunk, enc, cb);
+  };
+  process.stdout.write = tee(origOut);
+  process.stderr.write = tee(origErr);
+  process.on('exit', () => {
+    try {
+      fs.mkdirSync(REPORT_DIR, { recursive: true });
+      const head = [
+        `# ${suiteName}`,
+        `# 生成时间: ${new Date().toISOString()}`,
+        '# 说明:控制台只打 ASCII 短标记,本文件是同一份输出的 UTF-8 版本(失败详情看这里)',
+        '',
+        '',
+      ].join('\n');
+      fs.writeFileSync(path.join(REPORT_DIR, `${suiteName}.txt`), head + reportLines.join(''), 'utf8');
+    } catch { /* 写不出报告就算了,不影响退出码 */ }
+  });
+}
+
 /** 定位 Chrome:环境变量优先,否则按平台猜常见安装位置 */
 function findChrome() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -37,7 +72,14 @@ function findChrome() {
   throw new Error('未找到 Chrome。请设置环境变量 CHROME_PATH 指向浏览器可执行文件。');
 }
 
-/** 向系统要一个空闲端口 */
+/**
+ * 向系统要一个空闲端口。
+ *
+ * ⚠ 这里只作**兜底**用:「先占后放」有 TOCTOU 窗口 —— 占到端口到真正监听之间
+ * 别的进程(并行跑的测试套、用户自己起的服务)完全可能抢走它。
+ * 正常路径是让 Chrome 自己挑端口(--remote-debugging-port=0),
+ * 再从 profile/DevToolsActivePort 读回真实端口,见 launchChrome。
+ */
 function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
@@ -47,6 +89,27 @@ function freePort() {
       s.close(() => resolve(port));
     });
   });
+}
+
+/**
+ * 从 Chrome 的 profile 里读回它自己挑的调试端口。
+ *
+ * 传 --remote-debugging-port=0 时,Chrome 会挑一个空闲端口并把
+ * 「端口号\n浏览器 ws 路径」写进 <user-data-dir>/DevToolsActivePort。
+ * 这样端口由内核分配,不存在自己占后放出的竞态窗口。
+ */
+async function readDevToolsPort(profile, timeoutMs = 15000) {
+  const f = path.join(profile, 'DevToolsActivePort');
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    try {
+      const txt = fs.readFileSync(f, 'utf8');
+      const line = txt.split(/\r?\n/)[0].trim();
+      if (/^\d+$/.test(line)) return Number(line);
+    } catch { /* 还没落盘 */ }
+    await sleep(100);
+  }
+  return null;
 }
 
 const MIME = {
@@ -148,30 +211,7 @@ async function withPage(fn, opts = {}) {
     throw new Error(`找不到构建产物 ${DIST}——请先运行 npm run build`);
   }
   const { srv, port: httpPort } = await serve(DIST);
-  const cdpPort = await freePort();
-  const profile = path.join(os.tmpdir(), `qingshi-cdp-${process.pid}-${cdpPort}`);
-  const chrome = spawn(
-    findChrome(),
-    [
-      '--headless=new',
-      `--remote-debugging-port=${cdpPort}`,
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-extensions',
-      // 合成 click 不算用户手势,不开这个旗标音频全程被 autoplay 策略压着,
-      // 「隐藏暂停/回前台续播」这类真实播放状态就没法验
-      '--autoplay-policy=no-user-gesture-required',
-      // 测试要验的是「元素在不在播」(paused/volume/网络请求),不是「扬声器有没有响」。
-      // 不加这条,headless Chrome 会真的出声——整轮测试在用户机器上放 BGM,
-      // 页面关掉/测试跑完后还余音绕梁(2026-10-20 用户报:关了游戏界面音乐还在响)。
-      '--mute-audio',
-      `--user-data-dir=${profile}`,
-      '--window-size=1280,720',
-      'about:blank',
-    ],
-    { stdio: 'ignore' },
-  );
+  const { chrome, profile, cdpPort } = await launchChrome();
 
   let client = null;
   try {
@@ -182,7 +222,8 @@ async function withPage(fn, opts = {}) {
       await client.send('Log.enable', {}, sessionId);
       await client.send('Page.enable', {}, sessionId);
       await client.send('Network.enable', {}, sessionId);
-      // 页面脚本运行前注入(tapcloud.cjs 用它预置 window.tap 的 TapTap 容器 mock)
+      // 页面脚本运行前注入(tapcloud.cjs 用它预置 window.tap 的 TapTap 容器 mock;
+      // tapcloud-conflict.cjs / corrupt-store.cjs 用它在应用启动前预置 localStorage)
       if (opts.inject) {
         await client.send('Page.addScriptToEvaluateOnNewDocument', { source: opts.inject }, sessionId);
       }
@@ -209,7 +250,75 @@ async function withPage(fn, opts = {}) {
       };
       const netReset = () => { netMark = client.events.length; };
 
+      /**
+       * 网络流水(带时刻):用来断言「同时在途的请求数 ≤ 1」这种并发事实。
+       * netLog() 按 URL 归并,看不出并发;这里每个请求都留起止时刻
+       * (Network.requestWillBeSent / loadingFinished 的 timestamp)。
+       */
+      const netTimeline = () => {
+        const rows = [];
+        const byId = new Map();
+        for (const e of client.events.slice(netMark)) {
+          if (e.method === 'Network.requestWillBeSent') {
+            const row = {
+              url: e.params.request.url,
+              start: e.params.timestamp,
+              end: null,
+              status: 0,
+              mime: '',
+              failed: false,
+            };
+            byId.set(e.params.requestId, row);
+            rows.push(row);
+          } else if (e.method === 'Network.responseReceived') {
+            const row = byId.get(e.params.requestId);
+            if (row) {
+              row.status = e.params.response.status;
+              row.mime = e.params.response.mimeType;
+            }
+          } else if (e.method === 'Network.loadingFinished' || e.method === 'Network.loadingFailed') {
+            const row = byId.get(e.params.requestId);
+            if (row) {
+              row.end = e.params.timestamp;
+              row.failed = e.method === 'Network.loadingFailed';
+            }
+          }
+        }
+        return rows;
+      };
+
     const url = `http://127.0.0.1:${httpPort}/`;
+
+    /**
+     * 控制台错误 + 未捕获异常。
+     *
+     * - 按 sessionId 过滤:多标签(测试自己会另开一个 target 逼页面进后台)
+     *   时,别的标签的错误不该算到本套头上。
+     * - 未捕获异常优先取 exceptionDetails.exception.description:
+     *   exceptionDetails.text 实测就是 "Uncaught"(没有栈、没有消息),
+     *   真正的报错文本全在 description 里,只取 text 等于什么都没拿到。
+     */
+    const consoleErrors = () =>
+      client.events
+        .filter((e) => e.sessionId === sessionId && e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
+        .map((e) => {
+          const en = e.params.entry;
+          const where = en.url ? ` @${String(en.url).split('/').pop()}:${en.lineNumber ?? '?'}` : '';
+          return `${en.text}${where}`;
+        })
+        .concat(
+          client.events
+            .filter((e) => e.sessionId === sessionId && e.method === 'Runtime.exceptionThrown')
+            .map((e) => {
+              const d = e.params.exceptionDetails || {};
+              const ex = d.exception;
+              if (ex && (ex.description || ex.value !== undefined)) {
+                return String(ex.description || ex.value);
+              }
+              return d.text || 'Uncaught(无描述)';
+            }),
+        );
+
     const load = async (w = 1280, h = 720, dsf = 1) => {
       await client.send(
         'Emulation.setDeviceMetricsOverride',
@@ -230,6 +339,17 @@ async function withPage(fn, opts = {}) {
         if (r.result && r.result.value) return;
         await sleep(150);
       }
+      // 等不到主菜单 = 应用没起来(白屏/脚本崩了/构建产物不对)。
+      // 原来这里静默 return,于是后面每一条断言都以「元素不存在」的面孔出现,
+      // 定位成本极高(看起来像十几条断言一起坏,其实是应用根本没跑起来)。
+      // 现在直接抛错,并把控制台错误一起带出去。
+      const errs = consoleErrors();
+      throw new Error([
+        `应用没起来:9 秒内没等到主菜单(.menu__item--start)`,
+        `控制台错误(${errs.length} 条):`,
+        ...errs.map((e) => `  ${e}`),
+        errs.length ? '' : '  (无 —— 白屏多半是构建产物不对或脚本没加载)',
+      ].join('\n'));
     };
     await load(...(opts.viewport || []));
 
@@ -247,15 +367,37 @@ async function withPage(fn, opts = {}) {
       return r.result.value;
     };
 
-    const consoleErrors = () =>
-      client.events
-        .filter((e) => e.method === 'Log.entryAdded' && e.params.entry.level === 'error')
-        .map((e) => e.params.entry.text)
-        .concat(
-          client.events
-            .filter((e) => e.method === 'Runtime.exceptionThrown')
-            .map((e) => e.params.exceptionDetails.text),
-        );
+    /**
+     * 发一个真实按键(CDP Input)。
+     *
+     * 全仓 20 套测试原先没有一处派发过 keydown —— 键盘路径完全没被覆盖。
+     * 这里走 CDP 而不是页内 dispatchEvent:合成事件不带用户激活,
+     * 浏览器对「空格/回车触发按钮」的默认行为也不认,测出来的东西不是真的。
+     */
+    const KEYS = {
+      Tab: { key: 'Tab', code: 'Tab', vk: 9 },
+      Enter: { key: 'Enter', code: 'Enter', vk: 13, text: '\r' },
+      ' ': { key: ' ', code: 'Space', vk: 32, text: ' ' },
+      Escape: { key: 'Escape', code: 'Escape', vk: 27 },
+      ArrowDown: { key: 'ArrowDown', code: 'ArrowDown', vk: 40 },
+      ArrowUp: { key: 'ArrowUp', code: 'ArrowUp', vk: 38 },
+    };
+    const pressKey = async (name, times = 1) => {
+      const k = KEYS[name];
+      if (!k) throw new Error(`未知按键: ${name}`);
+      for (let i = 0; i < times; i += 1) {
+        const base = {
+          key: k.key, code: k.code,
+          windowsVirtualKeyCode: k.vk, nativeVirtualKeyCode: k.vk,
+        };
+        await client.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...base }, sessionId);
+        if (k.text) {
+          await client.send('Input.dispatchKeyEvent', { type: 'char', key: k.key, text: k.text, unmodifiedText: k.text }, sessionId);
+        }
+        await client.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base }, sessionId);
+        await sleep(30);
+      }
+    };
 
     /**
      * 从主菜单入局。
@@ -297,7 +439,10 @@ async function withPage(fn, opts = {}) {
     // 默认直接入局;需要测选择页本身时传 { enter: false }
     if (opts.enter !== false) await enterGame();
 
-    return await fn({ evaluate, cdp: client, url, consoleErrors, load, sessionId, enterGame, netLog, netReset });
+    return await fn({
+      evaluate, cdp: client, url, consoleErrors, load, sessionId, enterGame,
+      netLog, netReset, netTimeline, pressKey,
+    });
   } finally {
     if (client) client.close();
     // 强杀:Windows 上 chrome 常忽略 SIGTERM 拖住 profile 目录不释放,
@@ -317,6 +462,52 @@ async function withPage(fn, opts = {}) {
       }
     }
   }
+}
+
+/**
+ * 起 headless Chrome。
+ *
+ * profile:mkdtemp 生成唯一目录。原来的「pid + 端口」拼名会撞目录
+ * (端口复用 + 同 pid 的两套并行),撞上时两个 Chrome 共用一个 profile,
+ * 行为不可复现,而且旧 profile 的残留状态会污染下一轮。
+ *
+ * 端口:先试 --remote-debugging-port=0(Chrome 自己挑,再从
+ * profile/DevToolsActivePort 读回),失败才退回 freePort() 自己挑。
+ */
+async function launchChrome() {
+  const mkProfile = () => fs.mkdtempSync(path.join(os.tmpdir(), 'qingshi-cdp-'));
+  const args = (profile, port) => [
+    '--headless=new',
+    `--remote-debugging-port=${port}`,
+    '--disable-gpu',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-extensions',
+    // 合成 click 不算用户手势,不开这个旗标音频全程被 autoplay 策略压着,
+    // 「隐藏暂停/回前台续播」这类真实播放状态就没法验
+    '--autoplay-policy=no-user-gesture-required',
+    // 测试要验的是「元素在不在播」(paused/volume/网络请求),不是「扬声器有没有响」。
+    // 不加这条,headless Chrome 会真的出声——整轮测试在用户机器上放 BGM,
+    // 页面关掉/测试跑完后还余音绕梁(2026-10-20 用户报:关了游戏界面音乐还在响)。
+    '--mute-audio',
+    `--user-data-dir=${profile}`,
+    '--window-size=1280,720',
+    'about:blank',
+  ];
+
+  let profile = mkProfile();
+  let chrome = spawn(findChrome(), args(profile, 0), { stdio: 'ignore' });
+  const port = await readDevToolsPort(profile);
+  if (port) return { chrome, profile, cdpPort: port };
+
+  // 兜底:个别环境(企业策略/旧版 Chrome)不写 DevToolsActivePort,
+  // 这时才退回「自己占一个端口」。这条路上仍有 TOCTOU 窗口,但只是兜底。
+  chrome.kill('SIGKILL');
+  await sleep(300);
+  profile = mkProfile();
+  const p = await freePort();
+  chrome = spawn(findChrome(), args(profile, p), { stdio: 'ignore' });
+  return { chrome, profile, cdpPort: p };
 }
 
 /** 统一的判定输出。status 用 ASCII,避免 Windows 控制台代码页把 ✓/✘ 变乱码。 */
@@ -402,4 +593,7 @@ const STEP_SNIPPET = `
   };
 `;
 
-module.exports = { withPage, report, sleep, findChrome, serve, cdp, freePort, DIST, STEP_SNIPPET };
+module.exports = {
+  withPage, report, sleep, findChrome, serve, cdp, freePort, DIST, STEP_SNIPPET,
+  REPORT_DIR, launchChrome, readDevToolsPort,
+};

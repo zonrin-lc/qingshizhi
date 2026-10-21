@@ -23,10 +23,14 @@ const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 const UPLOAD_MS = 2000; // 与注入脚本里的 __QS_TAP_UPLOAD_INTERVAL__ 一致
 
 /** 内存版 TapTap 容器 mock;seed 为预置云存档(JSON 字符串),C 组用 */
-function mockTap(seed) {
+function mockTap(seed, localStore) {
   return `
 window.__QS_TAP_UPLOAD_INTERVAL__ = ${UPLOAD_MS};
 (() => {
+  // 预置本地存储:必须在应用启动前写好(注入脚本在新文档里先于页面脚本跑),
+  // 这样「启动对账」看到的就是这份本地状态。
+  ${localStore ? Object.entries(localStore).map(([k, v]) =>
+    `try { localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)}); } catch (e) {}`).join('\n  ') : ''}
   const archives = [];
   const files = {};
   const log = { login: 0, uploads: [], downloads: 0, exits: 0 };
@@ -65,7 +69,7 @@ window.__QS_TAP_UPLOAD_INTERVAL__ = ${UPLOAD_MS};
             _data: files[o.archiveFilePath],
           };
           archives.push(a);
-          log.uploads.push({ type: 'create', name: a.name });
+          log.uploads.push({ type: 'create', name: a.name, at: Date.now() });
           o.success({ uuid: a.uuid, fileId: a.fileId });
         },
         updateArchive(o) {
@@ -74,7 +78,7 @@ window.__QS_TAP_UPLOAD_INTERVAL__ = ${UPLOAD_MS};
           a._data = files[o.archiveFilePath];
           a.fileId = 'f' + Math.floor(Date.now() / 1000);
           a.modifiedTime = Math.floor(Date.now() / 1000);
-          log.uploads.push({ type: 'update', name: a.name });
+          log.uploads.push({ type: 'update', name: a.name, at: Date.now() });
           o.success({ uuid: a.uuid, fileId: a.fileId });
         },
         getArchiveData(o) {
@@ -190,8 +194,13 @@ async function runB() {
     add('打出一条本地自动档', s1.ok === true, JSON.stringify(s1));
 
     // debounce 1.5s + 频控窗口 2s → 2s 后应有一次 create
-    await sleep(UPLOAD_MS + 700);
-    const log1 = await evaluate('window.__TAPLOG__');
+    // 等「上传真的发生」而不是赌固定时长:轮询到 uploads.length 变成 1 为止。
+    // (原来 sleep(2700) 之后再看,机器慢的时候上传还没到,断言就假失败)
+    let log1 = await evaluate('window.__TAPLOG__');
+    for (let i = 0; i < 100 && log1.uploads.length < 1; i += 1) {
+      await sleep(100);
+      log1 = await evaluate('window.__TAPLOG__');
+    }
     add('存档后合并上传一次(create)', log1.uploads.length === 1 && log1.uploads[0].type === 'create',
       JSON.stringify(log1.uploads));
 
@@ -206,14 +215,34 @@ async function runB() {
     // 频控窗口内再存:不应立刻有第二次上传
     const s2 = await evaluate('window.__QS__.saveGame()');
     add('频控窗口内第二次存档成功(本地)', s2.ok === true);
-    await sleep(600);
+    // 检查点必须落在「debounce 之后、频控窗之内」:
+    // 原来只 sleep(600) —— 那时 1.5s 的 debounce 都还没到,检查点恒真(永远通过)。
+    // 现在按「上次云端调用的真实时刻」(mock 记的 at)算,等 1700ms:
+    // 既过了 debounce,又还没到 2s 的频控窗。
+    const uploadedAt = log1.uploads[0] ? log1.uploads[0].at : Date.now();
+    await sleep(Math.max(0, uploadedAt + 1700 - Date.now()));
+    const sinceUpload = Date.now() - uploadedAt;
     const log2 = await evaluate('window.__TAPLOG__');
+    add('检查点确实落在频控窗内(debounce 已过)', sinceUpload >= 1600 && sinceUpload < UPLOAD_MS,
+      `距上次云端调用 ${sinceUpload}ms`);
     add('频控窗口内不重复上传', log2.uploads.length === 1, `uploads=${log2.uploads.length}`);
+    // 被频控挡下时改动不能被吞:仍标着「待同步」
+    const meta2 = await evaluate(`JSON.parse(localStorage.getItem('qingshi.tapsync.v1') || '{}')`);
+    add('频控窗口内的改动仍标着待同步', (meta2.lastChange || 0) > (meta2.lastUpload || 0),
+      `lastChange=${meta2.lastChange} lastUpload=${meta2.lastUpload}`);
     // 等过频控窗口:调度器补传(update)
-    await sleep(UPLOAD_MS + 800);
-    const log3 = await evaluate('window.__TAPLOG__');
+    let log3 = await evaluate('window.__TAPLOG__');
+    for (let i = 0; i < 150 && log3.uploads.length < 2; i += 1) {
+      await sleep(100);
+      log3 = await evaluate('window.__TAPLOG__');
+    }
     add('窗口过后补传一次(update)', log3.uploads.length === 2 && log3.uploads[1].type === 'update',
       JSON.stringify(log3.uploads));
+    // 真正的频控不变量:两次云端调用之间至少隔一个窗口
+    // (只看「某时刻 uploads.length === 1」会被「第二次调用还没排上」蒙过去)
+    add('两次云端调用之间至少隔一个频控窗',
+      log3.uploads.length >= 2 && (log3.uploads[1].at - log3.uploads[0].at) >= UPLOAD_MS - 50,
+      log3.uploads.length >= 2 ? `间隔 ${log3.uploads[1].at - log3.uploads[0].at}ms` : '只有一次调用');
 
     // 捞云端整包(最后一次 update 的内容),给 C 组当种子
     const dump2 = await evaluate('window.__TAPDUMP__()');
@@ -226,6 +255,18 @@ async function runB() {
   return { ok: report('B. 容器内:登录 + 上传 + 频控', checks), bundleJson };
 }
 
+/**
+ * 深比较(键序无关):payload 是引擎快照,键序不该成为断言的成败依据。
+ * 只认「同一个值」,不认「同一个字符串」——JSON.stringify 的键序差异
+ * 会把本来一样的两份快照判成不一样。
+ */
+const canon = (v) => {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null';
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',') + '}';
+};
+const same = (a, b) => canon(a) === canon(b);
+
 async function runC(bundleJson) {
   const checks = [];
   const add = (name, ok, why) => checks.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
@@ -236,16 +277,62 @@ async function runC(bundleJson) {
     modifiedTime: ${Math.floor(Date.now() / 1000) + 300},
     _data: ${JSON.stringify(bundleJson)}
   }`;
+  const pack = JSON.parse(bundleJson);
+  const seedAutos = pack.saves && pack.saves.autos ? pack.saves.autos : {};
+  // 本地先放一条「可辨认」的档:
+  // 覆写前它必须被备份下来(证明备份不是空壳),覆写后它必须消失(证明整包真的换了)。
+  const localSlot = {
+    at: 1111111111111, scenKey: 'lisi', scenName: '李斯', diffKey: 'normal',
+    chapterIdx: 0, chapterTitle: '本地标记卷', roundNo: 1, backtracksLeft: 1, age: 30,
+    payload: {
+      v: 2, diffKey: 'normal', scenKey: 'lisi', chapterIdx: 0,
+      marker: 'LOCAL_BACKUP_MARK',
+      snapshot: { attrs: { caifu: 11 } }, live: { attrs: { caifu: 11 } },
+      backtracksThisChapter: 0,
+    },
+  };
+  const localSeed = JSON.stringify({ lisi: [localSlot] });
   await withPage(async ({ evaluate, consoleErrors }) => {
     await sleep(1200); // 等登录 + 对账跑完
     const log = await evaluate('window.__TAPLOG__');
     add('对账触发了下载', log.downloads === 1, `downloads=${log.downloads}`);
     const autos = await evaluate(`JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}')`);
-    add('云端自动档覆写到本地', Object.keys(autos).length > 0, JSON.stringify(Object.keys(autos)));
-    const backup = await evaluate(`localStorage.getItem('qingshi.cloudbackup.v1')`);
-    add('覆写前留了本地备份', backup !== null);
+    // 逐条比对:原来只判「有几个键 > 0」,内容对不上照样通过
+    const seedKeys = Object.keys(seedAutos);
+    const localKeys = Object.keys(autos);
+    add('本地自动档的桶与云端包一致',
+      same(localKeys.slice().sort(), seedKeys.slice().sort()),
+      `本地 ${JSON.stringify(localKeys)} 云端 ${JSON.stringify(seedKeys)}`);
+    const mismatch = [];
+    let sameCount = 0;
+    let total = 0;
+    for (const k of seedKeys) {
+      const a = autos[k] || [];
+      const b = seedAutos[k] || [];
+      total += b.length;
+      if (a.length !== b.length) { mismatch.push(`${k}: 条数 ${a.length}≠${b.length}`); continue; }
+      for (let i = 0; i < b.length; i += 1) {
+        if (a[i] && a[i].at === b[i].at && same(a[i].payload, b[i].payload)) sameCount += 1;
+        else mismatch.push(`${k}[${i}]: at ${a[i] && a[i].at}≠${b[i].at}`);
+      }
+    }
+    add('云端自动档逐条覆写到本地(at/payload 一致)', total > 0 && sameCount === total && mismatch.length === 0,
+      mismatch.join('; ') || `一致 ${sameCount}/${total}`);
+    add('本地那条标记档已被云端整包覆盖掉',
+      !JSON.stringify(autos).includes('LOCAL_BACKUP_MARK'));
+    // 备份:原来只判 backup !== null —— 空档时备份内容必然是 {},判了等于没判
+    const backupRaw = await evaluate(`localStorage.getItem('qingshi.cloudbackup.v1')`);
+    let backup = null;
+    try { backup = JSON.parse(backupRaw); } catch { /* 坏 JSON:算没备份 */ }
+    const bSlots = backup && backup.autos && Array.isArray(backup.autos.lisi) ? backup.autos.lisi : [];
+    add('覆写前留了本地备份', backupRaw !== null, '没有备份键');
+    add('备份里确实是覆写前那条本地档',
+      bSlots.length === 1 && bSlots[0].at === localSlot.at
+      && bSlots[0].payload && bSlots[0].payload.marker === 'LOCAL_BACKUP_MARK',
+      JSON.stringify(bSlots.map((s) => ({ at: s.at, marker: s.payload && s.payload.marker }))));
     const meta = await evaluate(`JSON.parse(localStorage.getItem('qingshi.tapsync.v1') || '{}')`);
-    add('覆写后不回传(lastChange 对齐云端)', (meta.lastChange || 0) > 0 && !(meta.lastChange > meta.lastUpload));
+    add('覆写后不回传(lastChange 对齐云端)', (meta.lastChange || 0) > 0 && !(meta.lastChange > meta.lastUpload),
+      `lastChange=${meta.lastChange} lastUpload=${meta.lastUpload}`);
     const menu = await evaluate(`(() => {
       const b = document.querySelector('.menu__item--continue');
       return b ? !b.classList.contains('is-off') : null;
@@ -253,7 +340,7 @@ async function runC(bundleJson) {
     add('主菜单「继续旅程」已点亮', menu === true);
     const errs = consoleErrors();
     add('控制台无错误', errs.length === 0, errs.join(' / '));
-  }, { enter: false, inject: mockTap(seed) });
+  }, { enter: false, inject: mockTap(seed, { 'qingshi.autos.v1': localSeed }) });
   return report('C. 容器内:云端新 → 覆写本地', checks);
 }
 
@@ -355,11 +442,22 @@ async function runE() {
     add('有改动上传:云端多了一次 update', log3.uploads.length === 2 && log3.uploads[1].type === 'update',
       JSON.stringify(log3.uploads));
 
-    // 本地改动(直接改 localStorage,模拟本机进度与云端分家),再走下载
+    // 本地改动(直接改 localStorage,模拟本机进度与云端分家),再走下载。
+    // 放一条「可辨认」的本地档:备份检查才有东西可对 ——
+    // 原来只判 backup !== null,而空档时备份内容必然是 {},判了等于没判。
+    const localMark = {
+      at: 2222222222222, scenKey: 'lisi', scenName: '李斯', diffKey: 'normal',
+      chapterIdx: 0, chapterTitle: '本地标记卷', roundNo: 1, backtracksLeft: 1, age: 30,
+      payload: { v: 2, diffKey: 'normal', scenKey: 'lisi', chapterIdx: 0, marker: 'LOCAL_BACKUP_MARK' },
+    };
     await evaluate(`(() => {
-      localStorage.setItem('qingshi.autos.v1', JSON.stringify({ lisi: [] }));
+      localStorage.setItem('qingshi.autos.v1', JSON.stringify({ lisi: [${JSON.stringify(localMark)}] }));
       return true;
     })()`);
+    // 云端此刻的内容(下载后要逐条对上)
+    const cloudDump = await evaluate('window.__TAPDUMP__()');
+    const cloudPack = cloudDump.length ? JSON.parse(cloudDump[cloudDump.length - 1].data) : null;
+    const cloudAutos = cloudPack && cloudPack.saves && cloudPack.saves.autos ? cloudPack.saves.autos : {};
     await evaluate(`(() => {
       const b = [...document.querySelectorAll('.tapsync__btn')].find((x) => (x.textContent || '').includes('下 载'));
       if (b) b.click();
@@ -376,10 +474,32 @@ async function runE() {
     const t3 = await toastText();
     add('下载完成:提示已覆盖本地', t3.includes('覆盖本地'), t3);
     const autos = await evaluate(`JSON.parse(localStorage.getItem('qingshi.autos.v1') || '{}')`);
-    const nAutos = Object.keys(autos).reduce((n, k) => n + (Array.isArray(autos[k]) ? autos[k].length : 0), 0);
-    add('本地被云端整包覆盖(档回来了)', nAutos > 0, JSON.stringify(autos));
-    const backup = await evaluate(`localStorage.getItem('qingshi.cloudbackup.v1')`);
-    add('覆盖前留了本地备份', backup !== null);
+    // 逐条比对:云端有几条、本地就得有几条,且 at/payload 相同
+    const miss = [];
+    let hit = 0;
+    let want = 0;
+    for (const k of Object.keys(cloudAutos)) {
+      const b = cloudAutos[k] || [];
+      want += b.length;
+      const a = autos[k] || [];
+      for (let i = 0; i < b.length; i += 1) {
+        if (a[i] && a[i].at === b[i].at && same(a[i].payload, b[i].payload)) hit += 1;
+        else miss.push(`${k}[${i}] at ${a[i] && a[i].at}≠${b[i].at}`);
+      }
+    }
+    add('本地被云端整包覆盖(逐条 at/payload 一致)', want > 0 && hit === want && miss.length === 0,
+      miss.join('; ') || `一致 ${hit}/${want}`);
+    add('本地那条标记档已被覆盖掉',
+      !JSON.stringify(autos).includes('LOCAL_BACKUP_MARK'));
+    const backupRaw = await evaluate(`localStorage.getItem('qingshi.cloudbackup.v1')`);
+    let backup = null;
+    try { backup = JSON.parse(backupRaw); } catch { /* 坏 JSON:算没备份 */ }
+    const bSlots = backup && backup.autos && Array.isArray(backup.autos.lisi) ? backup.autos.lisi : [];
+    add('覆盖前留了本地备份', backupRaw !== null, '没有备份键');
+    add('备份里确实是覆盖前那条本地档',
+      bSlots.length === 1 && bSlots[0].at === localMark.at
+      && bSlots[0].payload && bSlots[0].payload.marker === 'LOCAL_BACKUP_MARK',
+      JSON.stringify(bSlots.map((s) => ({ at: s.at, marker: s.payload && s.payload.marker }))));
 
     const errs = consoleErrors();
     add('控制台无错误', errs.length === 0, errs.join(' / '));

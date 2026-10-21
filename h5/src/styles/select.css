@@ -331,7 +331,9 @@
 }
 .scard2__name {
   font-family: var(--font-kai);
-  font-size: 2.1vh;
+  /* 下限兜底(2026-10-21 修):游戏强制横屏,手机上可用视口高只有 ~360–430px,
+     2.1vh 只有 7.5px,基本看不清。桌面观感不变(vh 大于 11px 时取原值)。 */
+  font-size: max(11px, 2.1vh);
   font-weight: 700;
   color: var(--ink-strong);
   line-height: 1.0;
@@ -567,8 +569,9 @@
     width: var(--selW);
   }
   .scard2__name {
-    /* 剧本名放大一档(2026-10-19 拍板):1.5vh→2.4vh */
-    font-size: 2.4vh;
+    /* 剧本名放大一档(2026-10-19 拍板):1.5vh→2.4vh
+       下限兜底(2026-10-21 修):手机上 2.4vh 只有 8.6px,加 11px 下限 */
+    font-size: max(11px, 2.4vh);
   }
   /* 难度+开始:右侧竖排 */
   .seldrawer {
@@ -593,6 +596,19 @@
   }
   .seldiff__cap {
     width: 13vw;
+    /* 命中区扩到 44px(2026-10-21 修):胶囊按 560:151 的比例只有 ~27px 高,
+       三枚竖排挤在一起,手指一偏就选错难度。视觉尺寸不动,
+       用 ::after 撑开可点区域;上下各溢出 8.5px,正好落在胶囊之间 2.6vh 的空档里。 */
+    position: relative;
+  }
+  .seldiff__cap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
   /* 提示集中显示在开始按钮上方(2026-10-19 拍板):逐枚胶囊下的注释在移动端隐藏,
      改显示 .seldrawer__allhint(共享位,select.ts 只填当前选中难度的说明) */

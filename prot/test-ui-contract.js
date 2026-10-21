@@ -551,8 +551,13 @@ let skipped = 0;
   console.log('✔ 修正系数口径契约：corr 只缩身外属性、危机由 wj 一次定档（硬核 10→12 而非 16）');
 }
 
-/* 22. 修正抽取按 chance 加权契约（v2.0.5）：此前「一次 roll 判是否触发 + 均匀抽」——
- * 是否触发实际取决于池内 max(chance)，而选哪条与 chance 无关。 */
+/* 22. 修正抽取按 chance 加权契约（v2.0.5；v2.2.4 修订期望值）：
+ * 池触发概率 = max(chance)，触发后在池内按 chance 占比加权抽一条，
+ * 故 P(第 i 条) = max(chance) × chance_i/Σchance。
+ * v2.2.4 前引擎是「加权抽一条 + 再用该条自己的 chance 判一次触发」——
+ * chance 被乘两次，P(第 i 条) = chance_i²/Σchance；下面这条断言当时正是按
+ * chance²/Σ 写的，等于把「chance 被乘两次」固化成了期望值。
+ * 断言改为修正后的口径（max(chance) × chance_i/Σchance）。 */
 {
   const D = require(FILES.lisi);
   const pool = (D.CORRECTIONS || []).filter(c => c.chance > 0);
@@ -580,13 +585,14 @@ let skipped = 0;
     D.CORRECTIONS = realCorr;
         const fired = cnt.HI + cnt.MID + cnt.LO;
     const tot = 0.6 + 0.3 + 0.1;
-    // 加权抽：池内边际概率 = chance/Σchance；再经各条 chance 触发闸
-    const expHi = N * 0.6 * 0.6 / tot, expMid = N * 0.3 * 0.3 / tot, expLo = N * 0.1 * 0.1 / tot;
+    const maxC = 0.6;                     // 池总触发概率 = max(chance)
+    // 池触发（max(chance)）后按 chance 占比抽：P(第 i 条) = max(chance) × chance_i/Σchance
+    const expHi = N * maxC * 0.6 / tot, expMid = N * maxC * 0.3 / tot, expLo = N * maxC * 0.1 / tot;
     const near = (a, b) => Math.abs(a - b) <= Math.max(40, b * 0.15);
     if (near(cnt.HI, expHi) && near(cnt.MID, expMid) && near(cnt.LO, expLo) && cnt.HI > cnt.MID && cnt.MID > cnt.LO) pass++;
     else { fail++; console.log('✘ 加权抽分布异常：HI=' + cnt.HI + '/' + expHi.toFixed(0) + ' MID=' + cnt.MID + '/' + expMid.toFixed(0) + ' LO=' + cnt.LO + '/' + expLo.toFixed(0)); }
   }
-  console.log('✔ 修正抽取加权契约：按各自 chance 加权（实测高频档边际≈声明值）');
+  console.log('✔ 修正抽取加权契约：池触发=max(chance)，池内按 chance 占比抽（chance 不再被乘两次）');
 }
 
 /* 23. 引擎内部一次性闸与剧本 flag 命名空间分离契约（v2.0.6）：
@@ -711,22 +717,31 @@ let skipped = 0;
   console.log('✔ 结局健壮性契约：未知结局回落 E8、未知功业不计分、脏状态不产 NaN');
 }
 
-/* 27. 非致命难度危机封顶如实记账契约（v2.0.6）：checkDeath 把危机钳到 95 时，
- * 该回落此前不体现在章末 attrDelta（玩家看到一个未被告知的危机下降）。 */
+/* 27. 非致命难度危机封顶如实记账契约（v2.0.6；v2.2.4 修订期望值）：
+ * checkDeath 把危机钳到 95 时，回落必须如实体现在章末 attrDelta（玩家不能看到一个
+ * 自己没被告知过的危机下降）。
+ * v2.2.4 前引擎在 makeSummary 里按 _weijiClamp 又减了一次——而快照差值本身已含回落
+ * （attrs.weiji 早已被钳到 95），于是差值既不是真值也不是条目之和
+ * （例：危机 90 → 100 钳到 95，真值 +5、结算条目 +10，旧差值报 0）。
+ * 现改为：章末差值 = 真实净变化（95-snapWj）；封顶回落单列一条结算条目（−5），
+ * 故「条目之和 = 真实净变化 = 章末差值」自洽。 */
 {
   const D = require(FILES.lisi);
   const g = new E.Game(D, 'story', rngHigh);   // 剧情 = lethal:false，危机≥100 钳到 95 不致死
   g.randomOn = false; g.start(); g.enterChapter(1);
   const snapWj = g.snapshot.attrs.weiji;
   g.attrs.weiji = 100;
-  g.checkDeath();
+  const chg = [];                 // 结算条目容器（checkDeath 的封顶回落条目写在这里）
+  g.checkDeath(chg);
   const clamped = g.attrs.weiji === 95 && g._weijiClamp === 5;
   const r = g.makeSummary();
   const wd = r.summary.attrDelta.weiji;
-  // 快照 weiji=snapWj，现值 95；其中 5 点回落来自封顶 → 差值应为 (95-snapWj)-5
-  const expect = (95 - snapWj) - 5;
-  if (clamped && wd === expect) pass++;
-  else { fail++; console.log('✘ 封顶未如实记账：weiji=' + g.attrs.weiji + ' clamp=' + g._weijiClamp + ' attrDelta.weiji=' + wd + '（应 ' + expect + '）'); }
+  // 快照 weiji=snapWj，现值 95 → 真实净变化 = 95-snapWj（回落已含在内，不再二次扣减）
+  const expect = 95 - snapWj;
+  // 封顶回落单列一条 −5 的结算条目：条目之和 = 真实净变化
+  const capEntry = chg.find(c => c.k === 'weiji' && c.delta === -5);
+  if (clamped && wd === expect && capEntry) pass++;
+  else { fail++; console.log('✘ 封顶未如实记账：weiji=' + g.attrs.weiji + ' clamp=' + g._weijiClamp + ' attrDelta.weiji=' + wd + '（应 ' + expect + '）封顶条目=' + JSON.stringify(capEntry)); }
   // 致命难度不封顶
   const gh = new E.Game(D, 'hardcore', rngHigh);
   gh.randomOn = false; gh.start(); gh.enterChapter(1);
@@ -734,7 +749,7 @@ let skipped = 0;
   const fatal = gh.checkDeath();
   if (fatal && fatal.type === 'ending') pass++;
   else { fail++; console.log('✘ 致命难度危机 100 未致死：' + JSON.stringify(fatal)); }
-  console.log('✔ 危机封顶记账契约：非致命难度封顶如实并入章末差值，致命难度照常致死');
+  console.log('✔ 危机封顶记账契约：章末差值 = 真实净变化，封顶回落单列条目，致命难度照常致死');
 }
 
 /* 28. 遭遇层常量外置契约（v2.0.7）：randomChance / randomMax / KEY_CARD_ROUNDS

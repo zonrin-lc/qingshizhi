@@ -12,7 +12,7 @@
  * 拖动期间不重画整行(重画会销毁滑杆、打断拖拽),只就地更新图标与填充。
  * 音乐/音效/朗读的改动立刻生效(分别推给 Bgm/Sfx/Voice 实例)。
  */
-import { backBtn, brandLogo, btn, clear, el, lbl, toast } from './kit';
+import { backBtn, brandLogo, btn, clear, closeDialog, el, lbl, openDialog, toast } from './kit';
 import {
   APP_VERSION, applyVisual, loadSettings, updateSettings, type Settings,
 } from '../game/settings';
@@ -39,6 +39,12 @@ export interface SettingsPage {
   root: HTMLElement;
   /** 外部(选剧本时)可预置当前值 */
   refresh(): void;
+  /**
+   * 离场钩子(2026-10-21 修):设置页原先只被 hidePages 直接 remove,
+   * tapcloud.onStatus 的订阅永不释放 —— 每进一次设置页就多一个
+   * 持有已脱离文档 DOM 树的回调。退订放在这里,由外壳统一调。
+   */
+  destroy(): void;
 }
 
 /** 喇叭图标的三段声波 + 静音叉,随档位显隐(见 CSS 的 .vol--m* 态) */
@@ -184,9 +190,9 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
   tapActs.append(upBtn, downBtn);
   tapBox.append(tapText, tapActs);
   tapRow.append(tapBox);
-  // 设置页没有 destroy 钩子(.hidePages 直接 remove),断开时自我退订
+  // 云同步状态订阅:设置页活着才需要听。退订由 destroy() 统一做,
+  // 不再靠「root.isConnected 了就自我退订」那种事后补救。
   const offStatus = onStatus(() => {
-    if (!root.isConnected) { offStatus(); return; }
     paintTap();
   });
   paintTap();
@@ -215,6 +221,11 @@ export function renderSettingsPage(host: HTMLElement, onBack: () => void): Setti
         (r as HTMLElement & { repaint?: () => void }).repaint?.();
       }
     },
+    destroy() {
+      // 先退订再摘 DOM:订阅回调会往 root 里写状态,顺序反了会写到已脱离的树上
+      offStatus();
+      root.remove();
+    },
   };
 }
 
@@ -233,17 +244,23 @@ function confirmPull(root: HTMLElement, onYes: () => void): void {
     lbl('本机旧档会留一份备份。', 'overlay__body u-dim'),
   );
   const row = el('div', 'settings__confirmrow');
-  row.append(
-    btn('下 载', { variant: 'primary', onClick: () => { ov.remove(); onYes(); } }),
-    btn('返 回', { variant: 'ghost', onClick: () => ov.remove() }),
-  );
+  const yes = btn('下 载', { variant: 'primary' });
+  const no = btn('返 回', { variant: 'ghost' });
+  yes.addEventListener('click', () => {
+    closeDialog(ov);
+    onYes();
+  });
+  no.addEventListener('click', () => closeDialog(ov));
+  row.append(yes, no);
   box.append(row);
   ov.append(box);
   // 点遮罩空白处视为取消
   ov.addEventListener('click', (e) => {
-    if (e.target === ov) ov.remove();
+    if (e.target === ov) closeDialog(ov);
   });
   root.append(ov);
+  // 无障碍:role/aria-modal 挂盒上,焦点移到主按钮,Esc 关闭(见 kit.openDialog)
+  openDialog(ov, box, { focus: yes, onClose: () => closeDialog(ov) });
 }
 
 /**

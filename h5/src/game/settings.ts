@@ -63,6 +63,28 @@ export const ON_OFF = [
 
 const KEY = 'qingshi.settings.v1';
 
+/**
+ * 逐字段校验(2026-10-21 修)。
+ *
+ * 原来只用 `??` 兜底,只挡 null/undefined —— 字符串 "abc"、NaN、越界值会原样
+ * 通过:musicGain="abc" → audio 的 Math.min(1,"abc")=NaN → el.volume=NaN 按
+ * WebIDL 抛 TypeError;segDelay 被改成 1e9 会让叙事看起来卡死。而且
+ * updateSettings 以 loadSettings() 为基底,坏值会被永久写回。
+ * 现在:类型/区间不合就落回默认值,布尔只认真布尔。
+ */
+function num(v: unknown, dflt: number, min: number, max: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : dflt;
+}
+function bool(v: unknown, dflt: boolean): boolean {
+  return typeof v === 'boolean' ? v : dflt;
+}
+function oneOf<T extends string>(v: unknown, allowed: readonly T[], dflt: T): T {
+  return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : dflt;
+}
+/** 合法取值:与上面的 SCALE_OPTS / TEXT_OPTS 同源 */
+const SCALE_VALUES = ['small', 'default', 'large'] as const;
+const TEXT_VALUES = ['small', 'normal', 'large'] as const;
+
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
@@ -70,15 +92,15 @@ export function loadSettings(): Settings {
     if (!s || typeof s !== 'object') return { ...DEFAULTS };
     const o = s as Partial<Settings>;
     return {
-      scale: o.scale ?? DEFAULTS.scale,
-      segDelay: o.segDelay ?? DEFAULTS.segDelay,
-      textScale: o.textScale ?? DEFAULTS.textScale,
-      voice: o.voice ?? DEFAULTS.voice,
-      voiceGain: o.voiceGain ?? DEFAULTS.voiceGain,
-      music: o.music ?? DEFAULTS.music,
-      musicGain: o.musicGain ?? DEFAULTS.musicGain,
-      sfx: o.sfx ?? DEFAULTS.sfx,
-      sfxGain: o.sfxGain ?? DEFAULTS.sfxGain,
+      scale: oneOf(o.scale, SCALE_VALUES, DEFAULTS.scale),
+      segDelay: num(o.segDelay, DEFAULTS.segDelay, 0, 5000),
+      textScale: oneOf(o.textScale, TEXT_VALUES, DEFAULTS.textScale),
+      voice: bool(o.voice, DEFAULTS.voice),
+      voiceGain: num(o.voiceGain, DEFAULTS.voiceGain, 0, 1),
+      music: bool(o.music, DEFAULTS.music),
+      musicGain: num(o.musicGain, DEFAULTS.musicGain, 0, 1),
+      sfx: bool(o.sfx, DEFAULTS.sfx),
+      sfxGain: num(o.sfxGain, DEFAULTS.sfxGain, 0, 1),
     };
   } catch {
     return { ...DEFAULTS };

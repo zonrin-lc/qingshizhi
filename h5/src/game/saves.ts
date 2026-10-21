@@ -85,14 +85,63 @@ export const SAVE_MIN_ROUND = 5;
 
 type AutoStore = Record<string, Slot[]>;
 
-/** localStorage 可能不可用(隐私模式 / 被禁用),全部包 try */
+/**
+ * 桶/条目的形状校验(2026-10-21 修)。
+ *
+ * 存档来自三个不受控的来源:localStorage(手改/旧版本)、云端整包(别的机器上的
+ * 旧包)、导入的 bundle。原来 readAutos 只判「是不是对象」,桶里塞个非数组就会
+ * 让 listAutoEntries 的 .map 与 saveAuto 的 .push 双双抛 TypeError ——
+ * 存档页整页渲染失败、对局页「返回」也退不出去。
+ */
+function isSlot(v: unknown): v is Slot {
+  if (!v || typeof v !== 'object') return false;
+  const s = v as Partial<Slot>;
+  return typeof s.at === 'number' && !!s.payload && typeof s.payload === 'object';
+}
+
+/**
+ * 逐桶过滤:非法桶整个丢弃(而不是让整库报废),非法条目逐条丢弃。
+ * dropped=true 表示「原始数据里有非法形状」—— 调用方据此把原文隔离到
+ * `.broken` 键(2026-10-21:原来只有 JSON 解析失败才隔离,「能解析但形状不对」
+ * 的档会被静默丢条目,玩家看着自己的档凭空少了几条却不知道为什么)。
+ */
+function sanitizeStore(raw: unknown): { store: AutoStore; dropped: boolean } {
+  const out: AutoStore = {};
+  let dropped = false;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { store: out, dropped: !!raw };
+  }
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(v)) { dropped = true; continue; }
+    const list = v.filter(isSlot);
+    if (list.length !== v.length) dropped = true;
+    if (list.length) out[k] = list as Slot[];
+  }
+  return { store: out, dropped };
+}
+
+/** 原始串有非法形状时留一份底,别让玩家的数据无声消失 */
+function quarantine(keyName: string, raw: string): void {
+  try {
+    localStorage.setItem(`${keyName}.broken`, raw);
+  } catch { /* 隐私模式:连隔离键都写不进就算了,原键仍在 */ }
+}
+
+/**
+ * localStorage 可能不可用(隐私模式 / 被禁用),全部包 try。
+ * 解析失败/形状非法时:先把原始串隔离到 `.broken` 键(数据不丢,可人工找回),
+ * 再当空库处理 —— 但**不删原键**,后续写档覆盖的是新值,原串仍在 .broken 里。
+ */
 function readAutos(): AutoStore {
   try {
     const raw = localStorage.getItem(AUTO_KEY);
     if (!raw) return {};
-    const o: unknown = JSON.parse(raw);
-    return o && typeof o === 'object' ? (o as AutoStore) : {};
+    const parsed = JSON.parse(raw);
+    const { store, dropped } = sanitizeStore(parsed);
+    if (dropped) quarantine(AUTO_KEY, raw);
+    return store;
   } catch {
+    quarantine(AUTO_KEY, localStorage.getItem(AUTO_KEY) ?? '');
     return {};
   }
 }
@@ -174,7 +223,9 @@ export function saveAuto(
     chapterIdx: game.chapterIdx,
     chapterTitle: ch?.title ?? `第 ${game.chapterIdx + 1} 章`,
     roundNo,
-    backtracksLeft: Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
+    // 回溯余量:-1 = 无限(剧情难度 diff.backtrack = -1,与引擎语义一致,
+    // 存档页按负值显示「本章可无限次回溯」)
+    backtracksLeft: game.diff.backtrack < 0 ? -1 : Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
     age: game.age,
     payload,
     ...(opts?.ui?.length ? { ui: opts.ui } : {}),
@@ -240,9 +291,13 @@ function readStash(): StashStore {
   try {
     const raw = localStorage.getItem(STASH_KEY);
     if (!raw) return {};
-    const o: unknown = JSON.parse(raw);
-    return o && typeof o === 'object' ? (o as StashStore) : {};
+    const parsed = JSON.parse(raw);
+    const { store, dropped } = sanitizeStore(parsed);
+    if (dropped) quarantine(STASH_KEY, raw);
+    return store;
   } catch {
+    // 同 readAutos:解析失败/形状非法先把原始串隔离到 .broken 键,再当空处理
+    quarantine(STASH_KEY, localStorage.getItem(STASH_KEY) ?? '');
     return {};
   }
 }
@@ -272,7 +327,8 @@ export function stashSave(game: Game, scenKey: string, scenName: string, roundNo
     chapterIdx: game.chapterIdx,
     chapterTitle: ch?.title ?? `第 ${game.chapterIdx + 1} 章`,
     roundNo,
-    backtracksLeft: Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
+    // 回溯余量:-1 = 无限(与自动档同口径)
+    backtracksLeft: game.diff.backtrack < 0 ? -1 : Math.max(0, game.diff.backtrack - game.backtracksThisChapter),
     age: game.age,
     payload,
     ...(ui?.length ? { ui } : {}),
@@ -339,23 +395,52 @@ export function exportSavesBundle(): SavesBundle {
   return { autos: readAutos(), stash: readStash() };
 }
 
-/** 用云端 bundle 整包覆写本地(只接受结构合法的输入;非法按空包处理) */
-export function importSavesBundle(b: SavesBundle): void {
+/**
+ * 用云端 bundle 整包覆写本地。返回是否真的写进去了。
+ *
+ * 2026-10-21 修三处:
+ * - 结构先校验再落:autos/stash 必须是对象(桶可以为空,但不能是数组/字符串),
+ *   非法包**不再按空包处理** —— 原来那样会把玩家本地档清空;
+ * - 备份写失败就**中止导入**:备份是唯一回滚手段,没备份还覆盖等于让玩家
+ *   无路可退(配额紧张时备份几乎必然失败,原来被空 catch 吞掉);
+ * - 返回成功与否:调用方(tapcloud)据此决定要不要把「已同步」写进 meta ——
+ *   写失败却对齐了 meta,分叉的那一半就永远不会再传。
+ */
+export function importSavesBundle(b: SavesBundle): boolean {
+  if (!b || typeof b !== 'object') return false;
+  const autos = b.autos;
+  const stash = b.stash;
+  if (!autos || typeof autos !== 'object' || Array.isArray(autos)) return false;
+  if (!stash || typeof stash !== 'object' || Array.isArray(stash)) return false;
+  const nextAutos = sanitizeStore(autos).store;
+  const nextStash = sanitizeStore(stash).store;
   try {
     localStorage.setItem(BACKUP_KEY, JSON.stringify(exportSavesBundle()));
-  } catch { /* 备份失败不阻断同步 */ }
-  writeAutos(b && typeof b === 'object' && b.autos && typeof b.autos === 'object' ? b.autos : {});
-  writeStash(b && typeof b === 'object' && b.stash && typeof b.stash === 'object' ? b.stash : {});
+  } catch {
+    // 备份写不进去(配额/隐私模式)就不覆盖:宁可不同步,也不让玩家丢档
+    return false;
+  }
+  const okAutos = writeAutos(nextAutos);
+  const okStash = writeStash(nextStash);
+  return okAutos && okStash;
 }
 
-/** 存档变动监听:每处写存储成功后触发。监听者抛错不许砸存档本体。 */
+/**
+ * 存档变动监听:每处写存储成功后触发。监听者抛错不许砸存档本体。
+ * 返回退订函数(2026-10-21 加):页面级重复初始化时能真正摘掉订阅,
+ * 不再是只增不减。
+ */
 type MutListener = () => void;
 const mutListeners: MutListener[] = [];
-export function onSaveMutated(cb: MutListener): void {
+export function onSaveMutated(cb: MutListener): () => void {
   mutListeners.push(cb);
+  return () => {
+    const i = mutListeners.indexOf(cb);
+    if (i >= 0) mutListeners.splice(i, 1);
+  };
 }
 function notifyMutated(): void {
-  for (const cb of mutListeners) {
+  for (const cb of [...mutListeners]) {
     try { cb(); } catch { /* 同步模块的异常不许砸存档 */ }
   }
 }

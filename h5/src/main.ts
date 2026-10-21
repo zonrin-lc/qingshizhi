@@ -27,7 +27,7 @@ import { bgm } from './game/audio';
 import { voice } from './game/voice';
 import { renderMenu, type MenuPage } from './ui/menu';
 import { renderSelectPage, type SelectPage } from './ui/select';
-import { renderSettingsPage, syncFromStorage } from './ui/settings';
+import { renderSettingsPage, syncFromStorage, type SettingsPage } from './ui/settings';
 import { applyVisual, broadcastSettings, loadSettings, onSegDelay } from './game/settings';
 import { renderSavePage } from './ui/savepage';
 import { renderGalleryPage, type GalleryPage } from './ui/gallery';
@@ -37,7 +37,18 @@ import {
 } from './game/saves';
 import { injectCollection } from './game/collection';
 import { initTapCloud, isTapEnv, requestExit as requestAppExit } from './game/tapcloud';
-import { btn, el, lbl } from './ui/kit';
+import { btn, el, lbl, toast as kitToast } from './ui/kit';
+
+/**
+ * 引擎侧还有没有下一章。
+ *
+ * 判据与 prot/engine.js 的 nextChapter() 一致(chapterIdx+1 < CHAPTERS.length):
+ * 末章结算页之后没有下一章,这一局就算走完了。
+ * whyCannotSave 在 game/saves.ts(本轮不改那个文件),所以在调用点自己判。
+ */
+function hasNextChapter(g: Game): boolean {
+  return g.chapterIdx + 1 < g.d.CHAPTERS.length;
+}
 
 /** 引擎导出面自检 */
 function checkEngineSurface(): string[] {
@@ -116,6 +127,7 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   let menuPage: MenuPage | null = null;
   let selectPage: SelectPage | null = null;
   let galleryPage: GalleryPage | null = null;
+  let settingsPage: SettingsPage | null = null;
   /**
    * 导航代数:每次页面切换 +1。异步入局(等数据分片下载)落地前比对,
    * 代数变了说明玩家已经去了别的页面,迟到的 resolve 不许再把人拽进对局。
@@ -136,8 +148,11 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     selectPage = null;
     galleryPage?.destroy();
     galleryPage = null;
+    // 设置页也有 destroy(内部退订 tapcloud 状态订阅):原先是直接摘 DOM,
+    // 订阅永不释放,每进一次设置页就多一个持有已脱离文档的回调(2026-10-21 修)。
+    settingsPage?.destroy();
+    settingsPage = null;
     shell.stage.querySelector('.saves')?.remove();
-    shell.stage.querySelector('.settings')?.remove();
   };
   const showGame = (): void => {
     shell.bar.hidden = false;
@@ -161,6 +176,37 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   };
 
   /**
+   * 系统返回键 / 返回手势(2026-10-21 修)。
+   *
+   * 容器里按返回手势会直接离开页面,不经过 requestExit() —— 不写自动档、
+   * 也不弹「自动档已满,是否覆盖最早一条」,玩家进度只落到暂存。
+   * 修法:入局时压一条历史,popstate 里转对局页自己的 requestExit()
+   * (同一条「返回」确认流)。别的页面不压历史也不拦:
+   * 那些页面的后退归浏览器管,拦下来反而会把浏览器的正常后退弄坏。
+   */
+  let gameHistoryGuard = false;
+  const pushGameHistory = (): void => {
+    try {
+      history.pushState({ qs: 'qingshi' }, '');
+      gameHistoryGuard = true;
+    } catch {
+      // 某些容器/沙箱禁写历史:不拦返回键也不能因此崩,游戏照常玩
+      gameHistoryGuard = false;
+    }
+  };
+  window.addEventListener('popstate', () => {
+    if (!session) {
+      // 不在对局页:不拦截,让浏览器照常后退(顺手记下我们的守卫条目已被消费)
+      gameHistoryGuard = false;
+      return;
+    }
+    // 被系统返回吃掉的那条历史补回去,页面才不会真的跳走;
+    // 然后走对局页自己的「返回」确认流(写自动档 / 满员问覆盖)。
+    pushGameHistory();
+    requestExit();
+  });
+
+  /**
    * 对局页点「返回」(2026-10-17 三次拍板,取代 10-15 的「一律先问是否存档」):
    * - 本章经营未满 SAVE_MIN_ROUND 轮:开局还浅,没什么可存的,不问不存直接退;
    * - 自动档有空位:自动存档(记下当前这一刻的完整进度,精确到经营轮次)直接退;
@@ -173,7 +219,15 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     if (!s0) { goMenu(); return; }
     const g = s0.game;
     const leave = (): void => { disposeSession(); goMenu(); };
+    // 成就/词条先落盘(2026-10-21):中途离开时解锁的东西不该随页面蒸发
+    s0.persistCollection();
     if (g.phase === 'ending' || whyCannotSave(g)) { leave(); return; }
+    // 末章结算(引擎 phase==='summary')且引擎已经没有下一章了:这一局其实走完了,
+    // 再写自动档会让「继续旅程」把一局**已通关**的进度当未完成的一局重载。
+    // 引擎侧 whyCannotSave 在 game/saves.ts(那个文件本轮不改),所以在调用点判:
+    // 判据与引擎的 nextChapter() 一致(见 hasNextChapter)。
+    // 中间章的结算页仍有下一章,照常写档 —— 那是一局进行到一半的正常存档。
+    if (g.phase === 'summary' && !hasNextChapter(g)) { leave(); return; }
     if (s0.roundNo < SAVE_MIN_ROUND) { leave(); return; }
     if (autoCount(curKey) < AUTO_MAX) {
       const r = saveAuto(g, curKey, g.d.SCENARIO.name, { roundNo: s0.roundNo, ui: s0.collectHistory() });
@@ -231,19 +285,18 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     stashSave(session.game, curKey, session.game.d.SCENARIO.name, session.roundNo, session.collectHistory());
   });
 
-  /** 提示条:存档结果等需要告知玩家的短消息 */
-  let toastTimer = 0;
+  /**
+   * 提示条:存档结果等需要告知玩家的短消息。
+   *
+   * 只走 kit 的全站实现(2026-10-21 修):原先这里自己造了一套 .toast,
+   * 与 kit 的同名同类,于是 shell.stage.querySelector('.toast') 会命中
+   * kit 挂在页面根里的那条 —— 「剧本数据加载失败」被静默吞掉,
+   * 两套定时器还会互相提前隐藏对方的消息。
+   * 提示条不承载点击(见 save.css .toast 的 pointer-events:none),
+   * 也不会压住主菜单底部的按钮。
+   */
   const toast = (text: string): void => {
-    let t = shell.stage.querySelector<HTMLElement>('.toast');
-    if (!t) {
-      t = lbl('', 'toast');
-      shell.stage.append(t);
-    }
-    t.textContent = text;
-    t.hidden = false;
-    // 连发两条时,旧定时器不能提前把新消息收掉
-    window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => { if (t) t.hidden = true; }, 2600);
+    kitToast(shell.stage, text);
   };
 
   /** 继续旅程:读全部剧本里最新的一条自动档;没有自动档则去存档页挑 */
@@ -318,11 +371,13 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   // ---------- 设置页 ----------
   const goSettings = (): void => {
     navToken += 1;
+    // 四个 go* 统一先收对局:漏掉这一句,对局计时器/朗读会在背后继续跑
+    disposeSession();
     hideGame();
     hidePages();
     setBg(shell.stage, 'settings');
     setDeco(shell.deco, false);
-    renderSettingsPage(shell.stage, () => {
+    settingsPage = renderSettingsPage(shell.stage, () => {
       // 返回前按存档里的设置校准一次,确保音频与界面显示一致
       syncFromStorage();
       goMenu();
@@ -332,6 +387,7 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   /** 青史图鉴页(结局达成一览) */
   const goGallery = (): void => {
     navToken += 1;
+    disposeSession();
     hideGame();
     hidePages();
     setBg(shell.stage, 'save');
@@ -342,6 +398,7 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   /** 存档页 */
   const goSaves = (): void => {
     navToken += 1;
+    disposeSession();
     hideGame();
     hidePages();
     setBg(shell.stage, 'save');
@@ -419,9 +476,17 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     const origTop = session.renderTop.bind(session);
     session.renderTop = function patched(this: Session): void {
       origTop();
-      renderSide(shell.side, session!.sideContent());
+      const s = session;
+      if (!s) return;
+      // §3.5(2026-10-21 修):右栏还有属性在等飞字落定时,不要整块重画。
+      // 整块重画会把「旧值保持到落定」冲成新值,session 里 applySideDelta 的守卫
+      // (vEl.textContent !== oldShown)就永远命中:飞字补间不执行、待定轴也清不掉。
+      if (s.hasSidePending()) return;
+      renderSide(shell.side, s.sideContent());
     };
     wireBack(shell, () => requestExit());
+    // 系统返回键/返回手势:入局压一条历史(见 pushGameHistory 的说明)
+    if (!gameHistoryGuard) pushGameHistory();
     if (fromSave) {
       // 读档/继续进来:引擎 importSave 已把状态摆回存档那一刻(v2.2.0 轮次存档,
       // 旧版章首档落在 intro),按相位渲染回同一位置,经营轮数随槽位写回

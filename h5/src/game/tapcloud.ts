@@ -103,21 +103,53 @@ function call<T, O extends object>(
 
 /* ---------------- 同步元数据 ---------------- */
 
+/**
+ * 同步元数据。**两个时间戳各管一件事**(2026-10-21 修):
+ * - lastChange:本地最近一次**改动**的时刻(内容时间)
+ * - lastUpload:最近一次**上传完成**的时刻(墙钟时间)→ 只用来算官方频控窗口
+ * - lastUploadedAt:上一次**传到云端的那份包**的内容时间(`bundle.at`)
+ *
+ * 为什么不能拿 lastUpload 当脏判据:上传要跑 3 次网络往返,期间玩家又存了档,
+ * 它的 lastChange(T2)会小于上传**完成**的墙钟时刻(T3)—— 于是
+ * `lastChange > lastUpload` 不成立,那次存档被当成「已同步」,永远不再上云。
+ * 脏判据必须用「云端那份包的内容时间」比。
+ * 老档没有 lastUploadedAt,退回按 lastUpload 比(与旧行为一致)。
+ */
+interface SyncMeta {
+  lastChange: number;
+  lastUpload: number;
+  lastUploadedAt?: number;
+}
+
 function readMeta(): SyncMeta {
   try {
     const raw = localStorage.getItem(META_KEY);
     if (raw) {
       const o = JSON.parse(raw) as Partial<SyncMeta>;
-      return { lastChange: o.lastChange ?? 0, lastUpload: o.lastUpload ?? 0 };
+      return {
+        lastChange: o.lastChange ?? 0,
+        lastUpload: o.lastUpload ?? 0,
+        lastUploadedAt: typeof o.lastUploadedAt === 'number' ? o.lastUploadedAt : undefined,
+      };
     }
   } catch { /* 隐私模式等:当全新 */ }
-  return { lastChange: 0, lastUpload: 0 };
+  return { lastChange: 0, lastUpload: 0, lastUploadedAt: undefined };
 }
 
 function writeMeta(m: SyncMeta): void {
   try {
     localStorage.setItem(META_KEY, JSON.stringify(m));
   } catch { /* 元数据写不进不阻断同步 */ }
+}
+
+/** 云端那份包的内容时间(脏判据用;老档退回 lastUpload) */
+function uploadedAt(meta: SyncMeta): number {
+  return meta.lastUploadedAt ?? meta.lastUpload;
+}
+
+/** 本地是否有还没上云的改动 */
+function isDirty(meta: SyncMeta): boolean {
+  return meta.lastChange > 0 && meta.lastChange > uploadedAt(meta);
 }
 
 /* ---------------- 状态与订阅 ---------------- */
@@ -137,7 +169,7 @@ export function getStatus(): TapStatus {
     env: isTapEnv(),
     online,
     syncing,
-    pending: meta.lastChange > meta.lastUpload,
+    pending: isDirty(meta),
     lastSync,
   };
 }
@@ -165,8 +197,14 @@ function uploadInterval(): number {
   return typeof v === 'number' && v > 0 ? v : UPLOAD_INTERVAL;
 }
 
-function bundlePath(t: TapGlobal): string {
-  return `${t.env.USER_DATA_PATH}/qingshi_saves.json`;
+/**
+ * 上传与下载各用各的临时文件(2026-10-21 修):
+ * 原来两者共用 `qingshi_saves.json` —— 上传把本地整包写进去交给 updateArchive,
+ * 下载又把云端内容落回同一路径;两条链一交错(启动对账未完时写档触发了上传),
+ * 云端就会被旧内容覆盖,本机新档也丢了。文件名分开后互不干扰。
+ */
+function bundlePath(t: TapGlobal, kind: 'upload' | 'download'): string {
+  return `${t.env.USER_DATA_PATH}/qingshi_saves_${kind}.json`;
 }
 
 /**
@@ -200,10 +238,16 @@ export type PullResult =
  */
 async function runUpload(): Promise<PushResult> {
   const t = tapEnv();
-  if (!t || !online) return 'offline';
+  if (!t) return 'offline';
+  if (!online) {
+    // 登录态可能只是暂时失败(弱网/容器抖动):重试一次,别让一次失败把整个
+    // 会话的云同步永久关掉(2026-10-21 修)
+    const ok = await tryLogin();
+    if (!ok) return 'offline';
+  }
   if (syncing) return 'busy';
   const meta = readMeta();
-  if (meta.lastChange === 0 || meta.lastChange <= meta.lastUpload) return 'clean';
+  if (!isDirty(meta)) return 'clean';
   if (Date.now() - meta.lastUpload < uploadInterval()) return 'throttled';
 
   syncing = true;
@@ -212,7 +256,7 @@ async function runUpload(): Promise<PushResult> {
     const bundle = { v: 1, at: meta.lastChange, saves: exportSavesBundle() };
     const fs = t.getFileSystemManager();
     const cloud = t.getCloudSaveManager();
-    const path = bundlePath(t);
+    const path = bundlePath(t, 'upload');
     await call(fs.writeFile.bind(fs), {
       filePath: path, data: JSON.stringify(bundle), encoding: 'utf8',
     });
@@ -230,7 +274,12 @@ async function runUpload(): Promise<PushResult> {
     } else {
       await call(cloud.createArchive.bind(cloud), { archiveMetaData: md, archiveFilePath: path });
     }
-    writeMeta({ ...meta, lastUpload: Date.now() });
+    // 只回写 lastUpload(墙钟,给频控窗口用)与 lastUploadedAt(本次上传的**内容
+    // 时间** bundle.at,给脏判据用);lastChange 现读现用(2026-10-21 修):
+    // 原来把上传开始前的 meta 快照整个写回,上传在飞期间玩家新存的档
+    // (lastChange 已被推到更晚)会被回滚成旧值 → 那次存档再也不会上云。
+    const now = readMeta();
+    writeMeta({ ...now, lastUpload: Date.now(), lastUploadedAt: bundle.at });
     lastSync = Date.now();
     return 'uploaded';
   } catch (e) {
@@ -242,20 +291,35 @@ async function runUpload(): Promise<PushResult> {
   }
 }
 
-/** 本地写档后标脏并按频控调度上传(合并 debounce:频繁写只传一头一尾) */
+/**
+ * 本地写档后标脏并按频控调度上传(合并 debounce:频繁写只传一头一尾)。
+ *
+ * 标脏与「是否在线」解耦(2026-10-21 修):原来离线时直接 return,lastChange
+ * 恒为 0,启动对账拿云端时间戳与 0 比 → 云端(哪怕是旧包)恒胜,本机进度被
+ * 整包静默覆盖。现在只要在容器里就先把 lastChange 记下来(脏 = 本地更新),
+ * 对账据此让路;传不上去也只是「待同步」,不会丢数据。
+ */
 function scheduleUpload(): void {
   if (suppressMutated) return;
-  if (!isTapEnv() || !online) return;
+  if (!isTapEnv()) return;
   const meta = readMeta();
   writeMeta({ ...meta, lastChange: Date.now() });
   emitStatus();
+  if (!online) return; // 没登录就只标脏,等下次有机会再传
   window.clearTimeout(uploadTimer);
   const wait = Math.max(1500, uploadInterval() - (Date.now() - meta.lastUpload));
   uploadTimer = window.setTimeout(() => {
     void uploadNow().then((ok) => {
-      // 上传期间又写了档 → 排下一轮(仍受频控间隔约束)
       const m = readMeta();
-      if (ok && m.lastChange > m.lastUpload) scheduleUpload();
+      if (isDirty(m)) {
+        // 还有没传上去的:成功时接着排下一轮,失败/频控时也按窗口再排一次
+        // (原来只在 ok 时排,throttled/failed 之后 pending 一直挂着没人推)
+        if (ok) scheduleUpload();
+        else {
+          window.clearTimeout(uploadTimer);
+          uploadTimer = window.setTimeout(() => scheduleUpload(), uploadInterval());
+        }
+      }
     });
   }, wait);
 }
@@ -266,49 +330,105 @@ function scheduleUpload(): void {
  * 把云端整包落到本地(覆写前 saves.ts 留本地备份)。返回是否真的覆写了。
  * 启动对账与设置页手动「下载」共用这一段:手动下载不做新旧比较,
  * 一律以云端为准(玩家明说要下云端的)。
+ *
+ * 2026-10-21 修的三处:
+ * - 落盘用**独立**的下载临时文件(不与上传共用,避免交错时云端被旧内容覆盖);
+ * - 包结构先校验再落:非法包不当空包处理(否则会把玩家本地档清空);
+ * - 导入失败(配额不足等)**不**对齐 meta:对齐了就等于告诉云端「已同步」,
+ *   分叉的那一半永远不会再传。
  */
 async function applyCloudBundle(t: TapGlobal, found: TapArchiveDetail): Promise<boolean> {
+  if (syncing) return false;
   const fs = t.getFileSystemManager();
   const cloud = t.getCloudSaveManager();
-  const path = bundlePath(t);
-  const got = await call<{ filePath: string }, TapCallbackOpts<{ filePath: string }> & { archiveUUID: string; archiveFileId: string; targetFilePath?: string }>(cloud.getArchiveData.bind(cloud), {
-    archiveUUID: found.uuid, archiveFileId: found.fileId, targetFilePath: path,
-  });
-  const text = await call<{ data: string }, TapCallbackOpts<{ data: string }> & { filePath: string; encoding?: string }>(fs.readFile.bind(fs), { filePath: got.filePath ?? path, encoding: 'utf8' });
-  const bundle = JSON.parse(text.data) as { v?: number; at?: number; saves?: Parameters<typeof importSavesBundle>[0] };
-  if (bundle && typeof bundle === 'object' && bundle.saves) {
+  const path = bundlePath(t, 'download');
+  let bundle: { v?: number; at?: number; saves?: Parameters<typeof importSavesBundle>[0] };
+  try {
+    const got = await call<{ filePath: string }, TapCallbackOpts<{ filePath: string }> & { archiveUUID: string; archiveFileId: string; targetFilePath?: string }>(cloud.getArchiveData.bind(cloud), {
+      archiveUUID: found.uuid, archiveFileId: found.fileId, targetFilePath: path,
+    });
+    const text = await call<{ data: string }, TapCallbackOpts<{ data: string }> & { filePath: string; encoding?: string }>(fs.readFile.bind(fs), { filePath: got.filePath ?? path, encoding: 'utf8' });
+    bundle = JSON.parse(text.data) as typeof bundle;
+  } catch (e) {
+    console.warn('[青史志] 云端存档读取失败,已放弃本次下载:', e instanceof Error ? e.message : e);
+    return false;
+  }
+  if (!bundle || typeof bundle !== 'object' || !bundle.saves || typeof bundle.saves !== 'object') {
+    console.warn('[青史志] 云端存档包结构非法,已忽略');
+    return false;
+  }
+  // autos/stash 必须是对象(桶可以为空,但不能是数组或字符串)
+  const s = bundle.saves as { autos?: unknown; stash?: unknown };
+  const autosOk = s.autos === undefined || (!!s.autos && typeof s.autos === 'object' && !Array.isArray(s.autos));
+  const stashOk = s.stash === undefined || (!!s.stash && typeof s.stash === 'object' && !Array.isArray(s.stash));
+  if (!autosOk || !stashOk) {
+    console.warn('[青史志] 云端存档包结构非法(autos/stash 形状不对),已忽略');
+    return false;
+  }
+
+  syncing = true;
+  emitStatus();
+  try {
     // importSavesBundle 会经 writeAutos/writeStash 触发 onSaveMutated,
     // 压住监听并清掉可能已排期的定时器,再把 meta 对齐云端(不回传)
     suppressMutated = true;
+    let ok = false;
     try {
-      importSavesBundle(bundle.saves);
+      ok = importSavesBundle(bundle.saves);
     } finally {
       suppressMutated = false;
     }
+    if (!ok) {
+      console.warn('[青史志] 云端存档写入本地失败(可能配额不足),已保留本地现状');
+      return false;
+    }
     window.clearTimeout(uploadTimer);
-    const cloudAt = found.modifiedTime * 1000;
-    writeMeta({ lastChange: cloudAt, lastUpload: cloudAt });
+    // 以云端包里的 at(本地变动时刻)为准,不是服务器上传时刻;
+    // 拿 modifiedTime 比会在每次成功上传后的启动都误判「云端更新」→
+    // 白白下载并整包重写本地一次(2026-10-21 修)
+    const cloudAt = typeof bundle.at === 'number' ? bundle.at : found.modifiedTime * 1000;
+    writeMeta({ lastChange: cloudAt, lastUpload: cloudAt, lastUploadedAt: cloudAt });
     lastSync = Date.now();
     emitStatus();
     return true;
+  } catch (e) {
+    console.warn('[青史志] 云端存档写入本地失败:', e instanceof Error ? e.message : e);
+    return false;
+  } finally {
+    syncing = false;
+    emitStatus();
   }
-  console.warn('[青史志] 云端存档包结构非法,已忽略');
-  return false;
 }
 
-/** 启动对账:云端比本地新 → 整包覆写本地;本地脏 → 调度上传。返回本地是否被覆写 */
+/**
+ * 启动对账:云端比本地新 → 整包覆写本地;本地脏 → 调度上传。返回本地是否被覆写。
+ *
+ * 2026-10-21 修:本地有未上传的改动时**不让云端覆盖**(脏 = 本机更新),
+ * 否则登录失败/离线过一次就会拿旧包把本机进度盖掉。
+ */
 async function reconcile(t: TapGlobal): Promise<boolean> {
   const cloud = t.getCloudSaveManager();
   const list = await call<{ saves: TapArchiveDetail[] }, TapCallbackOpts<{ saves: TapArchiveDetail[] }>>(cloud.getArchiveList.bind(cloud), {});
   const found = (list.saves ?? []).find((s) => s.name === ARCHIVE_NAME);
   const meta = readMeta();
-  const cloudAt = found ? found.modifiedTime * 1000 : 0;
+  const dirty = isDirty(meta);
 
-  if (found && cloudAt > meta.lastChange) {
-    // 云端新:下载整包覆写本地(saves.ts 内部会先留本地备份)
-    return applyCloudBundle(t, found);
+  if (found && !dirty) {
+    // 云端的「本地变动时刻」写在包 extra 的 at 里;老包没有就退回上传时刻
+    const at = (() => {
+      try {
+        const extra = JSON.parse(found.extra || '{}') as { at?: number };
+        return typeof extra.at === 'number' ? extra.at : found.modifiedTime * 1000;
+      } catch {
+        return found.modifiedTime * 1000;
+      }
+    })();
+    if (at > meta.lastChange) {
+      // 云端新:下载整包覆写本地(saves.ts 内部会先留本地备份)
+      return applyCloudBundle(t, found);
+    }
   }
-  if (meta.lastChange > meta.lastUpload) scheduleUpload();
+  if (dirty) scheduleUpload();
   return false;
 }
 
@@ -319,6 +439,22 @@ export interface InitResult {
   online: boolean;
   /** reconcile 是否覆写了本地存档(调用方可能需要刷新页面) */
   changed: boolean;
+}
+
+/** 静默登录(容器内一键授权)。失败返回 false,不影响本地游玩 */
+async function tryLogin(): Promise<boolean> {
+  const t = tapEnv();
+  if (!t) return false;
+  try {
+    await call<TapLoginRes, TapCallbackOpts<TapLoginRes>>(t.login.bind(t), {});
+    online = true;
+    emitStatus();
+    return true;
+  } catch (e) {
+    console.warn('[青史志] TapTap 登录态获取失败,云同步不可用:', e instanceof Error ? e.message : e);
+    emitStatus();
+    return false;
+  }
 }
 
 /**
@@ -332,21 +468,13 @@ export async function initTapCloud(): Promise<InitResult> {
   if (!t) return { online: false, changed: false };
 
   // 登录态:容器内静默一键授权;失败则云同步不可用(不影响本地游玩)
-  try {
-    await call<TapLoginRes, TapCallbackOpts<TapLoginRes>>(t.login.bind(t), {});
-    online = true;
-  } catch (e) {
-    console.warn('[青史志] TapTap 登录态获取失败,云同步不可用:', e instanceof Error ? e.message : e);
-    emitStatus();
-    return { online: false, changed: false };
-  }
-  emitStatus();
+  if (!await tryLogin()) return { online: false, changed: false };
 
   // 本地写档 → 标脏上传;关页末班车(同步频率窗口内才发,页面正在销毁,尽力而为)
   onSaveMutated(scheduleUpload);
   window.addEventListener('pagehide', () => {
     const meta = readMeta();
-    if (meta.lastChange > meta.lastUpload && Date.now() - meta.lastUpload >= uploadInterval()) {
+    if (isDirty(meta) && Date.now() - meta.lastUpload >= uploadInterval()) {
       void uploadNow();
     }
   });
@@ -375,7 +503,9 @@ export async function pushSaves(): Promise<PushResult> {
  */
 export async function pullSaves(): Promise<PullResult> {
   const t = tapEnv();
-  if (!t || !online) return 'offline';
+  if (!t) return 'offline';
+  if (!online && !await tryLogin()) return 'offline';
+  if (syncing) return 'failed';
   try {
     const cloud = t.getCloudSaveManager();
     const list = await call<{ saves: TapArchiveDetail[] }, TapCallbackOpts<{ saves: TapArchiveDetail[] }>>(cloud.getArchiveList.bind(cloud), {});
@@ -403,19 +533,20 @@ const EXIT_API_NAMES = ['exitMiniProgram', 'exitApplication', 'exit'] as const;
  * 真退出(2026-10-16 拍板;2026-10-21 改):尽最大努力结束进程。
  * - 容器:把几个可能的退出接口都探测一遍(文档站没有,纯探测);
  * - 浏览器/WebView:window.close() 兜底(脚本未打开的窗口会被拒,只留 warning)。
- * 点火即忘:退出成败都不可依赖回调(进程可能直接被掐),本地存档已在
- * localStorage,未上云的部分下次启动 reconcile 会补传,不在退出时抢传。
+ *
+ * 退出前会**尽力**传一次脏档(不等它落地就往下走 —— 进程可能直接被掐)。
+ * 传不上去也不会丢数据:本地档在 localStorage,且 lastChange 仍标着「脏」,
+ * 下次启动 reconcile 会先让本地让路、再补传(2026-10-21 修的对账规则)。
  */
 export function requestExit(): void {
   void uploadNow().catch(() => { /* 尽力而为,失败不拦退出 */ });
   const t = typeof window !== 'undefined' ? window.tap : undefined;
   if (t) {
-    const bag = t as unknown as Record<string, unknown>;
     for (const name of EXIT_API_NAMES) {
-      const fn = bag[name];
+      const fn = t[name];
       if (typeof fn !== 'function') continue;
       try {
-        (fn as (o: object) => void).call(t, {});
+        fn.call(t, {});
       } catch { /* 容器拒绝:继续试下一个 */ }
     }
   }

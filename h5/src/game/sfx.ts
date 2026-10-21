@@ -68,7 +68,15 @@ export class Sfx {
     } catch {
       // 元数据未就绪时 currentTime 赋值会抛,从头播不了就让它接着播
     }
-    void el.play().catch(() => { /* 首个手势前的拒播属正常 */ });
+    void el.play().catch((e) => {
+      // 2026-10-21:区分「自动播放策略拒播」(正常)与「素材加载失败」(异常),
+      // 后者原来被一起静默吞掉,素材 404 时连日志都没有 —— 现在留一条 warning,
+      // 并把坏元素从池里摘掉(否则每次都复用同一个永远 paused 的坏元素)。
+      const err = e as { name?: string };
+      if (err && err.name === 'NotAllowedError') return; // 手势前的拒播,正常
+      console.warn('[青史志] 音效播放失败:', name, e);
+      this.drop(name, el);
+    });
   }
 
   /** 关音效时收掉所有在播的 */
@@ -76,6 +84,15 @@ export class Sfx {
     for (const pool of this.pools.values()) {
       for (const el of pool) el.pause();
     }
+  }
+
+  /** 把坏元素从池里摘掉(2026-10-21):加载失败的元素会永远 paused,
+   *  被 take() 当成「空闲」反复复用,等于这条音效从此哑掉 */
+  private drop(name: string, el: HTMLAudioElement): void {
+    const pool = this.pools.get(name);
+    if (!pool) return;
+    const i = pool.indexOf(el);
+    if (i >= 0) pool.splice(i, 1);
   }
 
   private take(name: string, url: string): HTMLAudioElement {

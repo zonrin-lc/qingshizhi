@@ -11,7 +11,7 @@
  * 「刷新后还在」是存文件系统唯一有意义的判据,
  * 只在内存里存取再读回来,证明不了任何事。
  */
-const { withPage, report, STEP_SNIPPET } = require('./lib/harness.cjs');
+const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 /** 打到中途打两张牌,让属性变化,然后存 */
 const SAVE_FLOW = `(async () => {
@@ -67,26 +67,123 @@ ${STEP_SNIPPET}
            replacedOk: !!replaced.ok, cnt };
 })()`;
 
-/** 刷新后:存档应在,且读档能还原 */
+/**
+ * 刷新后:走**存档页的「读 取」按钮**读档,并断言 DOM。
+ *
+ * 原来这一步直接调 `window.__QS__.loadAuto(0)` —— 它把档灌进**当前这局**的 g,
+ * 验的是引擎 importSave,不是玩家走的 UI 读档路径(存档页 → 读 取 → 新开一局)。
+ * 引擎那条路对了,UI 那条路(题签没摆回来、顶栏章题不对、右栏属性没刷新)照样没人管。
+ */
 const LOAD_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const raw = localStorage.getItem('qingshi.autos.v1');
   let filled = 0;
+  let store = {};
   try {
-    const o = JSON.parse(raw || '{}');
-    filled = Object.values(o).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0);
+    store = JSON.parse(raw || '{}');
+    filled = Object.values(store).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0);
   } catch { /* 解析失败即为空 */ }
-  const start = document.querySelector('.menu__item--start');
-  if (start) { start.click(); await sleep(150); }
-  document.querySelector('.selenter')?.click();
-  await sleep(600);
-  const g = window.__QS__.game;
-  const started = { caixue: g.attrs.caixue, caifu: g.attrs.caifu };
-  const ok = window.__QS__.loadAuto(0);
-  await sleep(80);
-  return { rawExists: !!raw, filled, started, ok, phase: g.phase, ch: g.chapterIdx,
-           caixue: g.attrs.caixue, caifu: g.attrs.caifu, backtracks: g.backtracksThisChapter };
+  // 存档页里将被点到的那一条:列表按新→旧排,第一条就是最新
+  const all = [];
+  for (const [k, list] of Object.entries(store)) {
+    for (const s of (Array.isArray(list) ? list : [])) all.push(s);
+  }
+  all.sort((a, b) => (b.at || 0) - (a.at || 0));
+  const target = all[0] || null;
+
+  // 主菜单 → 存档页(有档时「存 档」是亮的)
+  const savesBtn = [...document.querySelectorAll('.menu__item')]
+    .find((b) => (b.textContent || '').includes('存 档'));
+  const savesBtnEnabled = !!savesBtn && !savesBtn.disabled;
+  if (savesBtn) savesBtn.click();
+  const tS = performance.now();
+  while (!q('.saves') && performance.now() - tS < 8000) await sleep(50);
+  const saveShown = !!q('.saves');
+  const slotTitles = qa('.saves__list .slot:not(.is-empty) .slot__ch').map(n => n.textContent || '');
+
+  // 点「读 取」:玩家真正会按的那个按钮
+  const btn = q('.saves__list .slot:not(.is-empty) .btn--primary');
+  const btnText = (btn || {}).textContent || '';
+  let clicked = false;
+  if (btn) {
+    clicked = true;
+    btn.click();
+    // 等新一局挂上来(__QS__ 是入局后才有的)
+    const tL = performance.now();
+    while (!(window.__QS__ && window.__QS__.game) && performance.now() - tL < 10000) await sleep(50);
+    // 再等卷轴渲染完(题签是异步铺的)
+    const tD = performance.now();
+    while (!q('.stage__main .sec') && performance.now() - tD < 5000) await sleep(50);
+  }
+  const g = window.__QS__ && window.__QS__.game;
+  const started = { caixue: g && g.attrs.caixue, caifu: g && g.attrs.caifu };
+
+  // ---- DOM 断言素材(不是只看引擎状态) ----
+  const chapEl = q('.stage__chap');
+  const chapSc = (q('.stage__chap .stage__sc') || {}).textContent || '';
+  const chapText = (q('.stage__chap .stage__ch') || {}).textContent || '';
+  const heads = qa('.stage__main .sec .sec__head').map(h => h.textContent || '');
+  const roundHeads = heads.filter(t => t.includes('经营 · 第'));
+  const kvs = qa('.stage__side .kv').map(n => ({
+    attr: n.dataset.attr || '',
+    v: ((n.querySelector('.kv__v') || {}).textContent || '').trim(),
+  }));
+  return {
+    rawExists: !!raw, filled, savesBtnEnabled, saveShown, slotTitles, btnText, clicked,
+    started,
+    phase: g ? g.phase : '', ch: g ? g.chapterIdx : -1,
+    caixue: g ? g.attrs.caixue : null, caifu: g ? g.attrs.caifu : null,
+    backtracks: g ? g.backtracksThisChapter : null,
+    chapSc, chapText, headCount: heads.length, roundHeads: roundHeads.length,
+    roundHeadTexts: roundHeads, headTexts: heads,
+    kvs,
+    targetChap: target ? target.chapterTitle : '',
+    targetRound: target ? (target.roundNo ?? 0) : -1,
+    targetUiTitles: target && Array.isArray(target.ui) ? target.ui.map(u => u.t) : [],
+    targetAttrs: target && target.payload && target.payload.live ? target.payload.live.attrs : null,
+  };
 })()`;
+
+/**
+ * 损坏的 localStorage(2026-10-21 的形状校验就是要挡这些):
+ * 应用不能白屏,存档页要给空态而不是崩。
+ */
+const CORRUPT_FLOW = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
+  const out = { menuShown: false, entered: false, savesShown: false, emptyHint: false,
+                slots: -1, err: '' };
+  try {
+    out.menuShown = !!q('.menu__item--start');
+    // 入局(存档页在主菜单上,但「存 档」在没档时是灰的,只能入局后走 __QS__.goSaves)
+    q('.menu__item--start')?.click();
+    const tE = performance.now();
+    while (!q('.selenter') && performance.now() - tE < 8000) await sleep(50);
+    q('.selenter')?.click();
+    const tQ = performance.now();
+    while (!(window.__QS__ && window.__QS__.goSaves) && performance.now() - tQ < 8000) await sleep(50);
+    out.entered = !!(window.__QS__ && window.__QS__.goSaves);
+    if (out.entered) {
+      window.__QS__.goSaves();
+      const tS = performance.now();
+      while (!q('.saves') && performance.now() - tS < 8000) await sleep(50);
+    }
+    out.savesShown = !!q('.saves');
+    out.emptyHint = !!q('.saves__empty');
+    out.slots = qa('.saves__list .slot').length;
+  } catch (e) {
+    out.err = String((e && e.message) || e);
+  }
+  return out;
+})()`;
+
+/** 损坏 localStorage 的三组样本(自动档与暂存键都塞同样的坏值) */
+const CORRUPT_CASES = [
+  { name: '非法 JSON', value: '{' },
+  { name: '条目 payload 为 null', value: '{"lisi":[{"payload":null}]}' },
+  { name: '桶不是数组', value: '{"lisi":"not-an-array"}' },
+];
 
 /** 存档页渲染 + 选项卡过滤 + 删除二次确认 + 槽位轮次标识(v2.2.0) */
 const UI_FLOW = `(async () => {
@@ -234,20 +331,50 @@ ${STEP_SNIPPET}
   };
 })()`;
 
-withPage(async ({ evaluate, load, consoleErrors }) => {
+withPage(async ({ evaluate, load, enterGame, consoleErrors }) => {
   const saveFlow = await evaluate(SAVE_FLOW);
 
   // 真的刷新一次:模拟关掉页面再打开
   await load(1600, 900, 1);
   const loadRes = await evaluate(LOAD_FLOW);
   const uiRes = await evaluate(UI_FLOW);
-  // 退出自动存档:在同一局里打完牌 → 退出 → 继续上局
+  // 退出自动存档:重新入一局(前面几段流程已把页面带到存档页,没有活的对局
+  // 就打不满 5 轮,断言会假失败)→ 在这一局里打完牌 → 退出 → 继续上局
+  await evaluate(`(() => { window.__QS__.goMenu(); return true; })()`);
+  await sleep(250);
+  await enterGame();
   const autoRes = await evaluate(AUTO_FLOW);
+
+  // 损坏 localStorage:应用不白屏、存档页给空态而不是崩
+  // (原来 save.cjs 的 LOAD_FLOW 用 try/catch 把 JSON.parse 的异常吞了,
+  //  坏档一律当「空」处理 —— 恰恰是 2026-10-21 加的形状校验要挡的东西)
+  const corruptRes = [];
+  for (const c of CORRUPT_CASES) {
+    // 先把对局收掉:pagehide 会把暂存重写一遍(本章满 5 轮才写),
+    // 不收掉的话刚塞进去的坏值在重载前就被覆盖了,这一轮用例等于没跑
+    await evaluate(`(() => {
+      try { if (window.__QS__ && window.__QS__.goMenu) window.__QS__.goMenu(); } catch (e) {}
+      return true;
+    })()`);
+    await sleep(300);
+    await evaluate(`(() => {
+      localStorage.setItem('qingshi.autos.v1', ${JSON.stringify(c.value)});
+      localStorage.setItem('qingshi.stash.v1', ${JSON.stringify(c.value)});
+      return true;
+    })()`);
+    await load(1600, 900, 1);
+    const r = await evaluate(CORRUPT_FLOW);
+    corruptRes.push({ name: c.name, ...r });
+  }
+
   const errs = consoleErrors();
   const b = saveFlow.before || {};
   const sr = { ok: saveFlow.ok, reason: saveFlow.reason };
   const started = (loadRes && loadRes.started) || {};
   const ab = autoRes.before || {};
+  // 右栏属性:存档里的值 vs 读档后 DOM 上显示的值
+  const kvOf = (attr) => (loadRes.kvs || []).find((k) => k.attr === attr);
+  const targetAttrs = loadRes.targetAttrs || {};
 
   const ok = report('存档链路', [
     ['打到了中途(有实际牌可打)', b.played >= 2],
@@ -259,7 +386,30 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['确认覆盖后仍封顶 6 条', saveFlow.replacedOk === true && saveFlow.cnt === 6],
     ['存档写进了 localStorage', loadRes.rawExists === true],
     ['刷新后槽位非空', loadRes.filled >= 1],
-    ['读档返回 true', loadRes.ok === true],
+    // ↓ 读档走 UI 路径(存档页「读 取」按钮),不是 __QS__.loadAuto
+    ['主菜单「存 档」可用(有档时点亮)', loadRes.savesBtnEnabled === true],
+    ['存档页能打开', loadRes.saveShown === true],
+    ['存档页列出占用槽位', (loadRes.slotTitles || []).length >= 1],
+    ['槽位上有「读 取」按钮', (loadRes.btnText || '').replace(/\s/g, '') === '读取',
+      `按钮文案「${loadRes.btnText}」`],
+    ['点「读 取」能进对局(不是静默失败)', loadRes.clicked === true && loadRes.phase !== '',
+      `phase=${loadRes.phase}`],
+    ['读档后顶栏章题与存档一致', !!loadRes.targetChap && (loadRes.chapText || '').includes(loadRes.targetChap),
+      `顶栏「${loadRes.chapText}」 存档「${loadRes.targetChap}」`],
+    ['读档后顶栏剧名正确', (loadRes.chapSc || '').includes('李斯'), `顶栏剧名「${loadRes.chapSc}」`],
+    ['读档后卷轴恢复经营题签', loadRes.roundHeads >= 1, `恢复出 ${loadRes.roundHeads} 条`],
+    ['读档后卷轴题签与存档里的题签历史对得上',
+      (loadRes.targetUiTitles || []).length > 0
+      && (loadRes.targetUiTitles || []).every((t) => (loadRes.headTexts || []).includes(t)),
+      `存档 ${JSON.stringify(loadRes.targetUiTitles)} 卷轴 ${JSON.stringify(loadRes.headTexts)}`],
+    ['读档后右栏属性行渲染齐(6 项)', (loadRes.kvs || []).length === 6,
+      `${(loadRes.kvs || []).length} 行`],
+    ['读档后右栏财富与存档一致',
+      !!kvOf('caifu') && kvOf('caifu').v === String(targetAttrs.caifu),
+      `DOM「${kvOf('caifu') && kvOf('caifu').v}」 存档「${targetAttrs.caifu}」`],
+    ['读档后右栏威积与存档一致',
+      !!kvOf('weiji') && kvOf('weiji').v === String(targetAttrs.weiji),
+      `DOM「${kvOf('weiji') && kvOf('weiji').v}」 存档「${targetAttrs.weiji}」`],
     ['读档回到存档时的相位(v2.2.0 轮次续玩)', loadRes.phase === b.phase,
       `存时 ${b.phase} 读后 ${loadRes.phase}`],
     ['读档回到存时的章节', loadRes.ch === b.ch],
@@ -315,7 +465,19 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
       `弹框=${autoRes.earlyNoDialog} 档数 ${autoRes.earlyCnt}≠${autoRes.cntPostNo}`],
     ['控制台无错误', errs.length === 0],
   ]);
-  if (!ok) {
+
+  // 损坏 localStorage 单独一组:每种坏值都要「不白屏 + 存档页给空态」
+  const corruptChecks = [];
+  for (const r of corruptRes) {
+    corruptChecks.push([`坏档[${r.name}]:应用没白屏(主菜单在)`, r.menuShown === true]);
+    corruptChecks.push([`坏档[${r.name}]:还能入局`, r.entered === true, r.err]);
+    corruptChecks.push([`坏档[${r.name}]:存档页渲染出来了`, r.savesShown === true, r.err]);
+    corruptChecks.push([`坏档[${r.name}]:存档页给空态而不是崩`, r.emptyHint === true && r.slots === 0,
+      `emptyHint=${r.emptyHint} 槽位 ${r.slots}`]);
+  }
+  const corruptOk = report('损坏 localStorage', corruptChecks);
+
+  if (!ok || !corruptOk) {
     console.log('\n诊断:');
     console.log('  存前 ', JSON.stringify(b));
     console.log('  原始 ', JSON.stringify(saveFlow).slice(0, 400));
@@ -323,9 +485,10 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     console.log('  读档 ', JSON.stringify(loadRes));
     console.log('  页面 ', JSON.stringify(uiRes));
     console.log('  退出 ', JSON.stringify(autoRes).slice(0, 600));
+    console.log('  坏档 ', JSON.stringify(corruptRes));
     errs.forEach((e) => console.log('  错误 ' + e));
   }
-  return ok;
+  return ok && corruptOk;
 })
   .then((ok) => process.exit(ok ? 0 : 1))
   .catch((e) => { console.error('[失败]', e.message); process.exit(1); });

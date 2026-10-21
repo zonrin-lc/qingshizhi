@@ -103,6 +103,78 @@ export function divider(text: string): HTMLElement {
   return row;
 }
 
+/* ---------- 模态浮层的无障碍口径(2026-10-21 修) ----------
+ * 四个页面各有一份确认浮层(删存档 / 下云档 / 退游戏 / 看结局详情),
+ * 行为必须一致:role=dialog + aria-modal、打开时移焦到主按钮、
+ * Esc 关闭、Tab 在浮层内循环(焦点陷阱)、关闭后焦点还给触发它的元素。
+ * 抄四遍必然走样(现在已经走样了),故收在 kit 里统一发牌。 */
+const dlgPrevFocus = new WeakMap<HTMLElement, HTMLElement | null>();
+const dlgKeyHandler = new WeakMap<HTMLElement, (e: KeyboardEvent) => void>();
+
+/** 浮层盒内可聚焦的元素(按 tab 顺序) */
+function dialogFocusables(box: HTMLElement): HTMLElement[] {
+  return Array.from(box.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  ));
+}
+
+/**
+ * 打开一个模态浮层:补无障碍语义与键盘行为。
+ *
+ * @param mask 蒙版(整幅遮罩,点它等于取消;键盘事件挂在它身上,盒内按键会冒泡上来)
+ * @param box  浮层盒(真正承载内容的卷轴;role/aria-modal 挂这里)
+ * @param opts.focus   打开后聚焦的元素(默认盒内第一个可聚焦元素,一般是主按钮)
+ * @param opts.onClose Esc 时的收尾动作(默认直接摘掉浮层)
+ *
+ * 必须在盒子挂好、已入 DOM 之后调:焦点要能落到里面的按钮上。
+ */
+export function openDialog(
+  mask: HTMLElement,
+  box: HTMLElement,
+  opts?: { focus?: HTMLElement | null; onClose?: () => void },
+): void {
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  // 记下打开它时的焦点,关闭后还回去(浮层一摘,焦点会掉回 body)
+  if (!dlgPrevFocus.has(mask)) dlgPrevFocus.set(mask, (document.activeElement as HTMLElement | null) ?? null);
+  // 重复打开(同一浮层再开一次)时先摘旧监听,别叠成两个 Tab 陷阱
+  const old = dlgKeyHandler.get(mask);
+  if (old) mask.removeEventListener('keydown', old);
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (opts?.onClose) opts.onClose();
+      else closeDialog(mask);
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    // 焦点陷阱:Tab 在浮层内循环,不会跑到被蒙版盖住的页面上
+    const list = dialogFocusables(box);
+    if (list.length === 0) return;
+    const idx = list.indexOf(document.activeElement as HTMLElement);
+    const next = e.shiftKey
+      ? (idx <= 0 ? list.length - 1 : idx - 1)
+      : (idx < 0 || idx >= list.length - 1 ? 0 : idx + 1);
+    e.preventDefault();
+    list[next]?.focus();
+  };
+  dlgKeyHandler.set(mask, onKey);
+  mask.addEventListener('keydown', onKey);
+  // 焦点移到主按钮:键盘/读屏用户不用一路 Tab 找
+  const target = opts?.focus ?? dialogFocusables(box)[0] ?? null;
+  target?.focus?.();
+}
+
+/** 关闭模态浮层:摘掉浮层并把焦点还给打开它的元素 */
+export function closeDialog(mask: HTMLElement): void {
+  const onKey = dlgKeyHandler.get(mask);
+  if (onKey) { mask.removeEventListener('keydown', onKey); dlgKeyHandler.delete(mask); }
+  const prev = dlgPrevFocus.get(mask) ?? null;
+  dlgPrevFocus.delete(mask);
+  mask.remove();
+  if (prev && prev.isConnected) prev.focus();
+}
+
 /* ---------- 全站轻提示(save.css .toast) ---------- */
 let toastEl: HTMLElement | null = null;
 let toastTimer = 0;

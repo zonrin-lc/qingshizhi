@@ -55,7 +55,13 @@ export class Bgm {
   /** 音量:由设置项驱动(设置页 0-100 滑杆,默认 0.06),不是写死的;
    *  这里的初值只是设置加载前的兜底 */
   private volume = 0.06;
+  /**
+   * 熔断标记(2026-10-21 改):原来只有一个布尔 `failed`,一旦某首曲子出错就
+   * **永不复位** —— 某个剧本缺曲或 404,菜单 idle 曲从此整局静音。
+   * 现在记住「是哪一首出的问题」,换曲时重新给机会;同一首再错才继续熔断。
+   */
   private failed = false;
+  private failedUrl = '';
   /** 自动播放被拒后,是否已挂上手势补播监听 */
   private unlockBound = false;
   /** 是我们因页面不可见而暂停的标记:只有这种情况才在回前台时自动续播 */
@@ -115,7 +121,12 @@ export class Bgm {
   stop(): void {
     if (!this.el) return;
     this.el.pause();
-    this.el.currentTime = 0;
+    // 2026-10-21 修:资源出错时元素可能 readyState=HAVE_NOTHING,按规范给
+    // currentTime 赋值会抛 InvalidStateError —— 异常会逃出事件监听器,
+    // 连带把下面的状态清理跳过(曲目标签/预载标记都留着)。包 try 兜住。
+    try {
+      this.el.currentTime = 0;
+    } catch { /* 元素没有可寻址的媒体:忽略 */ }
     this.current = '';
     this.rotateKey = null;
     this.pausedByHidden = false;
@@ -130,6 +141,11 @@ export class Bgm {
   private start(url: string, loop: boolean): void {
     this.ensure();
     const el = this.el!;
+    // 换曲 = 给音乐重新一次机会(上一首的失败不该让整局静音)
+    if (this.failed && this.failedUrl !== url) {
+      this.failed = false;
+      this.failedUrl = '';
+    }
     el.src = url;
     el.loop = loop;
     el.volume = this.volume;
@@ -185,8 +201,10 @@ export class Bgm {
     el.setAttribute('aria-hidden', 'true');
     el.addEventListener('ended', this.onEnded);
     el.addEventListener('error', () => {
-      // 某个剧本的曲子缺失不该影响游戏,只放弃音乐
+      // 某个剧本的曲子缺失不该影响游戏,只放弃音乐(2026-10-21 改:
+      // 记下是哪一首出的问题,换曲时重新给机会,不再一错就整局静音)
       this.failed = true;
+      this.failedUrl = el.currentSrc || el.src || '';
       this.stop();
     });
     document.body.append(el);

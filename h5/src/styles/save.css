@@ -23,6 +23,9 @@
   font-size: var(--fs-note);
   letter-spacing: 0.06em;
   box-shadow: 0 0.4rem 1rem rgba(42, 37, 29, 0.2);
+  /* 2026-10-21 修:提示条只看不点。它挂在页根、bottom:2rem,
+     正好压住主菜单底部的「存 档/图 鉴/设 置/退 出」那一排并吞掉点击。 */
+  pointer-events: none;
 }
 /* 屏幕正中变体(剧本未解锁等强提醒,2026-10-20 拍板):居中 + 字号大一档 */
 .toast--center {
@@ -133,6 +136,12 @@
   letter-spacing: 0.1em;
   opacity: 0.85;
   color: var(--gold-hi) !important;
+}
+/* 状态行的窄屏简版(2026-10-21 修):窄屏放不下「最远 章名」,
+   只留「N 个存档 · 结局 X/Y」—— 结局进度不能整行藏掉。
+   宽屏用整版(.saves__status-full),窄屏换简版(.saves__status-mini)。 */
+.saves__status-mini {
+  display: none;
 }
 
 /* 缩略图排:5 枚,save/thumb(-on) 细金线/朱框 */
@@ -281,6 +290,11 @@
   font-family: var(--font-kai);
   font-size: var(--fs-note);
   color: var(--ink);
+}
+/* 本章还能回溯几次(独立成段,.slot__bt):宽屏写全句,窄屏换短句。
+   引擎难度 backtrack=-1 = 无限次回溯(剧情难度),存档里就存 -1。 */
+.slot__bt-mini {
+  display: none;
 }
 .slot__acts {
   display: flex;
@@ -482,8 +496,27 @@
     width: 1.6rem;
     flex: none;
   }
-  /* 记录题签行隐藏「年龄/本章可回溯」段(2026-10-19 拍板),只留章名·轮次·时间 */
+  /* 命中区扩到 44px(2026-10-21 修):1.6rem 只有 25.6px,手指点不准,
+     旁边就是槽位的「删 除」。视觉尺寸不动,用 ::before 撑开可点区域。
+     选中的朱点占着 ::after,故命中区用 ::before;左右各溢出 9px,
+     落在缩略图之间的空档里(间隙约 16px),不会压到相邻控件。
+     竖向超出缩略图行的部分会被 .saves__thumbs 的 overflow 裁掉(行高约 38px),
+     宁可裁在行边界也不越到上一行去 —— 越过去会抢邻行的点击。 */
+  .stab::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+  /* 记录题签行隐藏「年龄」段(2026-10-19 拍板),只留章名·轮次·时间;
+     回溯余量(.slot__bt)不跟着藏 —— 玩家要知道本章还能不能回溯、能几次,
+     窄屏换成短句「回溯 无限 / 回溯 N 次」以省地方。 */
   .slot .slot__age { display: none; }
+  .slot__bt-full { display: none; }
+  .slot__bt-mini { display: inline; }
   .saves__right {
     /* 八次拍板:不滚动;槽位列表弹性均分剩余高度 */
     overflow: hidden;
@@ -567,6 +600,20 @@
     border-image-source: none;
     background-color: transparent;
     box-shadow: none;
+    /* 命中区扩到 44px(2026-10-21 修):按钮只有 24px 高,「删 除」就在
+       「读 取」旁边,手指一偏就误删。视觉尺寸不动,用 ::after 撑开可点区域;
+       上下各溢出 10px,会被 .slot 的 overflow:hidden 裁到行边界(行高约 40px),
+       裁在行边界才不会抢邻行同列按钮的点击。 */
+    position: relative;
+  }
+  .saves .slot__btn::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
   .saves .btn--primary.slot__btn {
     border-image-source: none;
@@ -598,7 +645,17 @@
     font-size: var(--fs-ui);
   }
   /* 四次拍板:立绘介绍只留人物名+一行文字,字号缩小 */
-  .saves__status { display: none; }
+  /* 状态行不再整行藏掉(2026-10-21 修):这行是「N 个存档 · 结局 X/Y · 最远 章名」,
+     窄屏藏掉之后手机上「结局 X/Y」彻底消失。改成单行小字:
+     宽屏版换简版(去掉「最远」段,那边摘要条也有),字号抬到可读档。 */
+  .saves__status-full { display: none; }
+  .saves__status-mini { display: inline; }
+  .saves__status {
+    font-size: max(11px, var(--fs-note));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .saves__name {
     font-size: 0.95rem;
     letter-spacing: 0.25em;

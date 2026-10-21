@@ -42,6 +42,11 @@
    * 现在按 剧本数据 > 引擎默认 的顺序取值，数据侧写 ENCOUNTER 即可覆盖。 */
   var ENCOUNTER_DEFAULT = { randomChance: 0.4, randomMax: 2 };
 
+  /* caifu 门槛口径开关（v2.2.4）：默认 false = caifu 一律硬门槛（钱不够即锁死），
+   * 与 v2.2.4 之前的判定逐位一致；置 true 则「事件语境」的 req.caifu 降为软门槛
+   * （不足可冒险掷骰，失败烧毁选项）。见 checkRisk 注释与 setCaifuSoftEvent。 */
+  var CAIFU_SOFT_EVENT = false;
+
   function Game(data, diffKey, rng, streams) {
     this.d = data;
     this.diffKey = diffKey;
@@ -125,10 +130,12 @@
     this._weijiClamp = 0;        // 非致命难度的危机 95 封顶记录（v2.0.6：如实并入章末差值）
     this._endEventsChecked = false;   // 章末事件池是否已按条件筛过（此前无初始化，靠 truthiness 跑）
     this._newAch = [];           // 最近一次结算新解锁的成就
+    this._warns = [];            // 引擎告警（数据 typo 现场记录，v2.2.4；诊断用，不进结算/存档）
     this._crisisPlotPending = false; // 危机 70–89：本章待注入一次构陷际遇（GDD 4.1）
     this.passedEvents = {};      // 本章已通过（choose 结算后离开）的剧本事件 id 集合（章内进度，GDD 3.3）
     this._chapterStartId = null; // 本章实际起始剧本事件（startAlt 解析后；进度分母口径用）
     this._burned = {};           // 险招失败烧毁的选项（章:eventId:idx → true，本章本事件内不可再试，GDD 附录 J）
+    this._settledOpts = {};      // 已结算选项记账（章:eventId:idx → true，同一时间线内该选项不可复选，v2.2.4）
     this.xushi = false;          // 蓄势状态（v1.6）：下一次事件抉择险招 +10，抉择后清空
     // 属性上限表（v1.8）：ATTRS[].max 声明（如财富 10000），未声明按 100
     var selfA = this; this._amax = {};
@@ -229,7 +236,8 @@
   /* ---------- 险招（软门槛 + 掷骰，v1.4.0，GDD 附录 J） ----------
    * 六维属性（ATTR_NAMES）最低值门槛为软门槛：不达标可冒险掷骰；
    * flag/notflag/anyflag/minChapter/devMin/devMax/weijiMax/*Max/zgMax/*Seen 为硬门槛（保持锁定）。
-   * 行动卡语境下 caifu 是支付能力检查，特判为硬门槛。
+   * caifu 默认为硬门槛（支付能力检查，行动卡与事件同口径；v2.2.4 起可经开关切换，
+   * 见 checkRisk 与 setCaifuSoftEvent）。
    * 成功率按未达标差值六档取最低：≤3→70 / ≤6→50 / ≤9→40 / ≤12→30 / ≤15→20 / >15→15。 */
   Game.prototype.riskRate = function (gap) {
     if (gap <= 3) return 70; if (gap <= 6) return 50; if (gap <= 9) return 40;
@@ -256,12 +264,21 @@
   Game.prototype.CAIFU_LOCK_REASON = '财富见底，无力为之';
 
   /* 分类 req：hardOk/hardReason（硬键判定）+ unmet（未达标软键明细）+ rate（综合成功率，无软缺口为 null）
-   * caifu 恒为硬门槛（支付能力检查）：万位标尺（v1.8）下软门槛差值档不适用，且"钱不够"本就该锁而不是赌 */
+   * caifu 的门槛口径（v2.2.4 · 死参修复）：actionHardCaifu 此前是死参——函数体对 caifu
+   * 一律走硬门槛，而参数名承诺的「行动卡特判」并不存在（四处调用传 true/false 两套值，
+   * 结果完全一样）。现给出可切换的两种口径：
+   *   actionHardCaifu = true（行动卡语境）→ caifu 硬门槛：钱不够是支付能力问题，锁死，不是险招。
+   *   actionHardCaifu = false（事件语境）→ caifu 降为普通属性软门槛：不足可冒险掷骰。
+   * 默认行为不变：引擎级开关 CAIFU_SOFT_EVENT 默认 false → caifu 一律硬门槛，
+   * 与 v2.2.4 之前逐位一致；置 true（setCaifuSoftEvent(true)）才让事件语境的 caifu 可赌。
+   * 影响面（现役数据里带 req.caifu 的事件选项，共 8 处）：hanxin 2-1、jingke 3-3/4-1b/5-1、
+   * lisi 6-1/6-3、xiangyu 3-1/5-3 —— 开关打开后它们在财富不足时变为可掷骰（而非直接锁死）。 */
   Game.prototype.checkRisk = function (req, actionHardCaifu) {
     var self = this, names = this.d.ATTR_NAMES;
+    var caifuHard = !(actionHardCaifu === false && CAIFU_SOFT_EVENT);
     var hard = {}, unmet = [];
     Object.keys(req || {}).forEach(function (k) {
-      if (names[k] && k !== 'caifu') {
+      if (names[k] && (k !== 'caifu' || !caifuHard)) {
         var have = self.attrs[k], need = req[k];
         if (have < need) unmet.push({ k: k, name: names[k], need: need, have: have, gap: need - have });
       } else hard[k] = req[k];
@@ -375,6 +392,13 @@
     this._backlashDone = false;
     this.summaryView = null;   // 上一章的结算视图不跨入新章
     this.passedEvents = {};   // 章内进度（GDD 3.3）随章重置
+    this._settledOpts = {};   // 已结算选项记账随章重置（v2.2.4；键含章号，重置只为省内存/防串章）
+    /* 蓄势随章清空（v2.2.4）：xushi 此前只在 choose() 与 backtrack() 里清。
+     * 若一章以「关键事件无可解锁选项」的强制收束路径结束（playCard 的 key 分支、
+     * 倒计时归零的全锁兜底），蓄势会跨章残留——下一章首次险招白得 +10，
+     * 而「蓄势」按钮因 this.xushi 已为真被 playXushi 判为已用锁死。
+     * 章内状态一律随 enterChapter 归位（与 actionUses/randomCount 同口径）。 */
+    this.xushi = false;
     // 回合制与随机际遇的章内状态（须在起始事件与危机判定之前重置）
     this.offer = null;
     this.keyRoundsLeft = this.keyCardRounds;
@@ -445,6 +469,11 @@
       choiceUsed: Object.assign({}, this.choiceUsed),
       choiceGap: this.choiceGap,
       passed: Object.assign({}, this.passedEvents),
+      /* 已结算选项记账（v2.2.4）：随快照存取。章首快照里的这份是空的，
+       * 故回溯（回到章首）会把该选项的锁一并解除——与 _burned（险招烧毁）同口径：
+       * 二者都是「上一条时间线的决策痕迹」，回溯即换一条时间线。
+       * 存档/读档走 v2 轮次档的 live 段（带真实记账），读档后该选项仍不可复选。 */
+      settled: Object.assign({}, this._settledOpts || {}),
       age: this.age,   // 年龄/疾病属时间线状态（v1.8）：随快照存取，回溯即回到章首病况
       ill: this.ill ? Object.assign({}, this.ill) : null,
       /* 章首注记（v2.0.5 补入）：enterChapter 产出的规则提示（树大招风/失宠/功高震主/
@@ -626,10 +655,15 @@
       var paid = Math.min(this.attrs.caifu, ILL.cost), owed = this.attrs.caifu < ILL.cost;
       this.attrs.caifu = this._clampA('caifu', this.attrs.caifu - ILL.cost);
       var heal = ILL.heal || 5;
+      /* 体魄报**实际生效值**（v2.2.4）：此前恒报请求值 heal，而 attrs.tupo 被 _clampA
+       * 截到 100（体魄 98 +5 实得 +2，面板却报 +5）——与 v2.0.6 在 applyEff 修过的
+       * 「虚报」同一类，这条路径漏改。现取实际差值。 */
+      var oldTupo = this.attrs.tupo;
       this.attrs.tupo = this._clampA('tupo', this.attrs.tupo + heal);
+      var healReal = this.attrs.tupo - oldTupo;
       var cureChanges = [
         { k: 'caifu', label: '财富', delta: -paid, note: owed ? '举债求医，债台高筑' : '延医之资' },
-        { k: 'tupo', label: '体魄', delta: heal, note: '药石有功' }
+        { k: 'tupo', label: '体魄', delta: healReal, note: healReal > 0 ? '药石有功' : '体魄已盈，药石无功' }
       ];
       var rc = {
         kind: 'action', id: '__cure__',
@@ -638,7 +672,7 @@
         changes: cureChanges, devDelta: 0, useCount: 1,
         achNew: null, bandUp: false, bandName: null, forcedEnding: false, risk: null, failed: false
       };
-      var feC = this.checkDeath();
+      var feC = this.checkDeath(cureChanges);
       if (feC) { this._next = feC; this.phase = 'settle'; rc.forcedEnding = true; return rc; }
       return this._advanceRound(rc);
     }
@@ -673,7 +707,7 @@
       forcedEnding: false, risk: risk, failed: failed
     };
     // 主动行动结算同样过死亡判定（GDD 4.1）；致死则置 _next，UI 据 forcedEnding 调 proceed 收束
-    var forcedEnding = this.checkDeath();
+    var forcedEnding = this.checkDeath(changes);
     if (forcedEnding) {
       this._next = forcedEnding;
       this.phase = 'settle';
@@ -722,7 +756,7 @@
       changes: [], devDelta: 0, achNew: null, bandUp: false, bandName: null,
       forcedEnding: false, risk: null, failed: false
     };
-    var forcedEnding = this.checkDeath();
+    var forcedEnding = this.checkDeath(r.changes);
     if (forcedEnding) { this._next = forcedEnding; this.phase = 'settle'; r.forcedEnding = true; return r; }
     return this._advanceRound(r);
   };
@@ -763,7 +797,7 @@
     if (this.d.ILLNESS) this._tickIllness(changes);
     var r = { kind: 'action', id: a.id, text: opt.res || '', changes: changes, devDelta: eff.dev || 0, useCount: useN,
       achNew: null, bandUp: false, bandName: null, forcedEnding: false, risk: null, failed: false };
-    var forcedEnding = this.checkDeath();
+    var forcedEnding = this.checkDeath(changes);
     if (forcedEnding) { this._next = forcedEnding; this.phase = 'settle'; r.forcedEnding = true; return r; }
     return this._advanceRound(r);
   };
@@ -873,6 +907,21 @@
  * 与 passedEvents（随章重置）口径一致。 */
   Game.prototype._burnKey = function (i) { return this.chapterIdx + ':' + this.eventId + ':' + i; };
 
+  /* 已结算选项的键（v2.2.4）：与 _burnKey 同口径（按章隔离），键为「章:事件:选项下标」。
+   * 剧本里存在「选项把 to 指回本事件」的自环（hanxin 2-4、jingke 2-2/3-1、lisi 1-4/3-2）：
+   * 其中 jingke 3-1「劝太子丹亲杀之」与 lisi 3-2「托人转圜」既无 req 门槛也不设 flag，
+   * 玩家可反复选同一选项，反复刷「偏离+3 / 危机+3」直到偏离度顶满 100。
+   * 引擎侧按选项粒度记账：同一选项在同一条时间线里只结算一次，
+   * 「同一事件有多个不同选项」的正常玩法不受影响（按选项下标逐条记）。 */
+  Game.prototype._settledKey = function (i) { return this.chapterIdx + ':' + this.eventId + ':' + i; };
+
+  /* 引擎告警（v2.2.4）：数据 typo 的现场记录。引擎无日志设施，告警进 this._warns
+   * （诊断用数组，不进结算条目、不进存档）。 */
+  Game.prototype._warn = function (msg) {
+    if (!this._warns) this._warns = [];
+    this._warns.push(msg);
+  };
+
   /* 一次性闸的读取（v2.0.6）：新档走 s.once；旧档（v2.0.5 及更早）把内部闸混在
    * flags 里且键带 `_` 前缀，此处按前缀迁回 _once 并从 flags 剔除——否则旧档读入后
    * 同一闸会被重复触发（如【功高震主】危机再涨一次），且剧本 flag 命名空间继续被污染。 */
@@ -924,6 +973,10 @@
       var locked = false, reason = null, risky = null;
       if (self._burned[self._burnKey(i)]) {
         locked = true; reason = '已试，事未谐';
+      } else if (self._settledOpts[self._settledKey(i)]) {
+        // 已结算选项（v2.2.4）：本时间线内该选项已落定，不再重复结算（自环刷分防护）。
+        // 放在 _burned 之后：险招失败烧毁的选项仍显示「已试，事未谐」。
+        locked = true; reason = '此事已了，不可复选';
       } else if (req) {
         var cr = self.checkRisk(req, false);
         if (!cr.hardOk) { locked = true; reason = cr.hardReason; }
@@ -963,6 +1016,14 @@
     // 蓄势结算（v1.6）：本次事件抉择生效，随后清空（无险招则落空）
     var xushiBonus = this.xushi ? 10 : 0;
     this.xushi = false;
+    /* 已结算记账（v2.2.4）：本选项自此落定，同一时间线内不可复选。
+     * 自环选项（to 指回本事件）若无此闸，玩家可反复选同一选项刷偏离/危机。
+     * 记账在掷骰之前——险招失败时该选项已被 _burned 烧毁，同样不可复选。
+     * 键用**数据下标**（与 getOptions 内的判定同口径）：删项审计（auditHide）下
+     * getOptions 返回的是过滤后的数组，调用方传入的下标与数据下标可能错位，
+     * 用数据下标才不会把锁记到隔壁选项上。 */
+    var dataIdx = ev.options ? ev.options.indexOf(o) : -1;
+    this._settledOpts[this._settledKey(dataIdx >= 0 ? dataIdx : i)] = true;
     // 险招掷骰：软门槛未达标，先判定成败（成功与达标同路径；失败烧毁选项、留在本事件改选）
     var risk = null;
     if (entry.risky) {
@@ -970,7 +1031,7 @@
       if (!risk.success) {
         this._burned[this._burnKey(i)] = true;
         var fchg = this.applyEff(o.effFail || { attrs: { weiji: 5 } });
-        var fEnd = this.checkDeath();
+        var fEnd = this.checkDeath(fchg);
         if (fEnd) { this._next = fEnd; this.phase = 'settle'; }
         else this.phase = 'event';
         return {
@@ -1004,7 +1065,7 @@
     var self = this;
     var achNew = (this._newAch || []).map(function (a) { return self.d.ACHIEVEMENTS[a]; }).filter(Boolean).join('、') || null;
     // 死亡判定（GDD 4.1：危机≥100 致死；非致命难度钳到 95。赵高威胁度≥70 为族诛，否则刺杀）
-    var forcedEnding = this.checkDeath();
+    var forcedEnding = this.checkDeath(changes);
     this._next = forcedEnding || this.resolveTo(o.to);
     this.phase = 'settle';
     return {
@@ -1019,8 +1080,10 @@
     };
   };
 
-  /* ---------- 公共死亡判定：致死返回结局路由（proceed 可直接收束），否则返回 null ---------- */
-  Game.prototype.checkDeath = function () {
+  /* ---------- 公共死亡判定：致死返回结局路由（proceed 可直接收束），否则返回 null ----------
+   * changes（可选）：本次结算的条目数组。传入时，封顶回落会单列成一条结算条目，
+   * 使「结算条目之和 = 该属性真实净变化 = 章末差值」三者自洽（v2.2.4）。 */
+  Game.prototype.checkDeath = function (changes) {
     // 病亡（v1.8，剧本 ILLNESS）：体魄归零即死（ILLNESS.death 指定结局/变体）；非致命难度钳到 1（不致死，GDD 4.4 口径）
     if (this.d.ILLNESS && this.attrs.tupo <= 0) {
       if (this.diff.lethal) {
@@ -1031,13 +1094,20 @@
     }
     if (this.attrs.weiji < 100) return null;
     if (this.diff.lethal) return { type: 'ending', ending: 'E8', variant: this.zg >= 70 ? 'zuzhu' : 'cike' };
-    // 非致命难度：危机钳到 95（GDD 4.4）。此处记录本次钳制，供结算页如实告知
-    // ——此前钳制发生在 changes 已算完之后，章末 attrDelta 按快照算出的差值
-    // 不含这次回落，玩家看到一个自己没被告知过的危机下降。
-    // 用 += 而非 =：同一章可能两次触顶（钳到 95 后又涨过 100），
-    // 覆盖写会让第二次的回落从结算里消失。makeSummary 消费后清零。
-    this._weijiClamp += this.attrs.weiji - 95;
+    /* 非致命难度：危机钳到 95（GDD 4.4）。此处记录本次钳制，供结算页如实告知
+     * ——此前钳制发生在 changes 已算完之后，章末 attrDelta 按快照算出的差值
+     * 不含这次回落，玩家看到一个自己没被告知过的危机下降。
+     * 用 += 而非 =：同一章可能两次触顶（钳到 95 后又涨过 100），
+     * 覆盖写会让第二次的回落从结算里消失。makeSummary 消费后清零。
+     * v2.2.4：回落单列一条结算条目（−N）。此前只改属性、不报条目——面板写「危机 +10」
+     * 而实得 +5，条目和与真实差值对不上；现在条目和 = 真实净变化 = 章末差值。 */
+    var back = this.attrs.weiji - 95;
+    this._weijiClamp += back;
     this.attrs.weiji = 95;
+    if (changes && back > 0) {
+      changes.push({ k: 'weiji', label: (this.d.ATTR_NAMES && this.d.ATTR_NAMES.weiji) || '危机',
+        delta: -back, note: '危机封顶回落（非致命难度上限 95）' });
+    }
     return null;
   };
 
@@ -1058,8 +1128,15 @@
     var changes = [], self = this;
     this._newAch = [];
     var names = this.d.ATTR_NAMES;
+    /* 未知属性键直接忽略（v2.2.4）：此前 this.attrs[k] 为 undefined，
+     * undefined + v = NaN —— NaN 落进 attrs（序列化即 null），结算条目的 delta 也变 NaN。
+     * check() 自 v2.0.6 起已把未知 req 键判为失败（数据 typo 显形），
+     * applyEff 此前没有同等护栏：同一条 typo 在结算侧静默污染属性。
+     * 现与 check 同口径——键不在 ATTR_NAMES 即忽略，并记一条 warn。 */
+    var known = function (k) { return !!(names && names[k]); };
     if (eff.attrs) {
       Object.keys(eff.attrs).forEach(function (k) {
+        if (!known(k)) { self._warn('忽略未知属性键（eff.attrs）：' + k); return; }
         var v = eff.attrs[k];
         if (k === 'weiji' && v > 0) v = Math.round(v * self.diff.wj);
         var old = self.attrs[k];
@@ -1078,6 +1155,7 @@
     }
     if (eff.setAttrs) {
       Object.keys(eff.setAttrs).forEach(function (k) {
+        if (!known(k)) { self._warn('忽略未知属性键（eff.setAttrs）：' + k); return; }
         var old = self.attrs[k];
         self._setAttrRaw(k, eff.setAttrs[k]);
         var d = self.attrs[k] - old;
@@ -1090,6 +1168,7 @@
       eff.condAttrs.forEach(function (ca) {
         if (ca.if && !self.check(ca.if).ok) return;
         Object.keys(ca.attrs || {}).forEach(function (k) {
+          if (!known(k)) { self._warn('忽略未知属性键（eff.condAttrs）：' + k); return; }
           var v = ca.attrs[k];
           if (k === 'weiji' && v > 0) v = Math.round(v * self.diff.wj);
           var old = self.attrs[k];
@@ -1223,21 +1302,32 @@
     if (band > 0) {
       var pool = this.d.CORRECTIONS.filter(function (c) { return self.dev >= c.minDev && self.dev <= c.maxDev; });
       if (pool.length > 0) {
-        /* v2.0.5：抽取改为按各自 chance 加权。此前「一次 roll 对池内每个 chance 判是否触发，
-         * 过了再对池长均匀抽」——是否触发实际取决于池内 max(chance)，而选哪条与 chance 无关
-         * （实测三条 chance 均 0.3 的池在 roll 0.29 触发、0.31 跳过，第二次 roll 只决定
-         * 「是哪条」）。加权抽一次即口径正确：池内任一条的边际概率 = chance/Σchance，
-         * 池总触发概率 = max(chance)，与原「是否触发」一致。 */
+        /* v2.2.4：修正「chance 被乘两次」。
+         * 旧实现：先按 chance 加权抽一条，再用**该条自己的 chance** 判一次是否触发——
+         * chance 参与两次判定，等价于 P(第 i 条) = chance_i² / Σchance。
+         * 各条 chance 相等时这仍等于「池总触发 = max(chance)」，但池内边际并非
+         * chance/Σchance（注释声称的口径），且各条 chance 不等时偏差最大。
+         * 新实现（池触发只判一次）：
+         *   ① 池是否触发：概率 = max(chance)；max(chance) ≥ 1 时池必然触发。
+         *   ② 触发后在池内按 chance 占比加权抽一条（条件分布 = chance_i/Σchance）。
+         * 故 P(第 i 条) = max(chance) × chance_i/Σchance —— chance 不再被乘两次。
+         * 取值顺序保持「抽条在前、判池在后」且两次取值都必发生（次数固定），
+         * 与 v2.0.5 起的随机轨迹逐位一致——修语义不动轨迹，避免无关的平衡漂移。
+         * 五本现役数据每档三条 chance 全相等（0.3 / 1），故各档边际与旧口径一致，
+         * 修掉的只是「chance 不等时被乘两次」的偏差。 */
         var total2 = pool.reduce(function (s, c) { return s + c.chance; }, 0);
+        var maxC = 0;
+        pool.forEach(function (c) { if (c.chance > maxC) maxC = c.chance; });
         var c = null;
-        if (total2 > 0) {
+        if (total2 > 0 && maxC > 0) {
           var pick2 = this._stream('corr')() * total2, acc2 = 0;
           for (var ci = 0; ci < pool.length; ci++){ acc2 += pool[ci].chance; if (pick2 < acc2) { c = pool[ci]; break; } }
           if (!c) c = pool[pool.length - 1];
-        } else c = pool[Math.floor(this._stream('corr')() * pool.length)];
-        if (c && (band >= 2 || this._stream('corr')() < c.chance)) {
+        }
+        // 池触发闸：概率 = max(chance)。max(chance) ≥ 1 时池必然触发，不再多取一次值。
+        if (c && (maxC >= 1 || this._stream('corr')() < maxC)) {
           var changes = this.applyEff(this.correctionEff(c));
-          var forced = this.checkDeath();
+          var forced = this.checkDeath(changes);
           this.correction = { title: c.title, segs: c.segs, changes: changes, forced: forced };
           this._corrShown = c.title;
           this.phase = 'correction';
@@ -1261,7 +1351,7 @@
     if (devDelta0 > 0) this.chapterDev.push({ ev: ev.title, t: o.t, dev: devDelta0 });
     this.currentEndEvent = null;
     // 章末事件结算同样过死亡判定（GDD 4.1）；致死则强制收束，UI 据 forcedEnding 路由
-    var forcedEnding = this.checkDeath();
+    var forcedEnding = this.checkDeath(changes);
     var r = { text: o.res, changes: changes, devDelta: (o.eff && o.eff.dev) || 0, forcedEnding: !!forcedEnding };
     this._next = forcedEnding || (o.to ? this.resolveTo(o.to) : null);
     this.phase = 'settle';
@@ -1290,12 +1380,13 @@
       var d = self.attrs[k] - (snapAttrs[k] != null ? snapAttrs[k] : 0);
       if (d !== 0) attrDelta[k] = d;
     });
-    // 非致命难度的危机钳制（checkDeath 的 95 封顶）如实并入差值（v2.0.6）：
-    // 该回落此前不可见，玩家看到一个未被告知的危机下降。
-    if (this._weijiClamp) {
-      attrDelta.weiji = (attrDelta.weiji || 0) - this._weijiClamp;
-      this._weijiClamp = 0;
-    }
+    /* 章末差值 = 真实净变化（v2.2.4）：快照与现值的差本身已含非致命难度的 95 封顶回落
+     * （attrs.weiji 早已被 checkDeath 钳到 95），此前又按 _weijiClamp 再减一次——
+     * 差值于是既不是真值也不是条目之和（例：危机 90 → 100 钳到 95，真值 +5、
+     * 结算条目 +10，旧差值报 0）。现取真实净变化；封顶回落已在结算条目里单列
+     * （见 checkDeath 的 −N 条目），故「条目之和 = 真实净变化 = 章末差值」自洽。
+     * _weijiClamp 仍作章内记账（同一章两次触顶要累加），章末清零。 */
+    this._weijiClamp = 0;
     var next = this.d.CHAPTERS[this.chapterIdx + 1] || null;
     this.phase = 'summary';
     this.summaryView = {
@@ -1363,6 +1454,10 @@
     this.choiceGap = s.choiceGap != null ? s.choiceGap : 1;
     this.pendingCardId = null;
     this.passedEvents = Object.assign({}, s.passed || {});
+    /* 已结算选项记账随快照恢复（v2.2.4）：章首快照里的这份是空的，故回溯即解除该锁
+     * （与 _burned 同口径——回溯换一条时间线，上一条时间线的「已落定」不算数）。
+     * 注意这与「读档」不同：读档走 live 段，保留真实的记账，读档后该选项仍不可复选。 */
+    this._settledOpts = Object.assign({}, s.settled || {});
     // 时间线重写：蓄势与险招烧毁属上一条时间线的决策痕迹，不随回溯穿越（v1.6.1 P0 修复）
     this.xushi = false;
     this._burned = {};
@@ -1507,6 +1602,7 @@
     if (s.choiceUsed != null && (typeof s.choiceUsed !== 'object' || Array.isArray(s.choiceUsed))) return false;
     if (s.choiceGap != null && (!numOk(s.choiceGap) || s.choiceGap < 0)) return false;
     if (s.passed != null && (typeof s.passed !== 'object' || Array.isArray(s.passed))) return false;
+    if (s.settled != null && (typeof s.settled !== 'object' || Array.isArray(s.settled))) return false;   // 已结算选项记账（v2.2.4）
     if (s.keyRoundsLeft != null && (!numOk(s.keyRoundsLeft) || s.keyRoundsLeft < 0)) return false;
     for (var ak2 in s.attrs) {
       if (!this.d.ATTR_NAMES[ak2]) return false;                 // 未知属性键 = 跨剧本脏档
@@ -1586,6 +1682,8 @@
     this.choiceUsed = Object.assign({}, s.choiceUsed || {});
     this.choiceGap = s.choiceGap != null ? s.choiceGap : 1;
     this.passedEvents = Object.assign({}, s.passed || {});
+    // 已结算选项记账随档恢复（v2.2.4）：旧档无此字段，按空处理
+    this._settledOpts = Object.assign({}, s.settled || {});
     this.age = s.age != null ? s.age : ((this.d.AGE && this.d.AGE.init != null) ? this.d.AGE.init : null);
     this.ill = s.ill ? Object.assign({}, s.ill) : null;
     // 章首注记与 coef 随档恢复（v2.0.5）：此前注记被清空（属性效果却在快照里，
@@ -1694,6 +1792,9 @@
     this.choiceUsed = Object.assign({}, live.choiceUsed || {});
     this.choiceGap = live.choiceGap != null ? live.choiceGap : 1;
     this.passedEvents = Object.assign({}, live.passed || {});
+    /* 已结算选项记账随档恢复（v2.2.4）：读档 = 回到存档那一刻（同一时间线），
+     * 故该锁必须随档带走——否则「读档 → 再选同一自环选项」即可绕过引擎侧的去重。 */
+    this._settledOpts = Object.assign({}, live.settled || {});
     this.age = live.age != null ? live.age : ((this.d.AGE && this.d.AGE.init != null) ? this.d.AGE.init : null);
     this.ill = live.ill ? Object.assign({}, live.ill) : null;
     this.introNotes = (live.introNotes || []).slice();
@@ -1939,5 +2040,10 @@
     return words[words.length - 1][1];
   };
 
-  return { Game: Game, KEY_CARD_ROUNDS: KEY_CARD_ROUNDS, riskWord: riskWord };
+  /* caifu 门槛口径开关（v2.2.4）：checkRisk 的第二个参数此前是死参。
+   * setCaifuSoftEvent(true) → 事件语境的 req.caifu 降为软门槛（不足可掷骰）；
+   * setCaifuSoftEvent(false) / 不调用 → caifu 一律硬门槛（默认，与 v2.2.4 之前一致）。 */
+  function setCaifuSoftEvent(on) { CAIFU_SOFT_EVENT = !!on; return CAIFU_SOFT_EVENT; }
+
+  return { Game: Game, KEY_CARD_ROUNDS: KEY_CARD_ROUNDS, riskWord: riskWord, setCaifuSoftEvent: setCaifuSoftEvent };
 });

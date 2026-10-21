@@ -34,11 +34,27 @@ const DRIVER = `(async () => {
     }
   };
 
-// 预算用「墙钟时间」而不是固定迭代数。
+  // 残留判据(统一口径):一次性「继 续」落在**非最后**小节里 = 残留。
+  // 2026-10-19 起小节不再自动收起,点它会误触当前相位的 proceed,把整个事件跳掉。
+  //
+  // ⚠ 原来只有 event 相位那条记录写了 residual 字段,settle/浮层两条记录根本没写 ——
+  // 断言「没有残留」时,那些记录因为字段不存在而被当成「不是残留」,
+  // 等于这一半相位压根没被检查过(恒真)。现在所有结算类记录都算一遍。
+  const residualOf = (b) => {
+    if (!b) return false;
+    const sec = b.closest ? b.closest('.sec') : null;
+    const secs = qa('.stage__main .sec');
+    const last = secs[secs.length - 1];
+    return !!(sec && last && sec !== last);
+  };
+
+    // 预算用「墙钟时间」而不是固定迭代数。
     // 一次迭代含 1 次 CDP evaluate + 若干 DOM 查询,机器有负载时单次可能十几毫秒;
     // 固定 600 次在全量套件里偶尔不够跑完一章,表现为「没卡死、也没 STUCK,
     // 就是没走到 summary」——最像产品坏了,其实是自己没跑够。
-    const deadline = Date.now() + 90000;
+    // 2026-10-21:全量套件(新加的三套大用例把机器压满)时 90s 偶尔仍不够,
+    // 放宽到 180s:预算只影响「跑不完时的失败快慢」,不影响判据。
+    const deadline = Date.now() + 180000;
     for (let i = 0; i < 6000; i++) {
       if (Date.now() > deadline) break;
       await sleep(3);
@@ -59,8 +75,10 @@ const DRIVER = `(async () => {
                devRows: qa('.overlay .devrow').length, attrRows: qa('.overlay .chglist--summary .chgrow').length,
                hasNext: qa('.overlay .btn--primary').length > 0 });
       } else {
+        const ob = q('.overlay .btn--primary');
         push({ at: i, evt: 'settle', title: (q('.overlay__title')||{}).textContent || '',
-               changes: qa('.chgrow__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev });
+               changes: qa('.chgrow__v').map(n => n.textContent.trim()), phase: g.phase, dev: g.dev,
+               btn: ob ? { text: ob.textContent } : null, residual: residualOf(ob) });
       }
       const b = q('.overlay .btn--primary');
       if (!b) { push({ evt: 'STUCK: 弹框无按钮' }); break; }
@@ -78,7 +96,9 @@ const DRIVER = `(async () => {
         changes: qa('.stage__main .chgrow__v').map(n => n.textContent.trim()),
         btn: b0 ? { text: b0.textContent,
           sec: (b0.closest('.sec') && b0.closest('.sec').querySelector('.sec__head') || {}).textContent || null,
-          collapsed: !!(b0.closest('.sec') && b0.closest('.sec').classList.contains('is-collapsed')) } : null });
+          collapsed: !!(b0.closest('.sec') && b0.closest('.sec').classList.contains('is-collapsed')) } : null,
+        // 结算相位原来根本没记 residual → 「无残留一次性按钮」这条在这半边相位上恒真
+        residual: residualOf(b0) });
       if (b0) { b0.click(); continue; }
       await sleep(120); continue;
     }
@@ -116,13 +136,15 @@ const DRIVER = `(async () => {
         ? allSecs0[allSecs0.length - 1].querySelector('.sec__head') : null;
       if (lastCard && liveHead && /经营 ·|蓄势 ·/.test(liveHead.textContent || '')) {
         const secTitle = liveHead.textContent || '';
+        const cbtn = q('.stage__main .btn--primary');
         // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
         push({ at: i, evt: 'card-settle',
           sec: secTitle,
           picked: lastCard,
           nameMatch: secTitle.includes(lastCard),
           changes: qa('.stage__main .sec:last-of-type .chgrow__v').map(n => n.textContent.trim()),
-          residual: false });
+          btn: cbtn ? { text: cbtn.textContent } : null,
+          residual: residualOf(cbtn) });
         lastCard = null;
         await sleep(100); continue;
       }
@@ -135,14 +157,27 @@ const DRIVER = `(async () => {
         const lastSec = qa('.stage__main .sec').pop();
         const secTitle = ((sec && sec.querySelector('.sec__head'))
           || (lastSec && lastSec.querySelector('.sec__head')) || {}).textContent || null;
-        // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
-        push({ at: i, evt: 'card-settle',
-          sec: secTitle,
-          picked: lastCard,
-          nameMatch: lastCard ? !!(secTitle && secTitle.includes(lastCard)) : null,
-          changes: qa('.stage__main .chgrow__v').map(n => n.textContent.trim()),
-          // 2026-10-19 起小节不再自动收起,残留判据改为:「继 续」落在非最后小节里
-          residual: !!(sec && lastSec && sec !== lastSec) });
+        if (lastCard) {
+          // 题签卡名必须与刚打出的牌一致(曾把 playCard 后的新 offer 当卡名来源,题文错位)
+          push({ at: i, evt: 'card-settle',
+            sec: secTitle,
+            picked: lastCard,
+            nameMatch: !!(secTitle && secTitle.includes(lastCard)),
+            changes: qa('.stage__main .chgrow__v').map(n => n.textContent.trim()),
+            btn: { text: cont.textContent },
+            // 2026-10-19 起小节不再自动收起,残留判据改为:「继 续」落在非最后小节里
+            residual: residualOf(cont) });
+        } else {
+          // 没有「所打卡」(点的是关键事件提示条这类非卡牌控件):
+          // 记成 inline-settle,别混进 card-settle ——
+          // 原来这类记录的 nameMatch 是 null,而断言只查 nameMatch === false,
+          // null 照样放行 → 「经营题签与所打卡一致」这条恒真。
+          push({ at: i, evt: 'inline-settle', cardless: true,
+            sec: secTitle,
+            changes: qa('.stage__main .chgrow__v').map(n => n.textContent.trim()),
+            btn: { text: cont.textContent },
+            residual: residualOf(cont) });
+        }
         lastCard = null;
         cont.click(); continue;
       }
@@ -183,11 +218,11 @@ const DRIVER = `(async () => {
         // 就是残留——点它会误触当前相位的 proceed,把整个事件跳掉
         // (2026-10-19 起小节不再自动收起,残留判据从 is-collapsed 改为「非最后小节」)
         const sec = cont.closest('.sec');
-        const allSecs = qa('.stage__main .sec');
         push({ at: i, evt: 'inline-settle', id: g.eventId,
           btnText: cont.textContent,
+          btn: { text: cont.textContent },
           sec: (sec && sec.querySelector('.sec__head') || {}).textContent || null,
-          residual: !!(sec && allSecs[allSecs.length - 1] !== sec) });
+          residual: residualOf(cont) });
         cont.click(); continue;
       }
       const opts = g.getOptions();
@@ -289,6 +324,9 @@ withPage(async ({ evaluate, consoleErrors }) => {
   const errs = consoleErrors();
   const stuck = out.trace.filter((t) => String(t.evt).startsWith('STUCK'));
   const summaries = out.trace.filter((t) => t.evt === 'summary');
+  // 结算类记录(浮层 settle / 内联 settle / 卡牌结算):每条都要算过残留
+  const settleRecs = out.trace.filter((t) => t.btn !== null && t.btn !== undefined);
+  const cardSettle = out.trace.filter((t) => t.evt === 'card-settle');
 
   const ok = report('P2 主链路', [
     ['覆盖 intro/回合/结算/事件/抉择/章末', need.every((k) => kinds.has(k))],
@@ -302,9 +340,20 @@ withPage(async ({ evaluate, consoleErrors }) => {
     ['无卡死', stuck.length === 0],
     // 一次性「继 续」必须在 pushSec 收起旧节时被摘除;event 相位在已收起小节里
     // 摸到它,就是残留——点它会误触 proceed 把整个事件跳掉(2026-10-14 间歇 FAIL 根因)
-    ['无残留一次性按钮', !out.trace.some((t) => t.residual)],
+    //
+    // 判定口径收紧:不是「没有 residual 为 true 的记录」,而是
+    // 「每条带按钮的结算记录都算过残留、且都是 false」。
+    // 原来 settle 相位的记录压根没写 residual 字段,断言对那半边相位恒真。
+    ['无残留一次性按钮', settleRecs.length > 0 && settleRecs.every((t) => t.residual === false),
+      `结算记录 ${settleRecs.length} 条,残留 ${settleRecs.filter((t) => t.residual === true).length} 条`],
     // 经营/抉择小节的题签卡名必须就是刚打出的那张牌(2026-10-14 题文错位回归)
-    ['经营题签与所打卡一致', !out.trace.some((t) => t.evt === 'card-settle' && t.nameMatch === false)],
+    // 判定口径收紧:每条 card-settle 都必须「有卡名」且「题签包含卡名」。
+    // 原来只查 nameMatch === false,而点到提示条时 nameMatch 是 null → 恒真。
+    ['经营题签与所打卡一致',
+      cardSettle.length > 0
+      && cardSettle.every((t) => typeof t.picked === 'string' && t.picked.length > 0 && t.nameMatch === true),
+      cardSettle.filter((t) => t.nameMatch !== true)
+        .map((t) => `${t.picked || '(无卡名)'}@${t.sec}`).join(' / ') || '一条 card-settle 都没有'],
     ['版式不变量(main 只挂 castbox/prose-body)', out.badLayout.length === 0],
     // 立绘排按 ⟦NPC⟧ 标记生成,李斯一整局有 8+ 个带立绘的 NPC;
     // 整章都一张不出,说明 ⟦词条⟧ 解析或 CHAR_IMG 映射断了。

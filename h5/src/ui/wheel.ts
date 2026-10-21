@@ -97,6 +97,18 @@ export function createWheel(opts: {
   const autoSpeed = typeof win.__QS_WHEEL_AUTO_SPEED__ === 'number' && win.__QS_WHEEL_AUTO_SPEED__ > 0
     ? win.__QS_WHEEL_AUTO_SPEED__ * Math.PI / 180 : AUTO_SPEED;
   const triggerWin = step * TRIGGER_WIN_RATIO;
+  /**
+   * 系统「减少动态效果」(2026-10-21 修):CSS 动画被全局关掉了,
+   * JS 驱动的罗盘自转却没有 —— 命中时停用空闲巡游。
+   * 用 MediaQueryList 存着而不是每次新建:既省开销,系统设置改了也立刻生效。
+   * 参照 ui/radar.ts:122 的既有写法。
+   */
+  const reduceMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  /**
+   * 测试钩子显式要求巡游时(autoIdleMs 被显式改小),即使系统开了「减少动态效果」
+   * 也照跑:钩子本身就是显式意图,不该被系统的无障碍开关压掉。
+   */
+  const autoForced = typeof win.__QS_WHEEL_AUTO_IDLE__ === 'number' && win.__QS_WHEEL_AUTO_IDLE__ > 0;
   /** 巡游中标志;选中归位后仍 true 会立即继续巡游,直到任意点击打断 */
   let attract = false;
   /** 最近一次任意点击的时间(performance.now 与 rAF ts 同时钟) */
@@ -284,7 +296,8 @@ export function createWheel(opts: {
     last = ts;
     if (dt > 0 && phase !== 'drag') {
       if (phase === 'idle') {
-        if (!attract && ts - lastInteract >= autoIdleMs) attract = true;
+        // 开了「减少动态效果」就不巡游:自转是无声的持续动画,正是该被关掉的那类
+        if (!attract && (autoForced || !reduceMotion?.matches) && ts - lastInteract >= autoIdleMs) attract = true;
         if (attract) phase = 'auto';
       }
       if (phase === 'auto') {

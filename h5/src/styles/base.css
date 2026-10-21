@@ -135,28 +135,6 @@ body {
   overscroll-behavior: none;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  /* 棋盘式布局不允许页面滚动 */
-  overflow: hidden;
-  background: var(--paper-app);
-  color: var(--ink);
-  font-family: var(--font-kai);
-  /* 关掉移动端的点击高亮与选中,避免点卡片时出现蓝块 */
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  /* 长按不选中文本(游戏里不需要复制剧情);iOS 长按按钮才不弹呼出菜单 */
-  user-select: none;
-  -webkit-user-select: none;
-  /* 禁止下拉刷新/橡皮筋回弹拖出棋盘 */
-  overscroll-behavior: none;
-}
-
 body {
   /* 字号随缩放走;所有 rem 均相对此值。--user-scale 来自设置页「界面缩放」
      ⚠ 已知事实(2026-10-19 实测):rem 相对的是 html 根字号,不是 body ——

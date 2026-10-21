@@ -16,7 +16,7 @@
  * 缩略图是活控件:点击按剧本过滤;进页默认落在当前剧本(无对局时落第一个剧本)。
  * 删除存档需二次确认。
  */
-import { backBtn, brandLogo, btn, el, lbl } from './kit';
+import { backBtn, brandLogo, btn, closeDialog, el, lbl, openDialog } from './kit';
 import {
   AUTO_MAX, DIFF_LABEL, STASH_MAX, fmtRound, fmtTime, listAutoEntries, listStashEntries, removeAuto, removeStash, type Slot,
 } from '../game/saves';
@@ -162,18 +162,32 @@ function portraitCard(meta: ScenarioMeta, slots: Slot[]): HTMLElement {
   plate.append(
     lbl(meta.protag.split('').join(' '), 'saves__name u-kai'),
     lbl(`${meta.era} · ${meta.chapters} 章`, 'saves__era'),
-    lbl(statusLine(meta, slots), 'saves__status'),
+    statusLine(meta, slots),
   );
   card.append(cover, frame, plate);
   return card;
 }
 
-/** 状态行:空=「尚无存档 · 推荐首局」;有=「N 个存档 · 结局 X/Y · 最远 章名」 */
-function statusLine(meta: ScenarioMeta, slots: Slot[]): string {
-  if (slots.length === 0) return '尚无存档 · 推荐首局';
+/**
+ * 状态行:空=「尚无存档 · 推荐首局」;有=「N 个存档 · 结局 X/Y · 最远 章名」。
+ *
+ * 窄屏(横屏手机)只放得下一行小字,「最远 章名」那段让给摘要条(那边也有),
+ * 这里留「N 个存档 · 结局 X/Y」—— 结局进度是玩家最在意的一行,不能整行藏掉
+ * (2026-10-21 修:原先窄屏整行 display:none,「结局 X/Y」在手机上彻底消失)。
+ */
+function statusLine(meta: ScenarioMeta, slots: Slot[]): HTMLElement {
+  const node = el('p', 'txt saves__status');
+  if (slots.length === 0) {
+    node.append(el('span', 'saves__status-full', '尚无存档 · 推荐首局'));
+    return node;
+  }
   const reached = Object.keys(endingRecords(meta.id)).length;
   const far = furthest(slots);
-  return `${slots.length} 个存档 · 结局 ${reached}/${meta.endings} · 最远 ${far}`;
+  node.append(
+    el('span', 'saves__status-full', `${slots.length} 个存档 · 结局 ${reached}/${meta.endings} · 最远 ${far}`),
+    el('span', 'saves__status-mini', `${slots.length} 个存档 · 结局 ${reached}/${meta.endings}`),
+  );
+  return node;
 }
 
 /** 最远进度:chapterIdx 最大的那一条的章题 */
@@ -187,16 +201,27 @@ function furthest(slots: Slot[]): string {
 
 /**
  * 槽位题签行:章名 · 轮次 · [年龄/回溯段] · 时间。
- * 年龄/回溯段包在 .slot__age 里——移动端 CSS 隐藏该段(2026-10-19 拍板),
+ *
+ * 年龄段包在 .slot__age 里——移动端 CSS 隐藏该段(2026-10-19 拍板),
  * PC 端照常全显;时间始终保留。
+ * 回溯余量单独成段(.slot__bt):引擎难度 backtrack=-1 表示**无限**次回溯
+ * (剧情难度),存档里就存 -1,这里如实写成「本章可无限次回溯」。
+ * 这段不能跟着年龄一起在移动端藏掉 —— 玩家要知道本章还能不能回溯、能几次。
  */
 function slotSub(s: Slot): HTMLElement {
   const line = lbl(
     `${s.chapterTitle}${fmtRound(s.roundNo) ? ` · ${fmtRound(s.roundNo)}` : ''} · `,
     'slot__ch',
   );
-  const age = lbl(`年龄 ${s.age ?? '—'} · 本章可回溯 ${s.backtracksLeft} 次 · `, 'slot__age');
-  line.append(age, document.createTextNode(fmtTime(s.at)));
+  const age = lbl(`年龄 ${s.age ?? '—'} · `, 'slot__age');
+  const bt = el('span', 'slot__bt');
+  const unlimited = s.backtracksLeft < 0;
+  bt.append(
+    el('span', 'slot__bt-full', unlimited ? '本章可无限次回溯' : `本章可回溯 ${s.backtracksLeft} 次`),
+    el('span', 'slot__bt-mini', unlimited ? '回溯 无限' : `回溯 ${s.backtracksLeft} 次`),
+    document.createTextNode(' · '),
+  );
+  line.append(age, bt, document.createTextNode(fmtTime(s.at)));
   return line;
 }
 
@@ -335,15 +360,23 @@ function confirmDelete(root: HTMLElement, onYes: () => void, s: Slot): void {
     lbl('删除后不可恢复。', 'overlay__body u-dim'),
   );
   const row = el('div', 'saves__confirmrow');
-  row.append(
-    btn('删 除', { variant: 'primary', onClick: onYes }),
-    btn('返 回', { variant: 'ghost', onClick: () => ov.remove() }),
-  );
+  const yes = btn('删 除', { variant: 'primary' });
+  const no = btn('返 回', { variant: 'ghost' });
+  // 2026-10-21 修:删除成功后必须把浮层摘掉 —— 原来只跑了 onYes,
+  // 档删了蒙版还盖着整页,「读 取/删 除」全被挡住。
+  yes.addEventListener('click', () => {
+    closeDialog(ov);
+    onYes();
+  });
+  no.addEventListener('click', () => closeDialog(ov));
+  row.append(yes, no);
   box.append(row);
   ov.append(box);
   // 点遮罩空白处视为取消
   ov.addEventListener('click', (e) => {
-    if (e.target === ov) ov.remove();
+    if (e.target === ov) closeDialog(ov);
   });
   root.append(ov);
+  // 无障碍:role/aria-modal 挂盒上,焦点移到主按钮,Esc 关闭(见 kit.openDialog)
+  openDialog(ov, box, { focus: yes, onClose: () => closeDialog(ov) });
 }

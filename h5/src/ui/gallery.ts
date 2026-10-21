@@ -14,7 +14,7 @@
  * 图鉴页本来就是「我要看全部剧本」的场景,且 loadScenario 有缓存,
  * 入过局的剧本不再重复下载。
  */
-import { backBtn, brandLogo, btn, divider, el, lbl, seal } from './kit';
+import { backBtn, brandLogo, btn, divider, el, lbl, openDialog, seal } from './kit';
 import { SCENARIOS, loadScenario, type ScenarioMeta } from '../data/scenarios';
 import { endingRecords, type EndingRec } from '../game/collection';
 import type { ScenarioData } from '../../types/scenario';
@@ -134,17 +134,24 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
   // 深色蒙版 overlay--dim + 窄幅悬挂卷轴 panel-scroll--summary)
   const overlay = el('div', 'overlay overlay--dim');
   overlay.hidden = true;
+  root.append(overlay);
+  /** 焦点还给刚才点开的那张结局卡(浮层一关,焦点会掉回 body) */
+  let detailTrigger: HTMLElement | null = null;
   const closeDetail = (): void => {
     overlay.hidden = true;
     while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+    detailTrigger?.focus?.();
+    detailTrigger = null;
   };
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeDetail();
   });
-  root.append(overlay);
-  const showDetail = (e: Entry): void => {
+  const showDetail = (e: Entry, trigger?: HTMLElement): void => {
     const rec = e.rec;
     if (!rec) return;
+    // 2026-10-21 修:先清空再摆新的 —— 结局卡可聚焦(tabIndex=0),
+    // 按住 Enter 的按键重复会连开两次,浮层被挤成两个卷轴盒。
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
     const box = el('div', 'overlay__box overlay__box--scroll panel-scroll--summary galdetail');
     // 头部区(2026-10-19 四拍):印章图标在前,结局名 + 成绩/等级 + 达成回数
     // 组成信息列跟在后面,横向一排;名称下的宽幅分隔线一并去掉
@@ -173,10 +180,14 @@ export function renderGalleryPage(host: HTMLElement, onBack: () => void): Galler
     // 字号随 .galdetail__meta 对齐正文
     box.append(lbl(`累计达成${rec.c}回`, 'galdetail__meta u-dim'));
     const row = el('div', 'overlay__row');
-    row.append(btn('收 起', { variant: 'primary', onClick: closeDetail }));
+    const closeBtn = btn('收 起', { variant: 'primary', onClick: () => closeDetail() });
+    row.append(closeBtn);
     box.append(row);
     overlay.append(box);
     overlay.hidden = false;
+    detailTrigger = trigger ?? null;
+    // 无障碍:role/aria-modal 挂盒上,焦点移到主按钮,Esc 关闭(见 kit.openDialog)
+    openDialog(overlay, box, { focus: closeBtn, onClose: closeDetail });
   };
 
   // 页面销毁后迟到的 resolve 不许再往里写(与 main.ts 的 navToken 同思路)
@@ -341,7 +352,7 @@ function brief(zhuan: string): string {
 /** 一张结局卡:已达成 = 实线白底卡(印 + 名 + 简介 + 达成次数/最佳 + 评级),可点击弹出结算详情;
  * 未达成 = 虚线浅底卡(? + 未达成)。两卡同底图尺寸。
  * 变体卡带 galent--variant 类(不再缩进,宽度与本体卡统一);data-ending 落结局键供测试与排查。 */
-function entry(ent: Entry, variant: boolean, onDetail: (e: Entry) => void): HTMLElement {
+function entry(ent: Entry, variant: boolean, onDetail: (e: Entry, trigger: HTMLElement) => void): HTMLElement {
   const { key, name, seal: sealName, rec } = ent;
   const row = el('div', `galent${variant ? ' galent--variant' : ''}${rec ? '' : ' is-unknown'}`);
   row.dataset.ending = key;
@@ -374,10 +385,12 @@ function entry(ent: Entry, variant: boolean, onDetail: (e: Entry) => void): HTML
   row.tabIndex = 0;
   const fire = (e: Event): void => {
     e.preventDefault();
-    onDetail(ent);
+    onDetail(ent, row);
   };
   row.addEventListener('click', fire);
   row.addEventListener('keydown', (e) => {
+    // 按住不放会重复触发 keydown,一次按键弹出两个浮层(2026-10-21 修)
+    if (e.repeat) return;
     if (e.key === 'Enter' || e.key === ' ') fire(e);
   });
   return row;

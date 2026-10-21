@@ -36,9 +36,19 @@ for _stream in (sys.stdout, sys.stderr):
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FONT = ROOT / "public" / "fonts" / "qingshi-kai.ttf"
 
-# 只扫这些:进页面的文本都在 src/ 与 index.html。
+# 只扫这些:进页面的文本都在 src/ 与 index.html,以及**剧本正文**
+# (prot/lua-data/*.json —— 台词/题签/章名全在数据里,2026-10-21 补上:
+# 之前只扫 src/ 与 index.html,数据里的生僻字一律放行,页面静默回落系统字体,
+# 正是这道门禁要防的事)。
 # 不含 node_modules / dist / tests(测试里的中文不进页面)。
-SCAN_GLOBS = ["src/**/*.ts", "src/**/*.css", "src/**/*.html", "index.html"]
+SCAN_GLOBS = [
+    "src/**/*.ts",
+    "src/**/*.css",
+    "src/**/*.html",
+    "src/**/*.json",
+    "index.html",
+    "../prot/lua-data/*.json",
+]
 SKIP_PARTS = {"node_modules", "dist", "design", "tests"}
 
 CJK = re.compile(r"[一-鿿]")

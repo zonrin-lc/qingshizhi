@@ -12,7 +12,7 @@
  *   5. 刷新后暂存还在,存档页能看到「暂存」区
  *   6. 从存档页读暂存,回到暂存那一刻的相位(v2.2.0 轮次存档)
  */
-const { withPage, report, STEP_SNIPPET } = require('./lib/harness.cjs');
+const { withPage, report, sleep, STEP_SNIPPET } = require('./lib/harness.cjs');
 
 /** 打满 5 轮经营(2026-10-17 起未满 5 轮不暂存)制造进度,然后连写 3 份暂存验「只留最近一条」,再分别验 pagehide 与退出路径 */
 const STASH_FLOW = `(async () => {
@@ -77,8 +77,19 @@ ${STEP_SNIPPET}
 const LOAD_FLOW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
-  const store = JSON.parse(localStorage.getItem('qingshi.stash.v1') || '{}');
-  const persisted = (store.lisi || []).length;
+  // ⚠ 原来这里是裸的 JSON.parse:暂存键一旦是脏数据,整段 evaluate 直接抛,
+  //  整套测试以「[失败]」收场,看不出是「应用崩了」还是「测试自己炸了」。
+  //  解析失败当「没有暂存」处理(与应用自己的 readStash 同口径),真正的
+  //  「应用会不会崩」交给下面那条损坏 localStorage 用例去验。
+  let store = {};
+  let persisted = 0;
+  let parseFailed = false;
+  try {
+    store = JSON.parse(localStorage.getItem('qingshi.stash.v1') || '{}');
+    persisted = (store.lisi || []).length;
+  } catch (e) {
+    parseFailed = true;
+  }
 
   // 刷新后 __QS__ 不存在(还没入局),先走正常动线进一局,再开存档页
   const start = document.querySelector('.menu__item--start');
@@ -118,12 +129,52 @@ if (start) { start.click(); }
   const heads = [...document.querySelectorAll('.stage__main .sec .sec__head')].map(h => h.textContent || '');
   const histRounds = heads.filter(t => t.includes('经营 · 第')).length;
   return {
-    persisted, stashShown, stashRows, stashTitle, stashCh, histRounds,
+    persisted, parseFailed, stashShown, stashRows, stashTitle, stashCh, histRounds,
     loaded: !!g,
     phase: g ? g.phase : '',
     ch: g ? g.chapterIdx : -1,
   };
 })()`;
+
+/**
+ * 损坏的暂存 localStorage:应用不白屏,存档页给空态而不是崩。
+ * (与 save.cjs 的同名用例同一组样本,验的是 readStash 那条路)
+ */
+const CORRUPT_FLOW = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
+  const out = { menuShown: false, entered: false, savesShown: false, stashShown: false,
+                stashEmpty: false, err: '' };
+  try {
+    out.menuShown = !!q('.menu__item--start');
+    q('.menu__item--start')?.click();
+    const tE = performance.now();
+    while (!q('.selenter') && performance.now() - tE < 8000) await sleep(50);
+    q('.selenter')?.click();
+    const tQ = performance.now();
+    while (!(window.__QS__ && window.__QS__.goSaves) && performance.now() - tQ < 8000) await sleep(50);
+    out.entered = !!(window.__QS__ && window.__QS__.goSaves);
+    if (out.entered) {
+      window.__QS__.goSaves();
+      const tS = performance.now();
+      while (!q('.saves') && performance.now() - tS < 8000) await sleep(50);
+    }
+    out.savesShown = !!q('.saves');
+    out.stashShown = !!q('.saves__stash');
+    // 空态:暂存区在,但里面没有可读的档(只有「空 档」占位)
+    out.stashEmpty = qa('.saves__stash .slot--stash:not(.is-empty)').length === 0;
+  } catch (e) {
+    out.err = String((e && e.message) || e);
+  }
+  return out;
+})()`;
+
+/** 损坏 localStorage 的三组样本(自动档与暂存键都塞同样的坏值) */
+const CORRUPT_CASES = [
+  { name: '非法 JSON', value: '{' },
+  { name: '条目 payload 为 null', value: '{"lisi":[{"payload":null}]}' },
+  { name: '桶不是数组', value: '{"lisi":"not-an-array"}' },
+];
 
 withPage(async ({ evaluate, load, consoleErrors }) => {
   const stash = await evaluate(STASH_FLOW);
@@ -131,6 +182,26 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
   // 真的刷新一次:暂存的持久性只有跨页面生命周期才有意义
   await load(1600, 900, 1);
   const res = await evaluate(LOAD_FLOW);
+
+  // 损坏 localStorage:应用不白屏、存档页给空态而不是崩
+  const corruptRes = [];
+  for (const c of CORRUPT_CASES) {
+    // 先把对局收掉:pagehide 会把暂存重写一遍(本章满 5 轮才写),
+    // 不收掉的话刚塞进去的坏值在重载前就被覆盖了,这一轮用例等于没跑
+    await evaluate(`(() => {
+      try { if (window.__QS__ && window.__QS__.goMenu) window.__QS__.goMenu(); } catch (e) {}
+      return true;
+    })()`);
+    await sleep(300);
+    await evaluate(`(() => {
+      localStorage.setItem('qingshi.autos.v1', ${JSON.stringify(c.value)});
+      localStorage.setItem('qingshi.stash.v1', ${JSON.stringify(c.value)});
+      return true;
+    })()`);
+    await load(1600, 900, 1);
+    const r = await evaluate(CORRUPT_FLOW);
+    corruptRes.push({ name: c.name, ...r });
+  }
   const errs = consoleErrors();
 
   const ok = report('暂存链路', [
@@ -154,12 +225,24 @@ withPage(async ({ evaluate, load, consoleErrors }) => {
     ['读暂存后卷轴恢复经营轮次题签(v2.3.0)', res.histRounds >= 1, `恢复出 ${res.histRounds} 条`],
     ['控制台无错误', errs.length === 0],
   ]);
-  if (!ok) {
+
+  const corruptChecks = [];
+  for (const r of corruptRes) {
+    corruptChecks.push([`坏档[${r.name}]:应用没白屏(主菜单在)`, r.menuShown === true]);
+    corruptChecks.push([`坏档[${r.name}]:还能入局`, r.entered === true, r.err]);
+    corruptChecks.push([`坏档[${r.name}]:存档页渲染出来了`, r.savesShown === true, r.err]);
+    corruptChecks.push([`坏档[${r.name}]:暂存区给空态而不是崩`,
+      r.stashShown === true && r.stashEmpty === true, `stashShown=${r.stashShown} 空态=${r.stashEmpty}`]);
+  }
+  const corruptOk = report('损坏 localStorage', corruptChecks);
+
+  if (!ok || !corruptOk) {
     console.log('\n诊断:');
     console.log('  暂存 ', JSON.stringify(stash));
     console.log('  读档 ', JSON.stringify(res));
+    console.log('  坏档 ', JSON.stringify(corruptRes));
   }
-  return ok;
+  return ok && corruptOk;
 })
   .then((ok) => process.exit(ok ? 0 : 1))
   .catch((e) => { console.error('[失败]', e.message); process.exit(1); });

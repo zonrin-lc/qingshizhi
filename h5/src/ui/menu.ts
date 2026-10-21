@@ -16,7 +16,7 @@
  *   次级项含「图 鉴」「设 置」文案;继续按钮无档时 disabled + .is-off;
  *   退出确认 .menu__confirm .menu__cbtn--yes;落幕页 .menu__farewell。
  */
-import { el, lbl, btn, toast } from './kit';
+import { el, lbl, btn, closeDialog, openDialog, toast } from './kit';
 import { getLatestAuto, DIFF_LABEL } from '../game/saves';
 import { sfx } from '../game/sfx';
 
@@ -229,7 +229,7 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
     const yes = btn('退 出', { variant: 'primary', cls: 'menu__cbtn menu__cbtn--yes' });
     const no = btn('返 回', { variant: 'ghost', cls: 'menu__cbtn' });
     yes.addEventListener('click', () => {
-      ov.remove();
+      closeDialog(ov);
       // 2026-10-21 用户拍板:移动端(容器内)点「退出」直接停机,不跳任何页;
       // 容器没有退出接口(tapcloud.requestExit 已把能试的都试了),页面若还活着
       // 就进静默终态:场景/动画/视频全停,只留一张纸,提示用胶囊的关闭按钮。
@@ -254,11 +254,13 @@ export function renderMenu(host: HTMLElement, act: MenuActions): MenuPage {
       fw.append(lbl('青史长存 · 后会有期', 'menu__farewelltext u-kai'), again);
       root.append(fw);
     });
-    no.addEventListener('click', () => ov.remove());
+    no.addEventListener('click', () => closeDialog(ov));
     row.append(yes, no);
     box.append(row);
     ov.append(box);
     root.append(ov);
+    // 无障碍:role/aria-modal 挂盒上,焦点移到主按钮,Esc 关闭(见 kit.openDialog)
+    openDialog(ov, box, { focus: yes, onClose: () => closeDialog(ov) });
   }
 
   return {

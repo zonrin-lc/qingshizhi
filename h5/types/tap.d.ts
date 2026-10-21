@@ -65,7 +65,6 @@ interface TapCloudSaveManager {
     archiveFileId: string;
     targetFilePath?: string;
   }): void;
-  deleteArchive(opts: TapCallbackOpts<Record<string, never>> & { archiveUUID: string }): void;
 }
 
 interface TapFileSystemManager {
@@ -83,16 +82,21 @@ interface TapFileSystemManager {
 interface TapGlobal {
   env: { USER_DATA_PATH: string };
   login(opts?: TapCallbackOpts<TapLoginRes>): void;
-  checkSession(opts?: TapCallbackOpts<Record<string, never>>): void;
   getCloudSaveManager(): TapCloudSaveManager;
   getFileSystemManager(): TapFileSystemManager;
-  /** 退出当前小游戏/结束 H5 容器进程。对齐 wx.exitMiniProgram 命名;
-   *  文档站未收录此接口,故声明为可选,业务侧必须特性探测后再调 */
+  /**
+   * 退出当前小游戏/结束 H5 容器进程。
+   *
+   * 2026-10-21 复核:TapTap 小游戏/H5 的 API 全表(文档站 634 条路由全核对过)
+   * **没有**「退出/关页」接口 —— base/app/life-cycle 只有 onShow/onHide/
+   * getLaunchOptionsSync。所以这几个名字都是「容器将来可能补」的探测位
+   * (按 wx / 各类小程序命名习惯),声明为可选,业务侧必须特性探测后再调。
+   * 探测名单见 game/tapcloud.ts 的 EXIT_API_NAMES。
+   */
   exitMiniProgram?(opts?: TapCallbackOpts<Record<string, never>>): void;
+  exitApplication?(opts?: TapCallbackOpts<Record<string, never>>): void;
+  exit?(opts?: TapCallbackOpts<Record<string, never>>): void;
 }
-
-/** 容器注入的全局对象;普通浏览器为 undefined */
-declare const tap: TapGlobal | undefined;
 
 interface Window {
   tap?: TapGlobal;

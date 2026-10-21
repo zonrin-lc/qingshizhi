@@ -4,6 +4,10 @@
  * 设计稿:h5/design/dynasty-teaser.html(2026-10-16);素材:h5/src/assets/teaser/
  * (teaser-card 卡底 / step-* 进度节点三态)。
  * 尺寸一律走 vh,跟随 1280×720 基准缩放。
+ *
+ * 字号例外(2026-10-21 修):游戏强制横屏,手机上可用视口高只有 ~360–430px,
+ * 1.3vh–2.3vh 只有 4.7–9.9px,基本看不清。故所有小字号统一写成
+ * max(11px, Nvh):vh 大于 11px 时取原值(桌面观感不变),手机上兜底 11px。
  * ==========================================================================*/
 
 .teaser {
@@ -44,13 +48,13 @@
   padding-bottom: 1vh;
 }
 .teaser__era {
-  font-size: 1.9vh;
+  font-size: max(11px, 1.9vh);
   letter-spacing: 0.16em;
   color: var(--gold);
   font-weight: 700;
 }
 .teaser__en {
-  font-size: 1.3vh;
+  font-size: max(11px, 1.3vh);
   letter-spacing: 0.36em;
   color: var(--ink-dim);
 }
@@ -65,7 +69,7 @@
 .teaser__lede {
   margin-top: 1.8vh;
   font-family: var(--font-kai);
-  font-size: 2vh;
+  font-size: max(11px, 2vh);
   line-height: 1.9;
   letter-spacing: 0.05em;
   color: var(--ink);
@@ -84,7 +88,7 @@
 }
 .teaser__tag {
   font-family: var(--font-kai);
-  font-size: 1.6vh;
+  font-size: max(11px, 1.6vh);
   letter-spacing: 0.12em;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -110,12 +114,12 @@
   margin-bottom: 1.3vh;
 }
 .teaser__pk {
-  font-size: 1.6vh;
+  font-size: max(11px, 1.6vh);
   letter-spacing: 0.2em;
   color: var(--ink-soft);
 }
 .teaser__pv {
-  font-size: 1.4vh;
+  font-size: max(11px, 1.4vh);
   letter-spacing: 0.1em;
   color: var(--ink-dim);
 }
@@ -135,7 +139,7 @@
   display: block;
 }
 .teaser__st {
-  font-size: 1.6vh;
+  font-size: max(11px, 1.6vh);
   letter-spacing: 0.1em;
   color: var(--ink-dim);
   white-space: nowrap;
@@ -165,13 +169,13 @@
   margin-bottom: 1.5vh;
 }
 .teaser__stxt {
-  font-size: 1.6vh;
+  font-size: max(11px, 1.6vh);
   letter-spacing: 0.28em;
   color: var(--ink-soft);
   white-space: nowrap;
 }
 .teaser__snote {
-  font-size: 1.4vh;
+  font-size: max(11px, 1.4vh);
   letter-spacing: 0.1em;
   color: var(--ink-dim);
   white-space: nowrap;
@@ -199,13 +203,13 @@
 .teaser__tname {
   font-family: var(--font-song);
   font-weight: 900;
-  font-size: 2.3vh;
+  font-size: max(11px, 2.3vh);
   letter-spacing: 0.08em;
   color: var(--ink-strong);
 }
 .teaser__tera {
   margin-top: 0.2vh;
-  font-size: 1.35vh;
+  font-size: max(11px, 1.35vh);
   letter-spacing: 0.1em;
   color: var(--ink-dim);
 }
@@ -218,7 +222,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 1.4vh;
+  font-size: max(11px, 1.4vh);
   letter-spacing: 0.12em;
   color: var(--ink-dim);
 }

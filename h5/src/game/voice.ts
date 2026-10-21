@@ -61,6 +61,8 @@ export class Voice {
   private volume = 1.0;
   /** 当前这句的收尾回调;stop() 主动调它,好让 pump 的循环能退出。 */
   private settleCurrent: (() => void) | null = null;
+  /** 当前句的代际号(2026-10-21 加):陈旧事件不许碰当前句的状态 */
+  private playToken = 0;
   /** 是我们因页面不可见而暂停的标记:只有这种情况才在回前台时自动续播 */
   private pausedByHidden = false;
   private visibilityBound = false;
@@ -103,6 +105,10 @@ export class Voice {
   stop(): void {
     this.queue.length = 0;
     this.pausedByHidden = false;
+    // 顺序要紧(2026-10-21):先结算当前句(done 内部会校验代际),再作废代际。
+    // 反过来的话 done() 会因为代际不匹配直接 return,pump 就永远卡在 await 上。
+    this.settleCurrent?.();
+    this.playToken += 1;
     if (this.el) {
       this.el.pause();
       this.el.removeAttribute('src');
@@ -111,7 +117,6 @@ export class Voice {
     // 关键:pause() 不会触发 ended,只靠事件收尾的话 playOne 的 promise 永远不落定,
     // pump 会一直卡在 await 上、playing 永远是 true,之后所有入队都被无声丢弃。
     // 所以这里要主动把当前这句结算掉,让 pump 的循环看见空队列并退出。
-    this.settleCurrent?.();
   }
 
   /**
@@ -152,20 +157,36 @@ export class Voice {
         this.el = el;
       }
       const el = this.el;
+      // 2026-10-21 修:原来每条切片都往同一个 <audio> 挂一对 {once:true} 监听,
+      // 正常放完只触发 ended,error 那条会**永久留存**;stop() 里的
+      // removeAttribute('src')+load() 按规范还会再抛一次 error —— 于是陈旧回调
+      // 一条条累积,每条都会去写共享状态 settleCurrent(那根防「pump 永久卡在
+      // await」的救命稻草)。陈旧回调一旦把当前这句的 settleCurrent 置空,
+      // stop()/回前台续播就再也结算不了当前句,pump 死等,之后所有朗读被丢弃。
+      // 改法:元素上只挂**一对常驻监听**,用「当前句的 token」判断事件归属。
+      const token = ++this.playToken;
       const done = () => {
+        if (token !== this.playToken) return; // 陈旧事件:不碰当前句的状态
         this.settleCurrent = null;
         resolve();
       };
       // stop() 也要能调它,所以存起来,而不是只挂在事件上
       this.settleCurrent = done;
-      el.addEventListener('ended', done, { once: true });
-      el.addEventListener('error', done, { once: true });
       this.bindVisibility();
+      this.bindClipEvents(el);
       el.src = url;
       el.volume = this.volume;
       el.preload = 'auto';
       void el.play().catch(() => done());
     });
+  }
+
+  /** 元素上只挂一次 ended/error 监听(常驻),避免逐条切片累积监听 */
+  private bindClipEvents(el: HTMLAudioElement): void {
+    if (el.dataset.qsVoiceBound === '1') return;
+    el.dataset.qsVoiceBound = '1';
+    el.addEventListener('ended', () => this.settleCurrent?.());
+    el.addEventListener('error', () => this.settleCurrent?.());
   }
 
   private wait(ms: number): Promise<void> {

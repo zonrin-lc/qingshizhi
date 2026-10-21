@@ -28,12 +28,14 @@ export interface EndingRec {
 }
 
 export interface Collection {
+  /** 载荷版本(2026-10-21 加):老档没有这个字段,读取时按 v1 处理 */
+  v?: number;
   gloss: string[];
   ach: string[];
   endings: Record<string, EndingRec>;
 }
 
-const empty = (): Collection => ({ gloss: [], ach: [], endings: {} });
+const empty = (): Collection => ({ v: 1, gloss: [], ach: [], endings: {} });
 
 export function loadCollection(scenId: string): Collection | null {
   try {
@@ -44,6 +46,8 @@ export function loadCollection(scenId: string): Collection | null {
     if (!Array.isArray(c.gloss) || !Array.isArray(c.ach)) return null;
     // 脏档收窄:只收字符串项,其余丢弃而不是整份拒收(词条/成就丢了不阻断游戏)
     const col = empty();
+    // 版本:老档没有 v 字段,按 v1 读;将来改结构时在这里迁移
+    col.v = typeof (o as { v?: unknown }).v === 'number' ? (o as { v: number }).v : 1;
     col.gloss = c.gloss.filter((x): x is string => typeof x === 'string');
     col.ach = c.ach.filter((x): x is string => typeof x === 'string');
     if (c.endings && typeof c.endings === 'object') {

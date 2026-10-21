@@ -1,99 +1,20 @@
-/* prot/lua-data/<scen>.json 再生成器：wasmoon 装载 scripts/qingshi/data/<scen>.lua，
- * Lua 侧递归序列化为 JSON 文本，JS 侧 JSON.parse 后用最短浮点重 stringify 落盘。
- * 用法: node dump-lua-data.js lisi   （只允许五剧本键；golden.json 不由此生成，勿碰）
- * 浮点口径: Lua 侧用 %.17g 保 float64 往返，JS stringify 输出最短形式（0.59999999999999998→0.6）。
- * 键序: Lua 5.4 表字符串键按插入序迭代，与生成源码的书写顺序一致。 */
-const fs = require('fs');
-const path = require('path');
-const { P, loadWasmoon, readRepo } = require('./paths');
-const { LuaFactory } = loadWasmoon();
-
-const scen = process.argv[2];
-const VALID = ['lisi', 'jingke', 'hanxin', 'xiangyu', 'chensheng'];
-if (!VALID.includes(scen)) {
-  console.error('用法: node dump-lua-data.js <' + VALID.join('|') + '>');
-  process.exit(1);
-}
-
-const DUMP = `
-local function jstr(s)
-  return '"' .. s:gsub('[%z\\1-\\31\\\\"]', function(c)
-    local b = string.byte(c)
-    if c == '"' then return '\\\\"' end
-    if c == '\\\\' then return '\\\\\\\\' end
-    if c == '\\n' then return '\\\\n' end
-    if c == '\\r' then return '\\\\r' end
-    if c == '\\t' then return '\\\\t' end
-    return string.format('\\\\u%04x', b)
-  end) .. '"'
-end
-local function jnum(n)
-  if math.type(n) == 'integer' then return string.format('%d', n) end
-  return string.format('%.17g', n)
-end
-local function isArr(t)
-  local n = #t
-  if n == 0 then return next(t) == nil end  -- 空表按对象输出（数据层无空表歧义）
-  local c = 0
-  for k in pairs(t) do
-    if math.type(k) ~= 'integer' then return false end
-    c = c + 1
-  end
-  return c == n
-end
-local ser
-ser = function(v)
-  local tv = type(v)
-  if tv == 'nil' then return 'null' end
-  if tv == 'boolean' then return tostring(v) end
-  if tv == 'number' then return jnum(v) end
-  if tv == 'string' then return jstr(v) end
-  if tv == 'table' then
-    local parts = {}
-    if isArr(v) then
-      for i = 1, #v do parts[#parts+1] = ser(v[i]) end
-      return '[' .. table.concat(parts, ',') .. ']'
-    end
-    for k, val in pairs(v) do
-      parts[#parts+1] = jstr(tostring(k)) .. ':' .. ser(val)
-    end
-    return '{' .. table.concat(parts, ',') .. '}'
-  end
-  error('unsupported type: ' .. tv)
-end
-local D = dofile('/data/' .. __SCEN .. '.lua')
-return ser(D)
-`;
-
-(async () => {
-  const factory = new LuaFactory();
-  const lua = await factory.createEngine();
-  await factory.mountFile('/data/' + scen + '.lua', readRepo(path.join('scripts', 'qingshi', 'data', scen + '.lua')));
-  const jsonText = String(await lua.doString(DUMP.replace(/__SCEN/g, "'" + scen + "'")));
-  // JS 重排：最短浮点 + 校验可解析
-  const obj = JSON.parse(jsonText);
-  const target = path.join(P.PROT_LUA_DATA, scen + '.json');
-  // 与既有转储对齐：沿用旧文件键序；旧文件中的显式 null（Lua 侧为 nil，dump 掉键）补回；
-  // 新增键排在对象末尾。无旧文件时按 dump 原样输出。
-  let outObj = obj;
-  if (fs.existsSync(target)) {
-    const prev = JSON.parse(fs.readFileSync(target, 'utf8'));
-    const align = (nw, old) => {
-      if (Array.isArray(nw) && Array.isArray(old) && nw.length === old.length)
-        return nw.map((v, i) => align(v, old[i]));
-      if (nw && old && typeof nw === 'object' && typeof old === 'object' && !Array.isArray(nw) && !Array.isArray(old)) {
-        const r = {};
-        for (const k of Object.keys(old))
-          if (k in nw) r[k] = align(nw[k], old[k]);
-          else if (old[k] === null) r[k] = null;
-        for (const k of Object.keys(nw)) if (!(k in r)) r[k] = nw[k];
-        return r;
-      }
-      return nw;
-    };
-    outObj = align(obj, prev);
-  }
-  const out = JSON.stringify(outObj);
-  fs.writeFileSync(target, out);
-  console.log('written', P.rel(target), out.length, 'bytes');
-})().catch(e => { console.error('ERR', e); process.exit(1); });
+/* prot/lua-data/<scen>.json 再生成器 —— 2026-10-21 起**停用**。
+ *
+ * 停用理由(项目决策:Lua 引擎版弃用):
+ * 这个工具从 scripts/qingshi/data/<scen>.lua(封存的 Lua 版数据)反向生成
+ * prot/lua-data/<scen>.json —— 而后者是**现役数据真源**(H5 与引擎都从它派生)。
+ * 也就是说:谁跑一次这个工具,现役数据就会被 Lua 那份陈旧副本静默回滚
+ * (实际已经踩过一次:李斯 ACT-7「结交富室」的文案改动就是被它改回「乡绅联姻」的,
+ * 而 p1-verify 仍然显示绿 —— 因为两侧一起旧了)。
+ *
+ * 现在的正确方向是单向的:
+ *   prot/lua-data/*.json  →(p1-convert)→ prot/lua/data/*.lua
+ *   prot/lua-data/*.json  →(sync-data-js)→ prot/*-data.js(H5 实际吃的那份)
+ * 由 sync-data-js.js 负责再生成,并用 prot/verify-data-js.js 做构建期门禁。
+ *
+ * 需要从旧 Lua 副本里捞数据时,人工把内容拷进 prot/lua-data/<scen>.json 再跑生成链。
+ */
+console.error('[dump-lua-data] 已停用:Lua 引擎版弃用,prot/lua-data/*.json 是现役真源,不能再从 Lua 反向生成。');
+console.error('[dump-lua-data] 需要改数据请直接编辑 prot/lua-data/<scen>.json,然后跑:');
+console.error('[dump-lua-data]   node p1-convert.js && node sync-data-js.js && node verify-data-js.js');
+process.exit(1);

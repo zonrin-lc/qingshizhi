@@ -6,10 +6,8 @@
   "scripts": {
     "dev": "node server.js",
     "test": "node test-sim.js && node test-jingke.js && node test-hanxin.js && node test-xiangyu.js && node test-chensheng.js && node test-ui-contract.js && node test-fate.js && node test-keys.js",
-    "verify": "npm run verify:syntax && npm run verify:api && npm run verify:replay",
-    "verify:syntax": "node lua-syntax-check.js",
-    "verify:api": "node lua-apicheck.js",
-    "verify:replay": "node p2-replay.js",
+    "verify": "npm run verify:data",
+    "verify:data": "node verify-data-js.js",
     "sim": "node balance-sim.js",
     "stats": "node --max-old-space-size=8192 path-stats.js"
   }

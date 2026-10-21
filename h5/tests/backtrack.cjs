@@ -19,6 +19,11 @@ const PROBE = `(async () => {
   const snap = tag => log.push({ tag,
     phase: g.phase, ch: g.chapterIdx, dev: g.dev,
     bt: g.backtracksThisChapter, coef: g.coef, ach: g.ach.length,
+    // 成就清单本身:「成就未被重置」要验的是「探针成就还在不在」,
+    // 不是「成就条数 ≥ 1」—— 探针自己就往 g.ach 里塞了一条,
+    // 原来的 after.ach >= 1 因此恒真(回溯把成就全清了也照样过)。
+    achList: g.ach.slice(),
+    hasProbe: g.ach.includes('__probe_ach__'),
     attrs: { caifu: g.attrs.caifu, caixue: g.attrs.caixue, weiji: g.attrs.weiji },
     btnText: (q('.backbtn')||{}).textContent,
     btnLocked: q('.backbtn') ? q('.backbtn').classList.contains('is-locked') : null,
@@ -130,10 +135,14 @@ withPage(async ({ evaluate, consoleErrors }) => {
   console.log('  标题: ' + o.confirmTitle);
   console.log('  按钮: ' + o.confirmBtns.join(' / '));
 
-  const init = o.log[0];
-  const inRound = o.log[1];
-  const after = o.log[o.log.length - 2];
-  const second = o.log[o.log.length - 1];
+  const init = o.log[0] || {};
+  const inRound = o.log[1] || {};
+  // 按 tag 定位快照,不用「倒数第二条日志」—— 轨迹条数一变(早退/多插一条),
+  // 倒数第二条取到的可能是别的相位,断言就落在不相干的那一帧上。
+  const after = o.log.find((s) => s.tag === '确认回溯后') || o.log[o.log.length - 2] || {};
+  const unlocked = o.log.find((s) => s.tag === '解锁成就后') || {};
+  const second = o.log.find((s) => s.tag === '二次点击') || o.log[o.log.length - 1] || {};
+  const afterAttrs = after.attrs || {};
   const errs = consoleErrors();
   if (errs.length) errs.forEach((e) => console.log('  控制台错误: ' + e));
 
@@ -142,12 +151,16 @@ withPage(async ({ evaluate, consoleErrors }) => {
     ['进回合后仍可回溯', inRound.can === true && inRound.btnLocked === false],
     ['前置条件:属性确实被改动过', o.attrsMoved === true],
     ['回溯后属性回到章首快照',
-      ['caifu', 'caixue', 'weiji'].every((k) => after.attrs[k] === init.attrs[k])],
+      ['caifu', 'caixue', 'weiji'].every((k) => afterAttrs[k] === (init.attrs || {})[k])],
     ['点击后弹出确认浮层', o.confirmShown === true],
     ['确认浮层有两个按钮', o.confirmBtns.length === 2],
     ['回溯后回到本章章首', after.phase === 'intro' && after.ch === init.ch],
     ['回溯计数 +1', after.bt === 1],
-    ['成就未被重置', after.ach >= 1],
+    // 前置:探针成就在回溯前确实解锁了(否则下面那条「未被重置」没意义)
+    ['回溯前探针成就已解锁', unlocked.hasProbe === true, `ach=${unlocked.ach}`],
+    // 判定口径:看探针成就**在不在清单里**,不看成就条数
+    ['成就未被重置', after.hasProbe === true,
+      `回溯后清单 ${JSON.stringify(after.achList || [])}`],
     ['偏离度未被重置', after.dev === o.devBefore],
     ['章首显【回溯】代价提示', o.btNote === true],
     ['配额用尽后按钮压暗', second.btnLocked === true && second.can === false],

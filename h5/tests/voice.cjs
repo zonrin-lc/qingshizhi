@@ -96,7 +96,7 @@ const maxOpus = Math.max(...clipKeys.map(opusSize));
 check('单条 opus 最大 ≤512 KB', maxOpus <= 512 * 1024, `${(maxOpus / 1024).toFixed(0)} KB`);
 
 // ---------- 运行时 ----------
-withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors }) => {
+withPage(async ({ evaluate, cdp, url, netLog, netReset, netTimeline, enterGame, consoleErrors }) => {
   const rows = [];
   const add = (name, ok, why) => rows.push([ok || !why ? name : `${name}  << ${why}`, !!ok]);
   const voiceReqs = () => netLog().filter((r) => isVoiceUrl(r.url));
@@ -143,10 +143,26 @@ withPage(async ({ evaluate, cdp, url, netLog, netReset, enterGame, consoleErrors
   add('URL 带构建 hash', c1.every((r) => /-[A-Za-z0-9_-]{8}\.(webm|m4a)$/.test(r.url)),
     c1[0]?.url);
 
-  // 串行:合并口径下进一章只入队一条 intro,之后随事件推进逐条入队。
-  // 这里用「进入 c1 后 1.5 秒内的条数」做粗判,防的是一次性并发预取回归。
-  add('没有一次性把整章拉完(串行预取)', uniq.length > 0 && uniq.length <= 6,
-    `一下拉了 ${uniq.length} 条`);
+  // 串行:配音必须一条接一条地取。
+  //
+  // 原来用「进 c1 后拉的条数 ≤ 6」这个魔数近似 —— 它既不是串行的判据
+  // (并发 6 条照样 ≤ 6),又会随章节内容多少飘,恒真恒假都说不清。
+  // 真正的判据是「同时在途的请求数」:用 CDP 的 requestWillBeSent /
+  // loadingFinished 时刻算每条请求的占用区间,取最大重叠数。
+  const voiceTl = netTimeline().filter((r) => isVoiceUrl(r.url));
+  const marks = voiceTl.map((r) => r.start);
+  const lastMark = marks.length ? Math.max(...marks) : 0;
+  // 还没收到 loadingFinished 的(仍在传)按「最后一个已知时刻」收尾
+  const endOf = (r) => (r.end === null ? lastMark : r.end);
+  let maxConc = 0;
+  for (const s of marks) {
+    const conc = voiceTl.filter((o) => o.start <= s && endOf(o) > s).length;
+    if (conc > maxConc) maxConc = conc;
+  }
+  add('配音请求是串行的(同时在途 ≤ 1)', voiceTl.length > 0 && maxConc <= 1,
+    `同时在途 ${maxConc} 条,共 ${voiceTl.length} 条`);
+  add('配音请求都有正常的起止时刻', voiceTl.length > 0 && voiceTl.every((r) => r.end !== null && r.end >= r.start),
+    `${voiceTl.filter((r) => r.end === null).length} 条没有结束时刻`);
 
   const state = await evaluate(`(() => {
     const as = [...document.querySelectorAll('audio')];
