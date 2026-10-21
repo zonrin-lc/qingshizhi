@@ -8,6 +8,7 @@
  * 且能随 --ui-scale 直接缩放,不必重绘。
  */
 import type { AttrKey, Game } from '../../types/scenario';
+import { rafNow, subscribeFrame } from '../game/raf';
 
 /** 顺时针自正上方:突破 → 武力 → 才学 → 谋略 → 辩才 */
 const AXES: AttrKey[] = ['tupo', 'wuli', 'caixue', 'moulue', 'biancai'];
@@ -127,9 +128,15 @@ export function renderRadarTween(game: Game, from?: Partial<Record<AttrKey, numb
   if (!data || dots.length !== AXES.length) return root;
 
   const DUR = 380;
-  const t0 = performance.now();
-  const step = (now: number): void => {
-    const t = Math.min(1, (now - t0) / DUR);
+  // 走共享调度器:时间基准取虚拟时钟(页面不可见时停走),
+  // 于是切后台时补间会**冻在原处**,回前台接着走完,不会一帧跳到终值。
+  const t0 = rafNow();
+  let stop: (() => void) | null = null;
+  const step = (_dt: number, now: number): void => {
+    // 元素已经被换掉/摘掉(右栏整块重画)就别再往死元素上写了:直接出终值并退订,
+    // 既省掉无意义的写操作,也让「活跃订阅者」不留尾巴
+    const gone = !root.isConnected;
+    const t = gone ? 1 : Math.min(1, (now - t0) / DUR);
     const e = 1 - Math.pow(1 - t, 3); /* ease-out-cubic:快起缓落 */
     const rs = fromRatios.map((r, i) => r + ((toRatios[i] ?? 0) - r) * e);
     data.setAttribute('points', poly(rs));
@@ -147,9 +154,10 @@ export function renderRadarTween(game: Game, from?: Partial<Record<AttrKey, numb
         l.textContent = String(Math.round(v0 + (v1 - v0) * e));
       });
     }
-    if (t < 1) requestAnimationFrame(step);
+    // 走完就退订:补间是一次性的,留着订阅者会白占一条帧循环
+    if (t >= 1) stop?.();
   };
-  requestAnimationFrame(step);
+  stop = subscribeFrame(step);
   return root;
 }
 

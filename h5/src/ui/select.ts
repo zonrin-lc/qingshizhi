@@ -16,6 +16,7 @@
 import type { DiffKey, ScenarioData } from '../../types/scenario';
 import { loadScenario, prefetch, SCENARIOS, DIFFICULTIES, type ScenarioEntry } from '../data/scenarios';
 import { lockReason } from '../game/collection';
+import { nextFrame } from '../game/raf';
 import { backBtn, brandLogo, el, lbl, toast, vText } from './kit';
 import { sfx } from '../game/sfx';
 import { renderTeaser } from './teaser';
@@ -72,6 +73,12 @@ export interface SelectPage {
   root: HTMLElement;
   readonly picked: () => SelectResult;
   select(key: string, diff: DiffKey): void;
+  /**
+   * 入局前的取数状态(2026-10-21):剧本数据分片是按需下载的(每本 150–280KB),
+   * 首次点「开始」可能要等一下。以前这段等待是**静默**的 —— 点了没反应,
+   * 玩家会以为按钮坏了。现在把按钮切成「正在展卷…」并禁掉,连点也不怕。
+   */
+  setEntering(on: boolean): void;
   destroy(): void;
 }
 
@@ -92,6 +99,26 @@ export function renderSelectPage(
   let curDiff: DiffKey = 'normal';
   /** 已加载剧本的 DIFFICULTY 表缓存(难度名/注释的来源) */
   let curDiffTab: ScenarioData['DIFFICULTY'] | null = null;
+
+  /**
+   * 入局取数状态(2026-10-21):剧本数据分片是按需下载的(每本 150–280KB),
+   * 首次点「开始」可能要等一下。以前这段等待是**静默**的 —— 点了没反应,
+   * 玩家会以为按钮坏了。现在把按钮切成「正在展卷…」并禁掉,连点也不怕。
+   * 状态放在 renderSelectPage 这一层:buildRight() 每次重画都会新建按钮,
+   * 声明在里面就只对当次那个按钮生效。
+   */
+  let entering = false;
+  let enterBtn: HTMLButtonElement | null = null;
+  let enterLblEl: HTMLElement | null = null;
+  const setEntering = (on: boolean): void => {
+    if (entering === on) return;
+    entering = on;
+    if (enterBtn) {
+      enterBtn.disabled = on;
+      enterBtn.classList.toggle('is-loading', on);
+    }
+    if (enterLblEl) enterLblEl.textContent = on ? '正在展卷…' : '开始';
+  };
 
   // ---------- 顶栏:左返回(罗盘,挂 .select 根,脱出 seltop 流)| 右标题 ----------
   const top = el('div', 'seltop');
@@ -249,7 +276,10 @@ export function renderSelectPage(
     vortex.draggable = false;
     spin.append(vortex);
     enter.append(spin, lbl('开始', 'selenter__lbl'));
+    enterBtn = enter;
+    enterLblEl = enter.querySelector('.selenter__lbl') as HTMLElement;
     enter.addEventListener('click', () => {
+      if (entering) return;
       // 开放限制(2026-10-20 拍板):点「开始」入局时校验,未解锁弹 toast 拦下
       const reason = lockReason(curKey);
       if (reason) { sfx.play('fail'); toast(root, reason, true); return; }
@@ -266,7 +296,9 @@ export function renderSelectPage(
     syncSelection();
     syncDiffUI();
     // 首帧后再挂 is-open,横排条才有展开动画(直接带类出生不会过渡)
-    requestAnimationFrame(() => requestAnimationFrame(() => drawer.classList.add('is-open')));
+    // 走共享调度器的一次性帧任务(两帧):页面被容器挂后台时这两帧不会在后台跑,
+    // 回到前台才补上,不会在看不见的时候把动画播掉。
+    nextFrame(() => nextFrame(() => drawer.classList.add('is-open')));
   }
 
   // ---------- 罗盘 ----------
@@ -313,6 +345,7 @@ export function renderSelectPage(
       buildRight();
       void syncDiff();
     },
+    setEntering,
     destroy() {
       wheel?.destroy();
       root.remove();

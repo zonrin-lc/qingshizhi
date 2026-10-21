@@ -23,6 +23,7 @@ import { getScenario, loadScenario } from './data/scenarios';
 import { initScale, logScale } from './shell/scale';
 import { buildShell, renderSide, setBg, setDeco, wireBack } from './shell/shell';
 import { Session } from './game/session';
+import { diagnostics, diagnosticsText, installDiagnostics } from './game/diagnostics';
 import { bgm } from './game/audio';
 import { voice } from './game/voice';
 import { renderMenu, type MenuPage } from './ui/menu';
@@ -443,10 +444,13 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
     if (preloaded) { mountGame(key, diff, preloaded, true, roundNo, ui); return; }
     // 正常入局:数据分片可能还没下(选了剧本卡才预热,也可能被清了缓存)
     const tk = navToken;
+    // 取数期间给个「正在展卷…」的反馈(2026-10-21):以前这段等待是静默的,
+    // 玩家点了没反应会以为按钮坏了;顺带禁掉连点。
+    selectPage?.setEntering(true);
     void (async () => {
       const data = await loadScenario(key);
       if (tk !== navToken) return; // 等数据期间玩家已去别的页面
-      if (!data) { toast('剧本数据加载失败'); goSelect(); return; }
+      if (!data) { selectPage?.setEntering(false); toast('剧本数据加载失败'); goSelect(); return; }
       const g = new engine.Game(data as never, diff);
       injectCollection(g); // 开局灌入跨局收藏(对齐 Lua home.lua newGame)
       mountGame(key, diff, g);
@@ -516,6 +520,14 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
   onSegDelay((ms) => Session.setSegDelay(ms));
   syncFromStorage();
   broadcastSettings(loadSettings());
+
+  // 全局异常兜底(2026-10-21):未捕获的运行时异常/未处理的 Promise 拒绝都记一条,
+  // 弹个轻提示(不打断流程,玩家仍能返回/重开),并留在诊断缓冲里以便反馈时取用。
+  installDiagnostics((text) => { try { toast(text); } catch { /* 外壳还没起好就算了 */ } });
+  (window as unknown as Record<string, unknown>).__QS_DIAG__ = {
+    list: () => diagnostics(),
+    text: () => diagnosticsText(),
+  };
 
   // TapTap 云存档:容器内静默登录 + 启动对账(云端新则整包覆写本地)。
   // 普通浏览器里整个是 no-op。对账若覆写了本地且玩家还停在主菜单,

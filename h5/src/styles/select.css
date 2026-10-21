@@ -446,6 +446,16 @@
   overflow: visible;
   transition: transform var(--dur-quick) var(--ease-ink);
 }
+/* 入局取数中(2026-10-21):按钮禁掉,漩涡放慢 —— 视觉上「在忙」而不是卡死 */
+.selenter:disabled {
+  cursor: default;
+}
+.selenter.is-loading .selenter__spin {
+  animation-duration: 22s;
+}
+.selenter.is-loading .selenter__lbl {
+  opacity: 0.75;
+}
 .selenter__spin {
   position: absolute;
   inset: 0;

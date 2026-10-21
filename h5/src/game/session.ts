@@ -14,6 +14,7 @@ import { renderRadar, renderRadarTween, RADAR_AXES } from '../ui/radar';
 import { castOf, renderCast, bigPortrait } from '../ui/cast';
 import { voice } from './voice';
 import { sfx } from './sfx';
+import { nextFrame as scheduleFrame } from './raf';
 import { clearAutos, listStashEntries, removeStash, type SecRec, type SecTag } from './saves';
 import { recordEnding, saveCollection } from './collection';
 import { sealImg } from '../data/seals';
@@ -114,6 +115,9 @@ export class Session {
    *  发牌/选卡提醒/属性飞字这些回调都会往常驻壳(shell.foot / shell.side)写东西,
    *  离场后还在跑就会把旧对局的数据写进新一局(还会给新一局误挂 is-pickhint) */
   private timers = new Set<number>();
+  /** 统一登记的一次性帧任务(共享调度器):dispose 时一次性清掉。
+   *  这些任务是「下一帧做一次」的排版/动画起步动作,离场后还在跑就会写旧对局的壳 */
+  private frames = new Set<() => void>();
   /** 会话是否已离场:离场后不再登记新的延时回调
    *  (requestAnimationFrame 等异步入口可能在 dispose 之后才跑) */
   private disposed = false;
@@ -184,6 +188,9 @@ export class Session {
     // 所有延时回调统一清掉:发牌/选卡提醒/属性飞字离场后还在跑的话,
     // 会往常驻壳(shell.foot / shell.side)写旧对局的数据,还会给新一局误挂 is-pickhint
     this.clearTimers();
+    // 一次性帧任务也清掉:共享调度器里不能留着旧对局排的帧
+    for (const c of this.frames) c();
+    this.frames.clear();
     this.liveSec = null;
     this.disposed = true;
     this.main.removeEventListener('pointerdown', this.onSkipPointer);
@@ -209,6 +216,20 @@ export class Session {
   private clearTimers(): void {
     for (const t of this.timers) window.clearTimeout(t);
     this.timers.clear();
+  }
+
+  /**
+   * 登记一个一次性帧任务(共享调度器):下一帧做一次,dispose 时统一清掉。
+   * 与 later() 的区别只是时基:这里是「下一帧」(排版量尺寸、动画起步),
+   * later() 是「若干毫秒后」。两者都必须登记在册 —— 离场后才跑的任务会写旧对局的壳。
+   */
+  private nextFrame(fn: () => void): void {
+    if (this.disposed) return;
+    const cancel = scheduleFrame(() => {
+      this.frames.delete(cancel);
+      fn();
+    });
+    this.frames.add(cancel);
   }
 
   /** 当前剧本与章 id,配音切片路径靠它推导 */
@@ -701,7 +722,9 @@ export class Session {
     this.liveSec = title ? null : sec;
     // 新小节追加后滚到可视区:小节题签在尾部,不滚的话新内容出现在视口外,
     // 玩家只看到一片旧空白(2026-10-14 截图反馈)。等一帧让浏览器先排完版再量。
-    requestAnimationFrame(() => this.scrollMainBottom());
+    // 走共享调度器的一次性帧任务(下一帧):时序与原来的裸 rAF 一致,
+    // 页面被容器挂后台时这一帧会等到回前台再补(不会在看不见时把滚动做掉)。
+    this.nextFrame(() => this.scrollMainBottom());
     return { sec, body, head };
   }
 
@@ -912,7 +935,9 @@ export class Session {
    * 一拍之后该属性的数值/进度条/雷达即时更新——不等下一次渲染,更不点点点按钮才变。
    * reduced-motion 不飞不演,数值即时更新。 */
   private flyChanges(list: HTMLElement): void {
-    requestAnimationFrame(() => {
+    // 下一帧起飞(飞卡/飞字的起步):走共享调度器的一次性帧任务,
+    // 时序与原来的裸 rAF 一帧不差(chain 测试盯着这条)。
+    this.nextFrame(() => {
       // 离场后不再写右栏:这一帧若落在 dispose 之后,会把旧对局的数值写进新一局
       if (this.disposed) return;
       const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;

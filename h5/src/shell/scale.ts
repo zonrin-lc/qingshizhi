@@ -12,6 +12,7 @@
  *  2. 缩放跟着**逻辑视口**走,不是物理像素:物理视口随 DPR 变大,
  *     直接用它会让高 DPI 屏上的元素偏小。
  */
+import { nextFrame } from '../game/raf';
 
 export interface ScaleState {
   /** 最终缩放,写入 --ui-scale */
@@ -96,9 +97,18 @@ export function initScale(): () => void {
   vv?.addEventListener('resize', onChange);
   vv?.addEventListener('scroll', onChange);
 
+  // 待执行的那一帧(停函数里要能撤掉)
+  let pending: (() => void) | null = null;
+
   function onChange(): void {
     // 移动端地址栏收放会连续触发,下一帧再算,避免中间态抖动
-    requestAnimationFrame(() => {
+    // 走共享调度器的一次性帧任务:页面被容器挂后台时这一帧不会在后台执行,
+    // 回到前台才补算(裸 rAF 在后台照跑,那是白烧电)。
+    // 连续触发只留最后一帧:同一次 resize 突发里的几次回调算出来的值本来就一样,
+    // 合并后最终值与原来一致,只是少派发几次 qingshi:scale 事件。
+    pending?.();
+    pending = nextFrame(() => {
+      pending = null;
       state = computeScale();
       apply(state);
       window.dispatchEvent(new CustomEvent('qingshi:scale', { detail: state }));
@@ -110,6 +120,9 @@ export function initScale(): () => void {
     window.removeEventListener('orientationchange', onChange);
     vv?.removeEventListener('resize', onChange);
     vv?.removeEventListener('scroll', onChange);
+    // 撤掉还挂着的那一帧:驱动停了就不该再有 qingshi:scale 事件
+    pending?.();
+    pending = null;
   };
 }
 

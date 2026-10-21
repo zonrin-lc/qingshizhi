@@ -16,6 +16,7 @@
  * 每帧只写 transform/位置,不重排布局。
  */
 import { el, lbl } from './kit';
+import { subscribeFrame, type FrameSubscription } from '../game/raf';
 
 export interface WheelItem {
   name: string;
@@ -89,6 +90,16 @@ export function createWheel(opts: {
   /** 中心盘内容待刷新:等轮盘停稳(归位完成)再淡入切换(2026-10-15 拍板) */
   let diskDirty = false;
   const reFrom = { base: 0, nameOff: 0 };
+  /**
+   * 共享调度器的订阅句柄:页面销毁必须退订(否则来回切页会越挂越多循环)。
+   *
+   * 为什么空闲时也不彻底停掉这条循环:
+   * 1. 首帧要画盘面 —— root 是 createWheel 返回之后才被挂进 DOM 的,
+   *    挂上之前 clientWidth 是 0,画不了,得等下一帧;
+   * 2. 转屏/改窗口后名签位置与字号要跟着重画。
+   * 所以改成「限帧」而不是「停掉」:空闲与巡游 30fps,交互 60fps。
+   */
+  let stopLoop: FrameSubscription | null = null;
 
   // ---------- 空闲巡游 ----------
   const win = window as unknown as { __QS_WHEEL_AUTO_IDLE__?: number; __QS_WHEEL_AUTO_SPEED__?: number };
@@ -205,6 +216,7 @@ export function createWheel(opts: {
     phase = 'point';
     pointVel = 0;
     diskDirty = true;
+    syncFps();
     opts.onChange(i);
   }
 
@@ -213,6 +225,7 @@ export function createWheel(opts: {
     reT = 0;
     reFrom.base = base;
     reFrom.nameOff = nameOff;
+    syncFps();
   }
 
   // ---------- 拖拽 ----------
@@ -230,6 +243,7 @@ export function createWheel(opts: {
     dragT = ev.timeStamp;
     accum = 0;
     baseVel = 0;
+    syncFps();
   });
   root.addEventListener('pointermove', (ev) => {
     if (phase !== 'drag') return;
@@ -250,6 +264,7 @@ export function createWheel(opts: {
     if (Math.abs(accum) < DRAG_SLOP) {
       // 视为点击:按点到的方位直接选最近的一项;中心盘为死区
       phase = 'idle';
+      syncFps();
       const r = root.getBoundingClientRect();
       const dx = ev.clientX - (r.left + r.width / 2);
       const dy = ev.clientY - (r.top + r.height / 2);
@@ -283,21 +298,34 @@ export function createWheel(opts: {
     else if (v < -MAX_VEL) v = -MAX_VEL;
     baseVel = v;
     phase = 'settle';
+    syncFps();
   }
 
   // ---------- 帧循环(与 wheel.lua Update 同构) ----------
-  let raf = 0;
-  let last = 0;
   let alive = true;
 
-  function tick(ts: number): void {
+  /**
+   * 限帧档位:交互中(拖拽/惯性/吸附/归位)60fps,空闲与巡游 30fps。
+   * 巡游是 3°/s 的慢速自转,30fps 与 60fps 肉眼无差,却省一半绘制开销;
+   * 交互中的 60fps 一帧不省,拖拽/惯性/吸附的手感必须与改造前一致。
+   */
+  function syncFps(): void {
+    const busy = phase === 'drag' || phase === 'settle' || phase === 'point' || phase === 'reorient';
+    stopLoop?.setFps(busy ? 60 : 30);
+  }
+
+  function tick(dtMs: number, _now: number): void {
     if (!alive) return;
-    const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0;
-    last = ts;
+    // 调度器给的是「距上次执行」的毫秒数;0.05s 上限与改造前一致
+    // (改造前是 min(0.05, (ts - last) / 1000))
+    const dt = Math.min(0.05, dtMs / 1000);
+    // 空闲判定用真实时钟:巡游的「20s 无操作」是墙上时间,
+    // 不能用会停走的虚拟时钟(切后台一段时间再回来,按墙上时间算就该立刻巡游)
+    const wall = performance.now();
     if (dt > 0 && phase !== 'drag') {
       if (phase === 'idle') {
         // 开了「减少动态效果」就不巡游:自转是无声的持续动画,正是该被关掉的那类
-        if (!attract && (autoForced || !reduceMotion?.matches) && ts - lastInteract >= autoIdleMs) attract = true;
+        if (!attract && (autoForced || !reduceMotion?.matches) && wall - lastInteract >= autoIdleMs) attract = true;
         if (attract) phase = 'auto';
       }
       if (phase === 'auto') {
@@ -366,11 +394,12 @@ export function createWheel(opts: {
       }
     }
     paint();
-    raf = requestAnimationFrame(tick);
+    // 相位可能在帧内变了(空闲→巡游、归位→空闲):这里统一对一次限帧档位
+    syncFps();
   }
 
   paintDisk();
-  raf = requestAnimationFrame(tick);
+  stopLoop = subscribeFrame(tick, { fps: 30 });
 
   return {
     el: root,
@@ -383,7 +412,9 @@ export function createWheel(opts: {
     get index() { return index; },
     destroy() {
       alive = false;
-      cancelAnimationFrame(raf);
+      // 退订:共享调度器里不能留着这个页面的订阅者
+      stopLoop?.();
+      stopLoop = null;
       document.removeEventListener('pointerdown', onAnyPointer, true);
       root.remove();
     },
