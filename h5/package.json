@@ -13,7 +13,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test:browser": "node tests/run-all.cjs",
-    "pretest:browser": "npm run build"
+    "pretest:browser": "npm run build",
+    "guide:shots": "node tools/guide-shots.cjs"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
