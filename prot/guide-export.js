@@ -303,6 +303,29 @@ const blocks = {
     lines.push(`- **合计**:成就 ${tot('ACHIEVEMENTS')} · 百科词条 ${tot('GLOSSARY')} · 结局 ${tot('ENDINGS')}`);
     return lines.join('\n');
   })(),
+
+  /* —— 第二篇《机制补遗》用的隐藏系统表 —— */
+  meritList: SCEN.map((k) => {
+    const map = byKey[k].MERIT_MAP || {};
+    const items = Object.entries(map).map(([m, v]) => `${m} ${v}`).join(' · ');
+    return `- **${byKey[k].SCENARIO.name}**:${items}`;
+  }).join('\n'),
+  hiddenList: SCEN.map((k) => {
+    const h = byKey[k].HIDDEN || {};
+    const words = (h.words || []).map(([t, w2]) => (t === 0 ? `0 ${w2}` : `≥${t} ${w2}`)).join(' / ');
+    return `- **${byKey[k].SCENARIO.name}**(${h.name || '隐藏值'}):初值 ${h.init ?? '—'} · 第 ${h.showFrom ?? '—'} 章起显示状态词 · ${words}`;
+  }).join('\n'),
+  ageList: SCEN.map((k) => {
+    const a = byKey[k].AGE || {};
+    const bands = (a.bands || []).map(([age, d]) => (d === 0 ? `<${age} 不衰` : `${age}+ 体魄${d}`)).join(' · ');
+    const lon = (a.longevity || []).map(([t, v]) => `体魄≥${t} 折寿+${v}`).join(' · ');
+    return `- **${byKey[k].SCENARIO.name}**:起始 ${a.init ?? '—'} 岁 · ${bands} · 寿元:${lon || '无'}`;
+  }).join('\n'),
+  illnessList: SCEN.map((k) => {
+    const ill = byKey[k].ILLNESS || {};
+    if (!ill.cost) return `- **${byKey[k].SCENARIO.name}**:无疾病系统`;
+    return `- **${byKey[k].SCENARIO.name}**:药资 ${ill.cost} 财富 · 药效 体魄+${ill.heal}(按实际生效值) · 染病 体魄−${ill.onsetTupo} 危机+${ill.onsetWeiji} · 大病每回合 体魄−${ill.drainTupo} 危机+${ill.drainWeiji}`;
+  }).join('\n'),
 };
 
 if (fs.existsSync(ARTICLE)) {
