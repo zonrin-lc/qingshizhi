@@ -275,14 +275,44 @@ const blocks = {
       ['行动卡', String(SCEN.reduce((n, k) => n + (byKey[k].ACTIONS || []).length, 0))],
       ['关键事件', String(SCEN.reduce((n, k) => n + (byKey[k].CHAPTERS || []).reduce((n, c) => n + (c.events || []).length, 0), 0))],
       ['事件选项', String(SCEN.reduce((n, k) => n + (byKey[k].CHAPTERS || []).reduce((n, c) => n + (c.events || []).reduce((m, e) => m + (e.options || []).length, 0), 0), 0))]]),
+
+  /* —— 论坛发布稿用的「列表卡」形态:手机上表格太挤,同样的数据用列表读 —— */
+  attrsList: byKey.lisi.ATTRS.map((x) => {
+    const nm = byKey.lisi.ATTR_NAMES[x.k] || x.k;
+    const words = (x.words || []).map(([t, w2]) => (t === 0 ? `0 ${w2}` : `≥${t} ${w2}`)).join(' / ');
+    return `- **${nm}**(初值 ${byKey.lisi.INIT[x.k] ?? '—'}):${words}`;
+  }).join('\n'),
+  diffList: Object.entries(byKey.lisi.DIFFICULTY).map(([, v]) => {
+    const back = v.backtrack < 0 ? '无限回溯' : (v.backtrack ? `每章回溯 ${v.backtrack} 次` : '无回溯');
+    return `- **${v.n}**:危机 ×${v.wj} · 章末修正 ×${v.corr} · 总分 ×${v.coef} · ${back} · ${v.lethal ? '会致死' : '不会死'} · ${v.hideAttrs ? '数值只给状态词' : '数值全可见'}`;
+  }).join('\n'),
+  riskList: [['≤ 3', '七成'], ['4–6', '五成'], ['7–9', '四成'], ['10–12', '三成'], ['13–15', '两成'], ['≥ 16', '一成半']]
+    .map(([g, r]) => `- 还差 **${g}** 点 → 成算 **${r}**`).join('\n'),
+  gradeList: [['甲上', '95'], ['甲', '90'], ['甲下', '85'], ['乙上', '80'], ['乙', '70'], ['乙下', '60'],
+    ['丙上', '50'], ['丙', '40'], ['丙下', '30'], ['丁', '不足 30 分']]
+    .map(([g, s2]) => `- **${g}** = ${s2} 分`).join('\n'),
+  bandsList: byKey.lisi.DEV_BANDS.map((b) => `- **${b.name}**(≤ ${b.max}):${{
+    循史: '完整复刻了历史,连他的错误都没改',
+    微澜: '大势之内的小挣扎,只在字里行间留了几处批注',
+    改流: '走向开始变,史官的笔追不上了',
+    逆天: '无人见过的新历史 —— 无论结局如何,它属于你',
+  }[b.name] || ''}`).join('\n'),
+  collectList: (() => {
+    const lines = SCEN.map((k) => `- **${byKey[k].SCENARIO.name}**:成就 ${Object.keys(byKey[k].ACHIEVEMENTS || {}).length} · 百科词条 ${Object.keys(byKey[k].GLOSSARY || {}).length} · 结局 ${Object.keys(byKey[k].ENDINGS || {}).length}`);
+    const tot = (key) => SCEN.reduce((n, k) => n + Object.keys(byKey[k][key] || {}).length, 0);
+    lines.push(`- **合计**:成就 ${tot('ACHIEVEMENTS')} · 百科词条 ${tot('GLOSSARY')} · 结局 ${tot('ENDINGS')}`);
+    return lines.join('\n');
+  })(),
 };
 
 if (fs.existsSync(ARTICLE)) {
   let art = fs.readFileSync(ARTICLE, 'utf8');
   let filled = 0;
+  /** 用到的标记块(用于最后统计"哪些块没被任何稿件用上") */
+  const used = new Set();
   for (const [name, table] of Object.entries(blocks)) {
     const re = new RegExp(`(<!-- AUTO:${name} -->)[\\s\\S]*?(<!-- /AUTO:${name} -->)`);
-    if (!re.test(art)) { console.warn(`  ! 文章里没有 AUTO:${name} 标记块(若确实不需要可忽略)`); continue; }
+    if (!re.test(art)) { used.add(name); continue; }
     art = art.replace(re, `$1\n${table}\n$2`);
     filled += 1;
   }
@@ -290,4 +320,22 @@ if (fs.existsSync(ARTICLE)) {
   console.log(`已回填文章表格: ${path.relative(ROOT, ARTICLE)}(${filled} 个标记块)`);
 } else {
   console.warn(`  ! 找不到文章 ${path.relative(ROOT, ARTICLE)},跳过回填`);
+}
+
+/* 论坛发布稿等其它稿件:同样按标记块回填(谁有标记填谁) */
+const GUIDE_DIR = path.join(ROOT, 'docs', '攻略');
+for (const f of fs.existsSync(GUIDE_DIR) ? fs.readdirSync(GUIDE_DIR).filter((x) => x.endsWith('.md') && x !== '数据速查.md') : []) {
+  const p = path.join(GUIDE_DIR, f);
+  if (p === ARTICLE) continue;
+  let txt = fs.readFileSync(p, 'utf8');
+  if (!txt.includes('<!-- AUTO:')) continue;
+  let n = 0;
+  for (const [name, table] of Object.entries(blocks)) {
+    const re = new RegExp(`(<!-- AUTO:${name} -->)[\\s\\S]*?(<!-- /AUTO:${name} -->)`);
+    if (!re.test(txt)) continue;
+    txt = txt.replace(re, `$1\n${table}\n$2`);
+    n += 1;
+  }
+  fs.writeFileSync(p, txt, 'utf8');
+  console.log(`已回填发布稿: docs/攻略/${f}(${n} 个标记块)`);
 }
