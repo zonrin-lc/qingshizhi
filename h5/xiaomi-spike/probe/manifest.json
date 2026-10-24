@@ -1,0 +1,13 @@
+{
+  "package": "com.qingshi.probe.mini",
+  "name": "QG 探针",
+  "icon": "/icon.png",
+  "versionName": "0.0.1",
+  "versionCode": 1,
+  "minPlatformVersion": 1076,
+  "orientation": "landscape",
+  "type": "game",
+  "config": {
+    "logLevel": "debug"
+  }
+}

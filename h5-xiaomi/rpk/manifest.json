@@ -1,0 +1,13 @@
+{
+  "package": "com.qingshi.xiaomi",
+  "name": "青史志",
+  "icon": "/icon.png",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1076,
+  "orientation": "landscape",
+  "type": "game",
+  "config": {
+    "logLevel": "debug"
+  }
+}

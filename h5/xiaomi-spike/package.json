@@ -1,0 +1,10 @@
+{
+  "name": "qingshi-xiaomi-p0",
+  "private": true,
+  "type": "module",
+  "description": "P0 技术验证:青史志在小米快游戏(qg)运行时上的最小可跑屏",
+  "scripts": {
+    "build": "node scripts/prepare-assets.mjs && node ../node_modules/rolldown/bin/cli.mjs -c rolldown.config.mjs",
+    "serve": "python -m http.server 5178 --directory dist"
+  }
+}

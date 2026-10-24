@@ -175,6 +175,9 @@ export class Session {
    * 旧 Game,点了会污染正在进行的对局。
    */
   dispose(): void {
+    // 离场先把本局的成就/词条并进跨局收藏(2026-10-24 修):原来只有「到结局 / 末章走完」
+    // 才写盘,玩家中途返回、退出游戏、切后台被系统杀掉,这一局的解锁全随页面蒸发
+    this.persistCollection();
     this.skipReveal();
     this.settleToken += 1;
     // 发牌/选卡提醒/关键事件提示条也要作废:各自的令牌一作废,漏跑的回调也会直接退出

@@ -1,0 +1,57 @@
+[
+  {
+    "key": "lisi",
+    "id": "lisi",
+    "name": "李斯 · 仓鼠之局",
+    "sub": "如果你来走这一生",
+    "noSave": false,
+    "chapters": 7,
+    "era": "约前 280 — 前 208",
+    "protag": "李斯",
+    "endings": 20
+  },
+  {
+    "key": "jingke",
+    "id": "jingke",
+    "name": "荆轲 · 图穷之局",
+    "sub": "风萧萧兮易水寒",
+    "noSave": false,
+    "chapters": 6,
+    "era": "约前 232 — 前 227",
+    "protag": "荆轲",
+    "endings": 18
+  },
+  {
+    "key": "hanxin",
+    "id": "hanxin",
+    "name": "韩信 · 兵仙之局",
+    "sub": "成也萧何，败也萧何",
+    "noSave": false,
+    "chapters": 7,
+    "era": "约前 220 — 前 196",
+    "protag": "韩信",
+    "endings": 15
+  },
+  {
+    "key": "xiangyu",
+    "id": "xiangyu",
+    "name": "项羽 · 霸王之局",
+    "sub": "力拔山兮气盖世",
+    "noSave": false,
+    "chapters": 7,
+    "era": "前 209 — 前 202",
+    "protag": "项羽",
+    "endings": 15
+  },
+  {
+    "key": "chensheng",
+    "id": "chensheng",
+    "name": "陈胜 · 首义之局",
+    "sub": "王侯将相宁有种乎",
+    "noSave": false,
+    "chapters": 7,
+    "era": "前 209 七月 — 前 208 腊月",
+    "protag": "陈胜",
+    "endings": 14
+  }
+]

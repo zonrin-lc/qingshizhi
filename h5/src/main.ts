@@ -280,10 +280,23 @@ async function start(shell: ReturnType<typeof buildShell>): Promise<void> {
    * 与 autosaveIfPlaying 不会双写:那条路径先把 session 置空,这里看到 null 就跳过。
    */
   window.addEventListener('pagehide', () => {
-    if (!session || session.game.phase === 'ending') return;
+    if (!session) return;
+    // 收藏先落盘(2026-10-24):结局/成就/词条不属于「存档」,无论这局轮次深浅都要留;
+    // 否则直接关页的玩家,图鉴永远是空的,下一剧本还会被重新锁上
+    session.persistCollection();
+    if (session.game.phase === 'ending') return;
     // 与「返回」同口径(2026-10-17 拍板):本章经营未满 SAVE_MIN_ROUND 轮的局不暂存
     if (session.roundNo < SAVE_MIN_ROUND) return;
     stashSave(session.game, curKey, session.game.d.SCENARIO.name, session.roundNo, session.collectHistory());
+  });
+
+  /**
+   * 切后台落一次收藏(2026-10-24):部分 WebView 被系统回收时既不派 pagehide
+   * 也不派 beforeunload,visibilitychange 是最后一道能抓住的钩子。
+   * 收藏只有几十条字符串,写一次很便宜,重复写不会变慢。
+   */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') session?.persistCollection();
   });
 
   /**

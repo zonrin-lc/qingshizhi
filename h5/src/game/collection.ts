@@ -12,6 +12,8 @@ import type { Game, ScenarioData } from '../../types/scenario';
 import { SCENARIOS } from '../data/scenarios';
 
 const key = (scenId: string): string => `qingshi.col.v1.${scenId}`;
+/** 副副本键(2026-10-24 加):主键被容器清理/写坏时还能捞回来 */
+const bakKey = (scenId: string): string => `qingshi.col.bak.v1.${scenId}`;
 
 /** 单条结局达成记录。键为 'E1' 或 'E1:wuyan'(变体) */
 export interface EndingRec {
@@ -37,10 +39,11 @@ export interface Collection {
 
 const empty = (): Collection => ({ v: 1, gloss: [], ach: [], endings: {} });
 
-export function loadCollection(scenId: string): Collection | null {
+/** 解析一份收藏载荷;结构不对(sanitize 后为空壳)返回 null */
+function parseCollection(raw: string | null): Collection | null {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(key(scenId));
-    const o: unknown = raw ? JSON.parse(raw) : null;
+    const o: unknown = JSON.parse(raw);
     if (!o || typeof o !== 'object') return null;
     const c = o as { gloss?: unknown; ach?: unknown; endings?: unknown };
     if (!Array.isArray(c.gloss) || !Array.isArray(c.ach)) return null;
@@ -69,6 +72,41 @@ export function loadCollection(scenId: string): Collection | null {
   }
 }
 
+/** 两份收藏取并集(2026-10-24 加):词条/成就并集,结局取次数多、最佳分高、评级高者。
+ *  双副本与云包合并都走这里 —— 任何一路数据都不许把另一路「减掉」。 */
+function mergeCollections(a: Collection, b: Collection): Collection {
+  const out = empty();
+  out.v = Math.max(a.v ?? 1, b.v ?? 1);
+  out.gloss = [...new Set([...a.gloss, ...b.gloss])];
+  out.ach = [...new Set([...a.ach, ...b.ach])];
+  out.endings = { ...a.endings };
+  for (const [k, r] of Object.entries(b.endings)) {
+    const prev = out.endings[k];
+    if (!prev) { out.endings[k] = r; continue; }
+    out.endings[k] = {
+      n: r.c > prev.c ? r.n : prev.n,
+      s: prev.s || r.s,
+      c: Math.max(prev.c, r.c),
+      b: Math.max(prev.b, r.b),
+      g: (GRADE_RANK[r.g] ?? 0) > (GRADE_RANK[prev.g] ?? 0) ? r.g : prev.g,
+    };
+  }
+  return out;
+}
+
+export function loadCollection(scenId: string): Collection | null {
+  try {
+    const main = parseCollection(localStorage.getItem(key(scenId)));
+    const bak = parseCollection(localStorage.getItem(bakKey(scenId)));
+    // 双副本互校(2026-10-24):主键在、副键也在 → 并集(防止主键被写坏一半);
+    // 只在一处有 → 用那一处。两处都没有 → null(全新存档)
+    if (main && bak) return mergeCollections(main, bak);
+    return main ?? bak;
+  } catch {
+    return null;
+  }
+}
+
 /** 开局灌入:新 Game 的 gloss/ach 是空表,把历史累计并进来(去重) */
 export function injectCollection(game: Game): void {
   const col = loadCollection(game.d.SCENARIO.id);
@@ -77,20 +115,39 @@ export function injectCollection(game: Game): void {
   for (const a of col.ach) if (!game.ach.includes(a)) game.ach.push(a);
 }
 
-function write(scenId: string, col: Collection): void {
+/** 双写:主键 + 副副本(2026-10-24)。写失败不再全静默 —— 至少留一条 warn,
+ *  否则「配额满导致图鉴永远不落盘」在线上完全不可见(论坛丢档就是这么来的)。 */
+function write(scenId: string, col: Collection): boolean {
+  const raw = JSON.stringify(col);
+  let ok = false;
   try {
-    localStorage.setItem(key(scenId), JSON.stringify(col));
-  } catch {
-    /* 隐私模式等:本次会话内仍有效 */
+    localStorage.setItem(key(scenId), raw);
+    ok = true;
+  } catch (e) {
+    console.warn('[青史志] 收藏写入失败(主键):', e instanceof Error ? e.message : e);
   }
+  try {
+    localStorage.setItem(bakKey(scenId), raw);
+    ok = true;
+  } catch (e) {
+    if (!ok) console.warn('[青史志] 收藏写入失败(副副本):', e instanceof Error ? e.message : e);
+  }
+  return ok;
 }
 
-/** 写回(合并式:结局达成记录由 recordEnding 维护,这里不能整份覆盖掉) */
+/** 写回(合并式,2026-10-24 改为并集):历史 ∪ 本局。
+ *  原实现是 `[...game.gloss]` 覆盖写 —— 只要某一局的历史注入缺失
+ *  (读档载荷自带老/空的 gloss、注入时机错位),一次落盘就把历史成就冲成当局子集。 */
 export function saveCollection(game: Game): void {
-  const col = loadCollection(game.d.SCENARIO.id) ?? empty();
-  col.gloss = [...game.gloss];
-  col.ach = [...game.ach];
-  write(game.d.SCENARIO.id, col);
+  const scenId = game.d.SCENARIO.id;
+  const prev = loadCollection(scenId) ?? empty();
+  const next = mergeCollections(prev, {
+    v: 1,
+    gloss: [...game.gloss],
+    ach: [...game.ach],
+    endings: {},
+  });
+  write(scenId, next);
 }
 
 /* 评级高低序(v2.1.0 十级制,对齐 engine.js 结局评级);
@@ -128,10 +185,41 @@ export function recordEnding(game: Game): { rec: EndingRec; reached: number; tot
     g: (GRADE_RANK[e.grade] ?? 0) >= (GRADE_RANK[prev?.g ?? '丁'] ?? 0) ? e.grade : normGrade(prev?.g ?? e.grade),
   };
   col.endings[k] = rec;
-  col.gloss = [...game.gloss];
-  col.ach = [...game.ach];
+  // 词条/成就同样并集写回(2026-10-24):结局落地这一笔不能顺带把历史成就缩水
+  col.gloss = [...new Set([...col.gloss, ...game.gloss])];
+  col.ach = [...new Set([...col.ach, ...game.ach])];
   write(scenId, col);
   return { rec, reached: Object.keys(col.endings).length, total: countEndings(game.d.ENDINGS) };
+}
+
+/* ---------- 云存档打包(2026-10-24 加) ----------
+ * 云存档原先只包 autos/stash,图鉴(结局/成就/词条)完全不在包里 ——
+ * 玩家清缓存、换设备、重装后,云档还在、图鉴全空,下一剧本还会被重新锁上。
+ * 现在把各剧本的收藏一起塞进云包;导入走并集合并,旧云包不会把本机新纪录抹掉。 */
+
+/** 各剧本收藏整包导出(键 = 剧本 key) */
+export function exportCollectionBundle(): Record<string, Collection> {
+  const out: Record<string, Collection> = {};
+  for (const s of SCENARIOS) {
+    const c = loadCollection(s.key);
+    if (c && (c.gloss.length || c.ach.length || Object.keys(c.endings).length)) out[s.key] = c;
+  }
+  return out;
+}
+
+/** 云包导入:逐剧本与本地并集合并后落盘;返回是否全部写入成功 */
+export function importCollectionBundle(b: unknown): boolean {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return false;
+  let ok = true;
+  for (const [scenId, v] of Object.entries(b as Record<string, unknown>)) {
+    if (!SCENARIOS.some((s) => s.key === scenId)) continue; // 不认识的剧本直接忽略
+    const incoming = parseCollection(JSON.stringify(v));
+    if (!incoming) continue;
+    const local = loadCollection(scenId);
+    const merged = local ? mergeCollections(local, incoming) : incoming;
+    if (!write(scenId, merged)) ok = false;
+  }
+  return ok;
 }
 
 /** 图鉴页用:取某剧本的达成记录(无存档则为空表) */

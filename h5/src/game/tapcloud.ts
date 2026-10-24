@@ -358,12 +358,18 @@ async function applyCloudBundle(t: TapGlobal, found: TapArchiveDetail): Promise<
     return false;
   }
   // autos/stash 必须是对象(桶可以为空,但不能是数组或字符串)
-  const s = bundle.saves as { autos?: unknown; stash?: unknown };
+  const s = bundle.saves as { autos?: unknown; stash?: unknown; col?: unknown };
   const autosOk = s.autos === undefined || (!!s.autos && typeof s.autos === 'object' && !Array.isArray(s.autos));
   const stashOk = s.stash === undefined || (!!s.stash && typeof s.stash === 'object' && !Array.isArray(s.stash));
+  // 收藏(col)可缺省(老云包没有);形状不对只跳过它,不连累存档整包
+  const colBad = s.col !== undefined && (!s.col || typeof s.col !== 'object' || Array.isArray(s.col));
   if (!autosOk || !stashOk) {
     console.warn('[青史志] 云端存档包结构非法(autos/stash 形状不对),已忽略');
     return false;
+  }
+  if (colBad) {
+    console.warn('[青史志] 云端包里的收藏形状不对,已跳过收藏部分');
+    (s as { col?: unknown }).col = undefined;
   }
 
   syncing = true;

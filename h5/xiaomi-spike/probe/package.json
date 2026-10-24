@@ -1,0 +1,10 @@
+{
+	"name": "probe",
+	"version": "0.0.1",
+	"main": "main.js",
+	"babel": {
+		"plugins": [
+			"babel-plugin-transform-remove-strict-mode"
+		]
+	}
+}

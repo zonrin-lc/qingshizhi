@@ -24,6 +24,7 @@
  * 另外场景级开关:SCENARIO.noSave 的剧本(契约下属"冥河")永不可存。
  */
 import type { DiffKey, Game } from '../../types/scenario';
+import { exportCollectionBundle, importCollectionBundle } from './collection';
 
 export interface SaveMeta {
   at: number;
@@ -382,17 +383,20 @@ export function removeStash(scenKey: string, idx: number): void {
  *    单向依赖:tapcloud → saves。
  * ========================================================================== */
 
-/** 整包结构:直接包两个 store,版本字段由 tapcloud 的云端信封管 */
+/** 整包结构:直接包两个 store,版本字段由 tapcloud 的云端信封管。
+ *  2026-10-24:额外带上跨局收藏(结局/成就/词条)—— 原包不含它,
+ *  清缓存/换设备后云档能回来、图鉴却全空,下一剧本还会被重新锁上。 */
 export interface SavesBundle {
   autos: AutoStore;
   stash: StashStore;
+  col?: Record<string, unknown>;
 }
 
 /** 覆写导入前的本地备份键:云端覆盖本地时先留一手,误杀可人工找回 */
 const BACKUP_KEY = 'qingshi.cloudbackup.v1';
 
 export function exportSavesBundle(): SavesBundle {
-  return { autos: readAutos(), stash: readStash() };
+  return { autos: readAutos(), stash: readStash(), col: exportCollectionBundle() };
 }
 
 /**
@@ -422,7 +426,11 @@ export function importSavesBundle(b: SavesBundle): boolean {
   }
   const okAutos = writeAutos(nextAutos);
   const okStash = writeStash(nextStash);
-  return okAutos && okStash;
+  // 收藏随包合并(2026-10-24):只在包里有 col 时才动,且走并集 ——
+  // 老云包没有这个字段,这里必须保持「不动本地收藏」而不是清空
+  let okCol = true;
+  if (b.col !== undefined) okCol = importCollectionBundle(b.col);
+  return okAutos && okStash && okCol;
 }
 
 /**

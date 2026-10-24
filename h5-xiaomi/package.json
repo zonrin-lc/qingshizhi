@@ -1,0 +1,14 @@
+{
+  "name": "qingshi-xiaomi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "《青史志》小米小游戏移植线:与 h5/ 同源，界面改为 canvas 2D 自绘",
+  "scripts": {
+    "assets": "node scripts/prepare-assets.mjs",
+    "dev": "npm run assets && vite",
+    "typecheck": "tsc --noEmit",
+    "build:qg": "npm run assets && rolldown -c rolldown.config.mjs",
+    "pack": "npm run build:qg && node scripts/pack-rpk.mjs"
+  }
+}
