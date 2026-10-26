@@ -54,3 +54,20 @@ h5/node_modules/.bin/*.cmd
 h5/node_modules/.bin/*.ps1
 h5/node_modules/@rolldown/binding-win32-*/
 h5/node_modules/lightningcss-win32-*/
+
+# ---- 2026-10-26 整理:不需 git 同步的本地内容 ----
+# 小米快游戏 spike 试验(含 149MB hybrid.apk 与整份 rpk/node_modules,超 GitHub 单文件上限)
+h5/xiaomi-spike/
+# 本地 Lua 跑子的依赖(npm 可重装)
+.lua-runner/node_modules/
+# 会话上传的参考图 / 调试截图
+_uploads/
+shots/
+# agent skill junction(install-skills 生成的本地链接,换机无效)
+.agents/
+.opencode/
+# h5-xiaomi 同 h5 策略:win32 壳与绑定不入库
+h5-xiaomi/node_modules/.bin/*.cmd
+h5-xiaomi/node_modules/.bin/*.ps1
+h5-xiaomi/node_modules/@rolldown/binding-win32-*/
+h5-xiaomi/node_modules/lightningcss-win32-*/
